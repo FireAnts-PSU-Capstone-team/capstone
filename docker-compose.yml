@@ -12,7 +12,7 @@ services:
         environment:
             POSTGRES_USER: cc
             POSTGRES_PASSWORD: pp
-            POSTGRES_DB: capstone
+            POSTGRES_DB: capstone-db
         # volume to persistent data
         volumes:
             # <local/path/to/store/data>:<path/inside/container>
@@ -30,4 +30,4 @@ services:
         depends_on:
             - db
         ports:
-            - "800:80"
+            - "80:80"
