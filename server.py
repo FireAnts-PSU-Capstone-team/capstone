@@ -1,7 +1,14 @@
 from flask import Flask, request, jsonify
-import driver
+import driver, os
+
+UPLOAD_FOLDER = 'files'
+ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
 
 app = Flask(__name__)
+
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 @app.route("/list", methods=["GET"])
@@ -36,25 +43,32 @@ def load_data():
 def upload_file():
     """
     POST <file> will trigger the Python code to ingest a spreadsheet into the database.
+    Usage: /file?file=</path/to/file.xlsx>
     Returns: HTTP response.
     """
-    response = ''
+    response_obj = {'status': 'Not work!'}
     if request.method == 'POST':
-        # right now, this is a dummy method, just illustrating that the response is returned
+        # print(request.files)
+        
         if 'file' in request.files:
             file = request.files['file']
+            print('file: ')
+            print(file)
             if file.filename == '' or file.filename is None:
-                return response
-            else:
-                driver.process_file(file)
+                response_obj = {'status': 'Failed'}
+
+            elif allowed_file(file.filename):
+                filename = f'{UPLOAD_FOLDER}/uploaded_' + file.filename
+                file.save(filename)
+                driver.process_file(filename)
                 response_obj = {'status': 'OK'}
-                response = jsonify(response_obj)
-    return response
+
+    return jsonify(response_obj)
 
 
 @app.route('/')
 def index():
-    return 'Hello World\n'
+    return 'Hello World'
 
 
 if __name__ == '__main__':
