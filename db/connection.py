@@ -1,5 +1,5 @@
 import psycopg2
-from dbConfig import pgSqlConfig
+from db.dbConfig import pgSqlConfig
 
 
 def pg_connect():

@@ -25,7 +25,7 @@ def dump_table():
         table_info_obj = driver.get_table(table_name)
         r = make_response(jsonify(table_info_obj), 200)
     except driver.InvalidTableException:
-        r = make_response(jsonify('Table ' + table_name + ' does not exist.\n'))
+        r = make_response(jsonify('Table ' + table_name + ' does not exist.\n'), 404)
     return r
 
 
@@ -37,7 +37,7 @@ def load_data():
     Returns ({}): HTTP response
     """
 
-    filename = 'files/Lists.xlsx'
+    filename = '../files/Lists.xlsx'
     driver.process_file(filename)
 
     # response_obj = {'status': 'OK'}
