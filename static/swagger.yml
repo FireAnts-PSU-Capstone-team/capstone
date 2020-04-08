@@ -40,8 +40,6 @@ paths:
       responses:
         200:
           description: Contents of table
-        404:
-          description: Table not found
         500:
           $ref: "#/responses/Standard500ErrorResponse"
 
