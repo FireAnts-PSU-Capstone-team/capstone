@@ -1,7 +1,5 @@
 /*
 This SQL file will be executed once the DB has set up.
-It will contain SQL command to set up required DBs and tables
-
 */
 
 CREATE TABLE IF NOT EXISTS test  (

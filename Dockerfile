@@ -1,10 +1,10 @@
 # pull official base image
 FROM python:3.6
 
-# set work directory
+# set working directory
 WORKDIR /server
 
-# copy project file to workdir
+# copy project file to working dir
 COPY . .
 
 # go to project dir and install dependencies

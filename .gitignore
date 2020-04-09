@@ -2,9 +2,9 @@
 # folders
 __pycache__
 bin
-
-
+pgdata
 
 # files
-.idea/*
+.idea
 *.exe
+uploaded_*.xlsx
