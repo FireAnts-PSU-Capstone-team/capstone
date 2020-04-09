@@ -8,7 +8,7 @@ services:
     
     # DB container
     db:
-        image: postgres
+        image: postgres:9.5
         environment:
             POSTGRES_USER: cc
             POSTGRES_PASSWORD: pp
@@ -18,7 +18,6 @@ services:
             # <local/path/to/store/data>:<path/inside/container>
             - ./pgdata:/var/lib/postgresql/data
             - ./sql/db-create.sql:/docker-entrypoint-initdb.d/init.sql
-            - ./files:/files
         
         ports:
             # <local/port>:<container/exposing/port>

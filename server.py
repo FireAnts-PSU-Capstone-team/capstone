@@ -3,14 +3,6 @@ import driver
 
 app = Flask(__name__)
 status_ok = "{'status':'OK'}\n"
-mj = 'application/json'
-mt = 'text/plain'
-allow_origin = 'Access-Control-Allow-Origin'
-sh_url = 'https://app.swaggerhub.com'
-allow_cred = 'Access-Control-Allow-Credentials'
-
-
-# TODO: cursor needs to persist if errors are encountered
 
 
 @app.route("/list", methods=["GET"])
