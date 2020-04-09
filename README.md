@@ -30,6 +30,18 @@ sudo docker stop <server-container> <db-container>
 ```
 Remove built server and PostgreSQL DB containers: `sudo docker-compose down`
 
+## launch.bash Usage
+
+In project folder:
+
+``` sh
+bash launch.bash clean          delete any existing version of the web server image
+bash launch.bash run            run the program
+bash launch.bash stop           stop the program
+bash launch.bash rebuid         remove all data and rebuild the program
+bash launch.bash rebuid-db      remove only DB data and re-run the program
+bash launch.bash test           test the program (for a fresh/new built program)
+```
 
 ## Troubleshooting
 If you get an error when running `sudo docker-compose up` indicating that port 5432 (Postgres) is already in use, you need to stop postgresql and try again:\
