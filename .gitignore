@@ -3,8 +3,6 @@
 __pycache__
 bin
 
-
-
 # files
-.idea/*
+.idea
 *.exe

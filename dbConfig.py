@@ -1,7 +1,16 @@
 #!/usr/bin/python
 from configparser import ConfigParser
 
+
 def pgSqlConfig(filename='database.ini', section='postgresql'):
+    """
+    Extracts configuration parameters from the .ini file
+    Args:
+        filename: file to parse
+        section: section of the file to read, if multiple are present
+    Returns: an object containing the config parameters
+    """
+
     # create a parser
     parser = ConfigParser()
     # read config file
