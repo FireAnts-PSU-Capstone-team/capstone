@@ -39,7 +39,7 @@ def load_data():
 
 # TODO: change this to a GET; any listed file must be in the files subdir and is consumed from there;
 #  ensure this folder is copied to the container
-@app.route("/file", methods=["GET"])
+@app.route("/file", methods=["POST"])
 def upload_file(file_name):
     """
     Triggers the Python code to ingest a spreadsheet named <file_name> into the database.
