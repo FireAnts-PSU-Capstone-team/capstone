@@ -1,11 +1,9 @@
-'''
-This is driver file that will contain program functions
-
-'''
 import pandas as pd
 import numpy as np
 import Connection as c
-import os,sys,time
+import os
+import sys
+import time
 from openpyxl import load_workbook
 
 
@@ -14,12 +12,9 @@ test_table = 'test'
 metadata_table = 'metadata'
 is_connect = 0
 wait_time = 0
-
-# create the postgresql cursor and connection
-
 while not is_connect:
     try:
-        pgSqlCur, pgSqlConn = c.pgSQLconnect()
+        pgSqlCur, pgSqlConn = c.pg_connect()
         is_connect = 1
     except:
         time.sleep(1)
@@ -28,6 +23,13 @@ while not is_connect:
 
 
 def fmt(s):
+    """
+    Formats an input element for SQL-friendly injection. Translates None to "NULL", quotes strings, and stringifies
+    non-textual arguments.
+    Args:
+        s: the input element
+    Returns (str): a SQL-friendly string representation
+    """
     if s is None:
         s = "NULL"
     else:
@@ -36,6 +38,10 @@ def fmt(s):
 
 
 def dump_tables():
+    """
+    Displays the contents of the tables in the database.
+    Returns: None
+    """
     print("Test:\n-------------------------------")
     pgSqlCur.execute("select * from test")
     rows = pgSqlCur.fetchall()
@@ -50,9 +56,12 @@ def dump_tables():
 
 
 def get_table(table_name):
-    ''' Return a JSON-like format of table info
-
-    '''
+    """
+    Return a JSON-like format of table data.
+    Args:
+        table_name: the table to fetch
+    Returns ([str]): an object-notated dump of the table
+    """
     result = []
     column_name = []
     pgSqlCur.execute(f"select * from {table_name}")
@@ -72,12 +81,18 @@ def get_table(table_name):
     return result
 
 
-def read_metadata(filename):
+def read_metadata(f):
+    """
+    Collects metadata about a spreadsheet to be consumed.
+    Args:
+        f (str): the filename of the spreadsheet
+    Returns (dict): the metadata collection
+    """
     data = {}
-    file_data = load_workbook(filename).properties.__dict__
-    os_data = os.stat(filename)
+    file_data = load_workbook(f).properties.__dict__
+    os_data = os.stat(f)
     
-    data['filename'] = fmt(os.path.basename(filename))
+    data['filename'] = fmt(os.path.basename(f))
     data['creator'] = fmt(file_data['creator'])
     data['size'] = os_data.st_size
     data['created'] = fmt(file_data['created'].strftime('%Y-%m-%d %H:%M:%S+08'))
@@ -88,17 +103,23 @@ def read_metadata(filename):
     return data
 
 
-def read_execel_file(filename):
-    # Read in the excel file into a dataframe object
-    df = pd.read_excel(filename)
-    df.head()
-
-    return df
+def load_spreadsheet(f):
+    """
+    Read the spreadsheet file into a dataframe object.
+    Args:
+        f (str): the filename of the spreadsheet to consume
+    Returns (dataframe): extracted data
+    """
+    return pd.read_excel(f)
 
 
 def write_info_data(df):
-    ''' Write data from execle to the information table
-    '''
+    """
+    Write data from spreadsheet to the information table.
+    Args:
+        df (dataframe): data from spreadsheet
+    Returns: None
+    """
     cmd = "INSERT INTO {}(id, firstname, lastname, city) VALUES({}, {}, {}, {}) ON CONFLICT DO NOTHING"
     # unclear what we want to do on collision; depends on data we're inserting
 
@@ -106,33 +127,39 @@ def write_info_data(df):
     for i in np.ndenumerate(df.values).iter.base:
         id_, firstname, lastname, city = i
         cf = cmd.format(test_table, id_, fmt(firstname), fmt(lastname), fmt(city))
-        print(cf)
+        # print(cf)
         pgSqlCur.execute(cf)
 
 
 def write_metadata(metadata):
-    ''' Write metadata of excel file into metadata table
-    '''
+    """
+    Write metadata of Excel file into metadata table.
+    Args:
+        metadata (dict): the metadata dictionary
+    Returns: None
+    """
     cmd = "INSERT INTO {}(filename, creator, size, created_date, last_modified_date, last_modified_by, title) " \
         "VALUES({},{},{},{},{},{},{}) ON CONFLICT DO NOTHING"
-    pgSqlCur.execute(cmd.format(metadata_table, metadata['filename'], metadata['creator'], metadata['size'], metadata['created'],  metadata['modified'],metadata['lastModifiedBy'], metadata['title']))
+    pgSqlCur.execute(cmd.format(metadata_table, metadata['filename'], metadata['creator'], metadata['size'],
+                                metadata['created'], metadata['modified'], metadata['lastModifiedBy'], metadata['title']))
 
 
-def populate_file(filename):
-    ''' Read an execel file
-        put info data into info table
-        put metadata into metadata table
-        commit DB
-    '''
+def process_file(f):
+    """
+    Read an Excel file; put info data into info table, metadata into metadata table
+    Args:
+        f (str): filename of spreadsheet
+    Returns: None
+    """
     # read file content
-    df = read_execel_file(filename)
+    df = load_spreadsheet(f)
     
     # Write the data to the DB
     write_info_data(df)
 
     # insert metadata into metadata table
     # should add version and revision to this schema, but don't know types yet
-    metadata = read_metadata(filename)
+    metadata = read_metadata(f)
     
     write_metadata(metadata)
 
@@ -140,18 +167,13 @@ def populate_file(filename):
     pgSqlConn.commit()
 
 
-def db_disconnect():
-    c.pgSqlDisconnect(pgSqlCur, pgSqlConn)
-
-
 def test_driver():
     # Pre-insert query
     print('Dump tables -------------------------------------------------')
     dump_tables()
 
-
     print('\nInsert data -------------------------------------------------')
-    #populate_file(filename)
+    process_file(filename)
 
     # three options for collisions:
     # 1. do nothing (discard new row; probably want to return an error to the user in this case)
@@ -165,18 +187,14 @@ def test_driver():
     # unfortunately, it looks like 'creator' and 'created' are both fabricated by openpyxl, so we may need to find
     # a different way to capture that data if we want to keep them
 
-
-
-
     # Post insert query, verify data is inserted
     print('\nDump tables -------------------------------------------------')
     dump_tables()
 
-
     # close the db connection
-    db_disconnect()
+    c.pg_disconnect(pgSqlCur, pgSqlConn)
 
 
-# test_driver()
-# print(get_table('test'))
-
+if __name__ == '__main__':
+    test_driver()
+    print(get_table('test'))
