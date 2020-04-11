@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+import psycopg2
+
 import Connection as c
 import os
 import sys
@@ -53,6 +55,26 @@ def dump_tables():
     rows = pgSqlCur.fetchall()
     for row in rows:
         print(row)
+        
+        
+def table_exists(cur, table):
+    exists = False
+    try:
+        cur.execute("select exists(select relname from pg_class where relname='" + table + "')")
+        exists = cur.fetchone()[0]
+        print(exists)
+        cur.close()
+    except psycopg2.Error as e:
+        print(e)
+    return exists
+        
+
+# TODO: error handling
+class InvalidTableException(Exception):
+    """
+    Thrown when the specified table does not exist.
+    """
+    pass
 
 
 def get_table(table_name):
@@ -64,6 +86,10 @@ def get_table(table_name):
     """
     result = []
     column_name = []
+    
+    if not table_exists(pgSqlCur, table_name):
+        raise InvalidTableException
+    
     pgSqlCur.execute(f"select * from {table_name}")
     rows = pgSqlCur.fetchall()
     
@@ -81,6 +107,7 @@ def get_table(table_name):
     return result
 
 
+# TODO: error handling
 def read_metadata(f):
     """
     Collects metadata about a spreadsheet to be consumed.
@@ -103,6 +130,7 @@ def read_metadata(f):
     return data
 
 
+# TODO: validate filename and respond without throwing
 def load_spreadsheet(f):
     """
     Read the spreadsheet file into a dataframe object.
@@ -144,13 +172,22 @@ def write_metadata(metadata):
                                 metadata['created'], metadata['modified'], metadata['lastModifiedBy'], metadata['title']))
 
 
+# TODO: catch exceptions and respond appropriately
 def process_file(f):
     """
     Read an Excel file; put info data into info table, metadata into metadata table
     Args:
         f (str): filename of spreadsheet
-    Returns: None
+    Returns (bool): True if successful, else False
     """
+
+    # validate file exists
+    if not os.path.exists(f):
+        if os.path.exists('files/' + f):
+            f = 'files/' + f
+        else:
+            return False
+
     # read file content
     df = load_spreadsheet(f)
     
@@ -165,6 +202,8 @@ def process_file(f):
 
     # commit execution
     pgSqlConn.commit()
+
+    return True
 
 
 def test_driver():
