@@ -39,7 +39,7 @@ SET default_table_access_method = heap;
 
 CREATE TABLE IF NOT EXISTS metadata (
     filename TEXT NOT NULL,
-    creator TEXT NOT NULL,
+    creator TEXT,
     size INT,
     created_date TIMESTAMP,
     last_modified_date TIMESTAMP,
