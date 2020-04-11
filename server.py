@@ -1,7 +1,8 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response, make_response
 import driver
 
 app = Flask(__name__)
+status_ok = "{'status':'OK'}\n"
 
 
 @app.route("/list", methods=["GET"])
@@ -12,10 +13,15 @@ def dump_table():
     Returns ({}): JSON object of table data
     """
     table_name = request.args.get('table', '')
-    table_info_obj = driver.get_table(table_name)
-    return jsonify(table_info_obj)
+    try:
+        table_info_obj = driver.get_table(table_name)
+        r = make_response(jsonify(table_info_obj), 200)
+    except driver.InvalidTableException:
+        r = make_response(jsonify('Table ' + table_name + ' does not exist.\n'))
+    return r
 
 
+# TODO: stub method
 @app.route("/load", methods=["GET"])
 def load_data():
     """
@@ -26,35 +32,47 @@ def load_data():
     filename = 'files/Lists.xlsx'
     driver.process_file(filename)
 
-    response_obj = {'status': 'OK'}
+    # response_obj = {'status': 'OK'}
+    # response = jsonify(response_obj)
+    return make_response(status_ok, 200)
 
-    response = jsonify(response_obj)
-    return response
 
-
+# TODO: change this to a GET; any listed file must be in the files subdir and is consumed from there;
+#  ensure this folder is copied to the container
 @app.route("/file", methods=["POST"])
-def upload_file():
+def upload_file(file_name):
     """
-    POST <file> will trigger the Python code to ingest a spreadsheet into the database.
+    Triggers the Python code to ingest a spreadsheet named <file_name> into the database.
+    Usage: /file?file=</path/to/file.xlsx>
     Returns: HTTP response.
     """
-    response = ''
     if request.method == 'POST':
-        # right now, this is a dummy method, just illustrating that the response is returned
-        if 'file' in request.files:
-            file = request.files['file']
-            if file.filename == '' or file.filename is None:
-                return response
+        if file_name == '' or 'file' not in request.files:
+            r = make_response('No file listed\n', 400)
+        else:
+            success = driver.process_file(file_name)
+            if success:
+                r = make_response('File processed successfully\n', 200)
             else:
-                driver.process_file(file)
-                response_obj = {'status': 'OK'}
-                response = jsonify(response_obj)
-    return response
+                r = make_response('File could not be found\n', 400)
+    else:
+        r = make_response('Unsupported operation\n', 404)
+    return r
+
+
+@app.route('/metadata', methods=['GET'])
+def show_metadata():
+    """
+    Display the contents of the metadata table.
+    Returns: response object containing the contents of the table.
+    """
+    response_body = jsonify(driver.get_table('metadata'))
+    return make_response(response_body, 200)
 
 
 @app.route('/')
-def index():
-    return 'Hello World\n'
+def hello_world():
+    return make_response('Hello World\n', 200)
 
 
 if __name__ == '__main__':

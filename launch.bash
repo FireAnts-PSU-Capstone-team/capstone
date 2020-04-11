@@ -19,6 +19,7 @@ trap "trap_ctrlc" 2
 
 # accept an argument of "clean", but nothing else
 if [[ $1 == "clean" ]]; then
+  sudo rm -rf pgdata
   sudo docker image rm flask-server:v1
 elif [[ $1 != "" ]]; then
   usage

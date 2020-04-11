@@ -1,0 +1,97 @@
+swagger: "2.0"
+
+info:
+  version: 1.0.0
+  title: TBD
+  description: Spreadsheet ingestor and data management tool for Bureau of Planning and Sustainability's cannabis program.
+  contact:
+    name: Project Lead
+    email: andrew13haley@gmail.com
+
+schemes:
+  - http
+host: localhost:80
+basePath: /
+
+paths:
+
+  /metadata:
+    get:
+      summary: View file metadata
+      description: Displays the contents of the metadata table.
+      responses:
+        200:
+          description: Contents of metadata table
+          schema:
+            $ref: "#/definitions/Metadata"
+        500:
+          $ref: "#/responses/Standard500ErrorResponse"
+
+  /list:
+    get:
+      summary: Displays the contents of a table
+      description: Returns a list of the table's records
+      parameters:
+        - name: table
+          in: query
+          description: Name of table to display
+          type: string
+          required: true
+      responses:
+        200:
+          description: Contents of table
+        500:
+          $ref: "#/responses/Standard500ErrorResponse"
+
+  /file:
+    post:
+      summary: Uploads a file
+      description: Add the contents of a file to the database. The file must be located in the /files directory.
+      parameters:
+        - name: filename
+          in: query
+          required: true
+          description: Name of file to process
+          type: string
+      responses:
+        200:
+          description: File successfully consumed
+        400:
+          description: File name not supplied
+        404:
+          description: File could not be located
+        500:
+          $ref: "#/responses/Standard500ErrorResponse"
+
+definitions:
+  Metadata:
+    properties:
+      filename:
+        type: string
+      creator:
+        type: string
+      size:
+        type: integer
+        minimum: 0
+      created:
+        type: string
+        format: date-time
+      modified:
+        type: string
+        format: date-time
+      lastModifiedBy:
+        type: string
+      title:
+        type: string
+  Error:
+    properties:
+      code:
+        type: string
+      message:
+        type: string
+
+responses:
+  Standard500ErrorResponse:
+    description: An unexpected error occured.
+    schema:
+      $ref: "#/definitions/Error"
