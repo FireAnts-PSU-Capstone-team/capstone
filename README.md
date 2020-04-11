@@ -6,7 +6,7 @@
 - Connor Kazmierczak
 - Ha Ly
 - Sean Mitchell
-- Huanhua Su
+- Kanra Su
 - Alicja Wolak
 
 

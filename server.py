@@ -1,8 +1,14 @@
 from flask import Flask, request, jsonify, Response, make_response
-import driver
+import driver, os
+
+UPLOAD_FOLDER = 'files'
+ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
 
 app = Flask(__name__)
-status_ok = "{'status':'OK'}\n"
+status_ok = "{'status':'OK'}"
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 @app.route("/list", methods=["GET"])
@@ -17,7 +23,7 @@ def dump_table():
         table_info_obj = driver.get_table(table_name)
         r = make_response(jsonify(table_info_obj), 200)
     except driver.InvalidTableException:
-        r = make_response(jsonify('Table ' + table_name + ' does not exist.\n'))
+        r = make_response(jsonify('Table ' + table_name + ' does not exist.'))
     return r
 
 
@@ -40,24 +46,37 @@ def load_data():
 # TODO: change this to a GET; any listed file must be in the files subdir and is consumed from there;
 #  ensure this folder is copied to the container
 @app.route("/file", methods=["POST"])
-def upload_file(file_name):
+def upload_file():
     """
     Triggers the Python code to ingest a spreadsheet named <file_name> into the database.
     Usage: /file?file=</path/to/file.xlsx>
     Returns: HTTP response.
     """
     if request.method == 'POST':
-        if file_name == '' or 'file' not in request.files:
-            r = make_response('No file listed\n', 400)
+
+        if 'file' not in request.files:
+            return make_response('No file listed', 400)
         else:
-            success = driver.process_file(file_name)
+            file = request.files['file']
+
+            if file.filename == '' or file.filename is None:
+                return make_response('No filename', 400)
+            
+
+            if not allowed_file(file.filename):
+                return make_response(f'Filename \"{file.filename}\" is not supported.', 400)
+
+            filename = f'{UPLOAD_FOLDER}/uploaded_' + file.filename
+            file.save(filename)
+            success = driver.process_file(filename)
+            
             if success:
-                r = make_response('File processed successfully\n', 200)
+                return make_response('File processed successfully', 200)
             else:
-                r = make_response('File could not be found\n', 400)
-    else:
-        r = make_response('Unsupported operation\n', 404)
-    return r
+                return make_response('File could not be found', 400)
+    
+    return make_response('Unsupported operation', 404)
+
 
 
 @app.route('/metadata', methods=['GET'])
@@ -72,7 +91,7 @@ def show_metadata():
 
 @app.route('/')
 def hello_world():
-    return make_response('Hello World\n', 200)
+    return make_response('Hello World', 200)
 
 
 if __name__ == '__main__':
