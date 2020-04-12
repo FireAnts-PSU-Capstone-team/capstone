@@ -1,8 +1,8 @@
-from flask import Flask, request, jsonify, Response, make_response
+from flask import Flask, request, jsonify, make_response
 import driver
 
 app = Flask(__name__)
-status_ok = "{'status':'OK'}\n"
+status_ok = "{'status':'OK'}"
 
 
 @app.route("/list", methods=["GET"])
@@ -17,37 +17,36 @@ def dump_table():
         table_info_obj = driver.get_table(table_name)
         r = make_response(jsonify(table_info_obj), 200)
     except driver.InvalidTableException:
-        r = make_response(jsonify('Table ' + table_name + ' does not exist.\n'))
+        r = make_response(jsonify('Table ' + table_name + ' does not exist.'))
     return r
 
 
-# TODO: stub method
-@app.route("/load", methods=["GET"])
+@app.route("/load", methods=["POST"])
 def load_data():
     """
     Stub for a method to load data into one of the tables, e.g. via GUI
     Returns ({}): HTTP response
     """
+    # TODO: change single-row insert to PUT
+    if request.method == 'POST':
+        row_data = request.get_json()
+        return row_data
+        # driver.insert_row('public."Intake"', row_data)
+        # # TODO: find a way to make this return something meaningful
+        # return make_response(status_ok, 200)
+    return make_response(jsonify('POST failed'), 400)
 
-    filename = 'files/Lists.xlsx'
-    driver.process_file(filename)
 
-    # response_obj = {'status': 'OK'}
-    # response = jsonify(response_obj)
-    return make_response(status_ok, 200)
-
-
-# TODO: change this to a GET; any listed file must be in the files subdir and is consumed from there;
-#  ensure this folder is copied to the container
 @app.route("/file", methods=["POST"])
-def upload_file(file_name):
+def upload_file():
     """
     Triggers the Python code to ingest a spreadsheet named <file_name> into the database.
     Usage: /file?file=</path/to/file.xlsx>
     Returns: HTTP response.
     """
+    file_name = request.args.get('file', '')
     if request.method == 'POST':
-        if file_name == '' or 'file' not in request.files:
+        if file_name == '':
             r = make_response('No file listed\n', 400)
         else:
             success = driver.process_file(file_name)
