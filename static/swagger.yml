@@ -43,7 +43,7 @@ paths:
         500:
           $ref: "#/responses/Standard500ErrorResponse"
 
-  /file:
+  /load:
     post:
       summary: Uploads a file
       description: Add the contents of a file to the database. The file must be located in the /files directory.
@@ -60,6 +60,22 @@ paths:
           description: File name not supplied
         404:
           description: File could not be located
+        500:
+          $ref: "#/responses/Standard500ErrorResponse"
+    put:
+      summary: Inserts a row
+      description: Upload a single row and insert it into the named table.
+      parameters:
+        - name: table
+          in: query
+          required: true
+          description: Name of table to insert into
+          type: string
+      responses:
+        200:
+          description: Row insertion successful
+        400:
+          description: Table name not supplied
         500:
           $ref: "#/responses/Standard500ErrorResponse"
 
