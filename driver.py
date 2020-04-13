@@ -7,6 +7,7 @@ import os
 import sys
 import time
 from openpyxl import load_workbook
+from validation import validate_data_file
 
 
 filename = 'files/Lists.xlsx'
@@ -188,6 +189,9 @@ def process_file(f):
 
     # read file content
     df = load_spreadsheet(f)
+
+    #Validat data frame
+    df = validate_data_file(df)
     
     # Write the data to the DB
     write_info_data(df)
