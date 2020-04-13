@@ -39,7 +39,8 @@ def load_data():
         else:
             row_data = IntakeRow(request.get_json()).value_array()
             driver.insert_row(table_name, row_data)  # change this to take table from param
-            # # TODO: find a way to make this return something meaningful
+            # TODO: find a way to make this return something meaningful
+            # e.g., return 404 if table doesn't exist
             r = make_response('PUT complete\n', 200)
     elif request.method == 'POST':
         file_name = request.args.get('file', '')

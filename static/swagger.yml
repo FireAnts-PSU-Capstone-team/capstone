@@ -43,7 +43,7 @@ paths:
         500:
           $ref: "#/responses/Standard500ErrorResponse"
 
-  /file:
+  /load:
     post:
       summary: Uploads a file
       description: Add the contents of a file to the database. The file must be located in the /files directory.
@@ -62,8 +62,82 @@ paths:
           description: File could not be located
         500:
           $ref: "#/responses/Standard500ErrorResponse"
+    put:
+      summary: Inserts a row
+      description: Upload a single row and insert it into the named table.
+      parameters:
+        - name: table
+          in: query
+          required: true
+          description: Name of table to insert into
+          type: string
+      responses:
+        200:
+          description: Row insertion successful
+        400:
+          description: Table name not supplied
+        500:
+          $ref: "#/responses/Standard500ErrorResponse"
 
 definitions:
+  Intake:
+    properties:
+      row:
+        type: integer
+      Submission date:
+        type: string
+        format: date-time
+      Entity:
+        type: string
+      DBA:
+        type: string
+      Facility Address:
+        type: string
+      "Facility Suite #":
+        type: string
+      Facility Zip:
+        type: string
+      Mailing Address:
+        type: string
+      MRL:
+        type: string
+      Neighborhood Association:
+        type: string
+      Compliance Region:
+        type: string
+      Primary Contact First Name:
+        type: string
+      Primary Contact Last Name:
+        type: string
+      Email:
+        type: string
+      Phone:
+        type: string
+      Endorse Type:
+        type: string
+      License Type:
+        type: string
+      "Repeat location?":
+        type: string
+      "App complete?":
+        type: string
+      Fee Schedule:
+        type: string
+      Receipt No.:
+        type: integer
+      Cash Amount:
+        type: string
+      Check Amount:
+        type: string
+      Card Amount:
+        type: string
+      Check No. / Approval Code:
+        type: string
+      "MRL#":
+        type: string
+      Notes:
+        type: string
+
   Metadata:
     properties:
       filename:
@@ -83,6 +157,7 @@ definitions:
         type: string
       title:
         type: string
+
   Error:
     properties:
       code:
