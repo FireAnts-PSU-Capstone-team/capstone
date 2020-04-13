@@ -179,6 +179,63 @@ class TestServerApp(unittest.TestCase):
     #     deleteResponse = self.client().delete('/cannabisdb/999')
     #     self.assertEqual(deleteResponse.status_code, 400)
 
+        # Edit this newly added data
+        new_data = {'firstname': 'Jane', 'lastname': 'Smith', 'city': 'Kampala'}
+        editResponse = self.client().put('/cannabisdb/1', data=new_data)
+        self.assertEqual(editResponse.status_code, 200)
+
+        # Check if data is editted
+        getResponse = self.client().get('/cannabisdb/')
+        self.assertEqual(getResponse.status_code, 200)
+        self.assertIn('Kampala', str(getResponse.data))
+
+    def test_api_can_reject_empty_data_when_editing(self):
+        """Api should reject when user attempts to edit data with empty data. (PUT)"""
+        # Add some data to be editted
+        addResponse = self.client().post('/cannabisdb/', data=self.data)
+        self.assertEqual(addResponse.status_code, 200)
+
+        # Edit this newly added data with nothing, should fail
+        editResponse = self.client().put('/cannabisdb/1')
+        self.assertEqual(editResponse.status_code, 400)
+
+        # Check that data has not been edited
+        getResponse = self.client().get('/cannabisdb/')
+        self.assertEqual(getResponse.status_code, 200)
+        self.assertIn('Pyongyang', str(getResponse.data))
+
+    def test_api_can_reject_missing_data_when_editing(self):
+        """Api should reject when user attempts to edit data with data that has missing fields. (PUT)"""
+        # Add some data to be editted
+        addResponse = self.client().post('/cannabisdb/', data=self.data)
+        self.assertEqual(addResponse.status_code, 200)
+
+        # Edit this newly added data with missing data
+        new_data = {'firstname': 'Jane', 'lastname': 'Smith'}
+        editResponse = self.client().put('/cannabisdb/1', data=new_data)
+        self.assertEqual(editResponse.status_code, 400)
+
+        # Check that data has not been edited
+        getResponse = self.client().get('/cannabisdb/')
+        self.assertEqual(getResponse.status_code, 200)
+        self.assertIn('Pyongyang', str(getResponse.data))
+
+    def test_api_can_reject_invalid_data_when_editing(self):
+        """Api should reject when user attempts to edit data with data that has invalid fields. (PUT)"""
+        # Add some data to be editted
+        addResponse = self.client().post('/cannabisdb/', data=self.data)
+        self.assertEqual(addResponse.status_code, 200)
+
+        # Edit this newly added data with invalid data
+        new_data = {'first': 'Jane'}
+        editResponse = self.client().put('/cannabisdb/1', data=new_data)
+        self.assertEqual(editResponse.status_code, 400)
+
+        # Check that data has not been edited
+        getResponse = self.client().get('/cannabisdb/')
+        self.assertEqual(getResponse.status_code, 200)
+        self.assertIn('Pyongyang', str(getResponse.data))
+
     def tearDown(self):
         """teardown all initialized variables."""
         db_connection.pg_disconnect(self.cur, self.conn)
