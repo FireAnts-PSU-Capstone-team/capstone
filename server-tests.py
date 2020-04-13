@@ -185,14 +185,9 @@ class TestServerApp(unittest.TestCase):
 
         with self.app.app_context():
             # drop all tables
-<<<<<<< HEAD
             sql_alchemy.session.remove()
             sql_alchemy.drop_all()
 
-=======
-            db.session.remove()
-            db.drop_all()
->>>>>>> 878015c... Refactor
 
 # Make the tests conveniently executable
 if __name__ == "__main__":
