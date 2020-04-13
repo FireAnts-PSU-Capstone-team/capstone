@@ -143,7 +143,7 @@ class TestServerApp(unittest.TestCase):
         self.assertEqual(getResponse.status_code, 200)
         self.assertNotIn('Pyongyang', str(getResponse.data))
 
-    def tets_api_can_reject_nonexistent_data_when_deleting(self):
+    def test_api_can_reject_nonexistent_data_when_deleting(self):
         """Api should reject when user attempts to delete data that does not exist. (DELETE)"""
         # Delete some data that should not exist
         deleteResponse = self.client().delete('/cannabisdb/999')
