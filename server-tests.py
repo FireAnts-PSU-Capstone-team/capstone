@@ -31,18 +31,34 @@ class TestServerApp(unittest.TestCase):
 
     def test_api_can_add_data(self):
         """Api should add data to a table (POST)."""
+        # Add some data
         response = self.client().post('/cannabisdb/', data=self.data)
         self.assertEqual(response.status_code, 200)
+
+        # Check that data is added
+        getResponse = self.client().get('/cannabisdb/')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Pyongyang', str(response.data))
 
     def test_api_can_reject_missing_data_when_adding(self):
         """Api should reject when user attempts to add data with missing fields. (POST)"""
         response = self.client().post('cannabisdb/', data={'firstname': 'John'})
         self.assertEqual(response.status_code, 400)
 
+        # Check that data hasn't been added
+        getResponse = self.client().get('/cannabisdb/')
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn('John', str(getResponse.data))
+
     def test_api_can_reject_invalid_data_when_adding(self):
         """Api should reject when user attempts to add data with invalid fields. (POST)"""
         response = self.client().post('/cannabisdb/', data={'first': 'John'})
         self.assertEqual(response.status_code, 400)
+
+        # Check that data hasn't been added
+        getResponse = self.client().get('/cannabisdb/')
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn('John', str(getResponse.data))
 
     def test_api_can_reject_empty_data_when_adding(self):
         """Api should reject when user attempts to add empty data. (POST)"""
