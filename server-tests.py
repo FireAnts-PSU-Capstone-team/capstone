@@ -236,6 +236,27 @@ class TestServerApp(unittest.TestCase):
         self.assertEqual(getResponse.status_code, 200)
         self.assertIn('Pyongyang', str(getResponse.data))
 
+    def test_api_can_delete_data(self):
+        """Api should delete existing data. (DELETE)"""
+        # Add some data to be deleted
+        addResponse = self.client().post('/cannabisdb/', data=self.data)
+        self.assertEqual(addResponse.status_code, 200)
+
+        # Delete this newly added data
+        deleteResponse = self.client().delete('/cannabisdb/1')
+        self.assertEqual(deleteResponse.status_code, 200)
+
+        # Check if data has been deleted
+        getResponse = self.client().get('/cannabisdb/')
+        self.assertEqual(getResponse.status_code, 200)
+        self.assertNotIn('Pyongyang', str(getResponse.data))
+
+    def tets_api_can_reject_nonexistent_data_when_deleting(self):
+        """Api should reject when user attempts to delete data that does not exist. (DELETE)"""
+        # Delete some data that should not exist
+        deleteResponse = self.client().delete('/cannabisdb/999')
+        self.assertEqual(deleteResponse.status_code, 400)
+
     def tearDown(self):
         """teardown all initialized variables."""
         db_connection.pg_disconnect(self.cur, self.conn)
