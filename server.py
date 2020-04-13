@@ -1,8 +1,9 @@
 from flask import Flask, request, jsonify, make_response
 import driver
+from IntakeRow import IntakeRow
 
 app = Flask(__name__)
-status_ok = "{'status':'OK'}"
+status_ok = "{'status':'OK'}\n"
 
 
 @app.route("/list", methods=["GET"])
@@ -21,20 +22,19 @@ def dump_table():
     return r
 
 
-@app.route("/load", methods=["POST"])
+@app.route("/load", methods=["PUT"])
 def load_data():
     """
     Stub for a method to load data into one of the tables, e.g. via GUI
     Returns ({}): HTTP response
     """
     # TODO: change single-row insert to PUT
-    if request.method == 'POST':
-        row_data = request.get_json()
-        return row_data
-        # driver.insert_row('public."Intake"', row_data)
+    if request.method == 'PUT':
+        row_data = IntakeRow(request.get_json()).value_array()
+        driver.insert_row('intake', row_data)  # change this to take table from param
         # # TODO: find a way to make this return something meaningful
-        # return make_response(status_ok, 200)
-    return make_response(jsonify('POST failed'), 400)
+        return make_response(status_ok, 200)
+    return make_response(jsonify('PUT failed'), 400)
 
 
 @app.route("/file", methods=["POST"])
@@ -42,7 +42,7 @@ def upload_file():
     """
     Triggers the Python code to ingest a spreadsheet named <file_name> into the database.
     Usage: /file?file=</path/to/file.xlsx>
-    Returns: HTTP response.
+    Returns ({}): HTTP response.
     """
     file_name = request.args.get('file', '')
     if request.method == 'POST':
@@ -63,7 +63,7 @@ def upload_file():
 def show_metadata():
     """
     Display the contents of the metadata table.
-    Returns: response object containing the contents of the table.
+    Returns ({}): response object containing the contents of the table.
     """
     response_body = jsonify(driver.get_table('metadata'))
     return make_response(response_body, 200)

@@ -64,11 +64,19 @@ def dump_tables():
         
         
 def table_exists(cur, table):
+    """
+    Checks whether the named table exists.
+    Args:
+        cur ({}): the Postgres cursor
+        table (str): the table to validate
+    Returns (bool): whether the table was found
+
+    """
     try:
         cur.execute("select exists(select relname from pg_class where relname='" + table + "')")
         exists = cur.fetchone()[0]
     except psycopg2.Error:
-        return False
+        exists = False
     return exists
         
 
@@ -177,6 +185,14 @@ def write_metadata(metadata):
 # TODO: once tables are modeled as classes, change this function to take an iterable of the schema
 # so we can insert into an arbitrary table
 def insert_row(table, row):
+    """
+    Insert an array of values into the specified table.
+    Args:
+        table (str): name of table to insert into
+        row ([]): row of values to insert
+    Returns: None
+
+    """
     cmd = f"INSERT INTO {table} VALUES (DEFAULT"
     for i in range(1, len(row)):
         cmd += f", {fmt(row[i])}"
