@@ -22,30 +22,27 @@ def dump_table():
     return r
 
 
-@app.route("/load", methods=["PUT"])
+@app.route("/load", methods=["PUT", "POST"])
 def load_data():
     """
-    Stub for a method to load data into one of the tables, e.g. via GUI
+    Load data into the database. PUT inserts a single row; POST uploads a file.
+    Usage:
+        PUT: /load?table=<table> -H "Content-Type: application/json" -d [<JSON object> | <filename>]
+        POST: /load?file=</path/to/file.xlsx>
     Returns ({}): HTTP response
     """
-    # TODO: change single-row insert to PUT
+    # TODO: add error handling if JSON schema doesn't match
     if request.method == 'PUT':
-        row_data = IntakeRow(request.get_json()).value_array()
-        driver.insert_row('intake', row_data)  # change this to take table from param
-        # # TODO: find a way to make this return something meaningful
-        return make_response(status_ok, 200)
-    return make_response(jsonify('PUT failed'), 400)
-
-
-@app.route("/file", methods=["POST"])
-def upload_file():
-    """
-    Triggers the Python code to ingest a spreadsheet named <file_name> into the database.
-    Usage: /file?file=</path/to/file.xlsx>
-    Returns ({}): HTTP response.
-    """
-    file_name = request.args.get('file', '')
-    if request.method == 'POST':
+        table_name = request.args.get('table')
+        if table_name is None:
+            r = make_response('Table name not specified\n', 400)
+        else:
+            row_data = IntakeRow(request.get_json()).value_array()
+            driver.insert_row(table_name, row_data)  # change this to take table from param
+            # # TODO: find a way to make this return something meaningful
+            r = make_response('PUT complete\n', 200)
+    elif request.method == 'POST':
+        file_name = request.args.get('file', '')
         if file_name == '':
             r = make_response('No file listed\n', 400)
         else:
