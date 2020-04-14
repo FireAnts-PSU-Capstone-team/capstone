@@ -38,7 +38,7 @@ def load_data():
             r = make_response('Table name not specified\n', 400)
         else:
             row_data = IntakeRow(request.get_json()).value_array()
-            driver.insert_row(table_name, row_data)  # change this to take table from param
+            driver.insert_row(table_name, row_data)
             # TODO: find a way to make this return something meaningful
             # e.g., return 404 if table doesn't exist
             r = make_response('PUT complete\n', 200)
@@ -73,4 +73,4 @@ def hello_world():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=80, debug=True)
+    app.run(host='0.0.0.0', port=800, debug=True)

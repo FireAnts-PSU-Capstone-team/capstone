@@ -36,8 +36,8 @@ If you get an error when running `sudo docker-compose up` indicating that port 5
 `sudo service postgresql stop`
 
 ## Interacting with the server
-You can open a browser and go to [http://localhost:80](http://localhost:80) to connect to the running API. From here, you can hit any of the endpoints specified in the `server.py` file.
+You can open a browser and go to [http://localhost:800](http://localhost:800) to connect to the running API. From here, you can hit any of the endpoints specified in the `server.py` file.
 
 You can also query the API from the command line, using `curl`.\
-List the contents of the `test` database: `curl http://localhost:80/list?table=test`\
-Post the `Lists.xlsx` file to the `/file` endpoint: `curl -X POST -F filename="files/Lists.xlsx" http://localhost:80/file`
+List the contents of the `test` database: `curl http://localhost:800/list?table=test`\
+Post the `Lists.xlsx` file to the `/file` endpoint: `curl -X POST -F filename="files/Lists.xlsx" http://localhost:800/file`

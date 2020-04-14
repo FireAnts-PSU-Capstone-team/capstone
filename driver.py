@@ -9,12 +9,10 @@ import time
 from openpyxl import load_workbook
 
 
-# TODO: idea: save spreadsheet into CSV, then read from there to avoid crazy formatting stuff
-
-
 test_file = 'files/sample.xlsx'
 primary_table = 'intake'
 metadata_table = 'metadata'
+
 is_connected = False
 wait_time = 0
 while not is_connected:
@@ -163,12 +161,9 @@ def write_info_data(df):
         df (dataframe): data from spreadsheet
     Returns: None
     """
-    # unclear what we want to do on collision; depends on data we're inserting
-
-    # potential missing functionality is ability to create a table from a spreadsheet with a non-pre-existing schema
     row_array = np.ndenumerate(df.values).iter.base
-    for i in range(0, len(row_array)):
-        insert_row(primary_table, row_array[i])
+    for row in row_array:
+        insert_row(primary_table, row)
 
 
 def write_metadata(metadata):

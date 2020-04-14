@@ -10,6 +10,6 @@ COPY . .
 # go to project dir and install dependencies
 RUN cd /server && pip install -r requirements.txt
 
-EXPOSE 80
+EXPOSE 800
 
 CMD [ "python3" ,"/server/server.py"]
