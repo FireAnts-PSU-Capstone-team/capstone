@@ -3,14 +3,14 @@ swagger: "2.0"
 info:
   version: 1.0.0
   title: TBD
-  description: Spreadsheet ingestor and data management tool for Bureau of Planning and Sustainability's cannabis program.
+  description: Spreadsheet ingestor and data management tool for the Department of Community and Civic Life's cannabis licensing program.
   contact:
     name: Project Lead
     email: andrew13haley@gmail.com
 
 schemes:
   - http
-host: localhost:80
+host: localhost:800
 basePath: /
 
 paths:
@@ -23,7 +23,7 @@ paths:
         200:
           description: Contents of metadata table
           schema:
-            $ref: "#/definitions/Metadata"
+            $ref: "#/definitions/metadata"
         500:
           $ref: "#/responses/Standard500ErrorResponse"
 
@@ -53,6 +53,11 @@ paths:
           required: true
           description: Name of file to process
           type: string
+        - name: payload
+          in: body
+          required: true
+          schema:
+            $ref: "#/definitions/intake"
       responses:
         200:
           description: File successfully consumed
@@ -71,6 +76,12 @@ paths:
           required: true
           description: Name of table to insert into
           type: string
+        - name: row
+          in: body
+          required: true
+          description: JSON object of row to insert
+          schema:
+            $ref: "#/definitions/intake"
       responses:
         200:
           description: Row insertion successful
@@ -80,7 +91,8 @@ paths:
           $ref: "#/responses/Standard500ErrorResponse"
 
 definitions:
-  Intake:
+  intake:
+    type: object
     properties:
       row:
         type: integer
@@ -138,7 +150,7 @@ definitions:
       Notes:
         type: string
 
-  Metadata:
+  metadata:
     properties:
       filename:
         type: string
