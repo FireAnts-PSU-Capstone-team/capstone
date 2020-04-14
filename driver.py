@@ -75,8 +75,10 @@ def table_exists(cur, table):
     try:
         cur.execute("select exists(select relname from pg_class where relname='" + table + "')")
         exists = cur.fetchone()[0]
+
     except psycopg2.Error:
         exists = False
+
     return exists
         
 

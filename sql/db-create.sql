@@ -37,34 +37,45 @@ SET default_table_access_method = heap;
 -- Name: intake; Type: TABLE; Schema: public; Owner: cc
 --
 
+
+CREATE TABLE IF NOT EXISTS metadata (
+    filename TEXT NOT NULL,
+    creator TEXT NOT NULL,
+    size INT,
+    created_date TIMESTAMP,
+    last_modified_date TIMESTAMP,
+    last_modified_by TEXT,
+    title TEXT
+);
+
 CREATE TABLE intake (
-    "row" integer NOT NULL,
-    "Submission date" date,
-    "Entity" text,
-    "DBA" text,
-    "Facility Address" text,
-    "Facility Suite #" text,
-    "Facility Zip" text,
-    "Mailing Address" text,
-    "MRL" character varying(10),
-    "Neighborhood Association" character varying(30),
-    "Compliance Region" character varying(2),
-    "Primary Contact First Name" text,
-    "Primary Contact Last Name" text,
-    "Email" text,
-    "Phone" character(12),
-    "Endorse Type" character(12),
-    "License Type" character varying(10),
-    "Repeat location?" character(1) DEFAULT 'N'::bpchar,
-    "App complete?" character varying(3) DEFAULT 'N/A'::bpchar,
-    "Fee Schedule" character varying(10),
-    "Receipt No." integer,
-    "Cash Amount" text,
-    "Check Amount" text,
-    "Card Amount" text,
-    "Check No. / Approval Code" character varying(25),
-    "MRL#" character varying(10),
-    "Notes" text
+     "row" integer NOT NULL,
+    submission_date date,
+    entity text,
+    dba text,
+    facility_address text,
+    facility_suite text,
+    facility_zip text,
+    mailing_address text,
+    mrl character varying(10),
+    neighborhood_association character varying(30),
+    compliance_region character varying(2),
+    primary_contact_first_name text,
+    primary_contact_last_name text,
+    email text,
+    phone character(12),
+    endorse_type character(25),
+    license_type character varying(25),
+    repeat_location character(1) DEFAULT 'N'::bpchar,
+    app_complete character varying(3) DEFAULT 'N/A'::bpchar,
+    fee_schedule character varying(10),
+    receipt_num integer,
+    cash_amount text,
+    check_amount text,
+    card_amount text,
+    check_num_approval_code character varying(25),
+    mrl_num character varying(10),
+    notes text
 );
 
 
@@ -97,9 +108,8 @@ ALTER SEQUENCE intake_row_seq OWNED BY intake."row";
 
 --
 -- TOC entry 206 (class 1259 OID 355479)
--- Name: intake_test; Type: TABLE; Schema: public; Owner: cc
+-- Name: txn_history; Type: TABLE; Schema: public; Owner: cc
 --
-
 
 CREATE TABLE txn_history (
     id integer NOT NULL,
@@ -112,6 +122,9 @@ CREATE TABLE txn_history (
     tabname text
 );
 
+
+-- Remove default permissions
+REVOKE ALL ON SCHEMA public FROM public;
 
 ALTER TABLE txn_history OWNER TO cc;
 
@@ -171,7 +184,9 @@ ALTER TABLE ONLY txn_history ALTER COLUMN id SET DEFAULT nextval('txn_history_id
 -- Name: intake_row_seq; Type: SEQUENCE SET; Schema: public; Owner: cc
 --
 
-SELECT pg_catalog.setval('intake_row_seq', 16, true);
+
+SELECT pg_catalog.setval('intake_row_seq', 1, true);
+
 
 
 --
@@ -180,7 +195,9 @@ SELECT pg_catalog.setval('intake_row_seq', 16, true);
 -- Name: txn_history_id_seq; Type: SEQUENCE SET; Schema: public; Owner: cc
 --
 
-SELECT pg_catalog.setval('txn_history_id_seq', 5, true);
+
+SELECT pg_catalog.setval('txn_history_id_seq', 1, true);
+
 
 
 --
@@ -229,4 +246,26 @@ CREATE TABLE IF NOT EXISTS metadata (
     last_modified_by TEXT,
     title TEXT
 );
+
+-- Grant access to read group
+GRANT USAGE ON SCHEMA public TO readaccess;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO readaccess;
+
+-- Grant access to write group
+GRANT USAGE ON SCHEMA public TO writeaccess;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO writeaccess;
+
+-- Grant access to admin group
+GRANT ALL PRIVILEGES ON SCHEMA public TO adminaccess;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO adminaccess;
+
+-- Create users
+CREATE USER reader WITH PASSWORD 'capstone';
+CREATE USER writer WITH PASSWORD 'capstone';
+CREATE USER administrator WITH PASSWORD 'capstone';
+
+-- Grant group access
+GRANT readaccess TO reader;
+GRANT writeaccess TO writer;
+GRANT adminaccess TO administrator;
 
