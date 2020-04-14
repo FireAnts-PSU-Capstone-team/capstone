@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This script brings up the container and shuts it down on receiving a ctrl-c kill signal.
+# This script is used to build, test, and run the container.
 
 CURRENT_FILE_FOLDER_NAME=$(basename $(dirname $(realpath $0)))
 
@@ -10,8 +10,8 @@ function usage() {
     echo "  bash $0 clean          delete any existing version of the web server image"
     echo "  bash $0 run            run the program"
     echo "  bash $0 stop           stop the program"
-    echo "  bash $0 rebuid         remove all data and rebuild the program"
-    echo "  bash $0 rebuid-db      remove only DB data and re-run the program"
+    echo "  bash $0 rebuild        remove all data and rebuild the program"
+    echo "  bash $0 rebuild-db     remove only DB data and re-run the program"
     echo "  bash $0 test           test the program (for a fresh/new built program)"
 
 }
@@ -26,10 +26,10 @@ function trap_ctrlc() {
 }
 trap "trap_ctrlc" 2
 
-# perform some tests after building the program, ensure if the program is correct
-function test() {
+# perform some tests after building the program to ensure the program is correct
+function run_test() {
 
-    # a list of tables (table name) that is created & used by the program
+    # config variables
     server_port='800'
     tables=('metadata' 'test')
     db_name=$(cut -f 3 -d ' ' database.ini  | sed -n '2p')
@@ -37,21 +37,21 @@ function test() {
     db_pass=$(cut -f 3 -d ' ' database.ini  | sed -n '4p')
 
 
-    # check if can use the default credential to connect to postgre DB
-    if [ -z $(psql postgresql://${db_user}:${db_pass}@localhost:5432/postgres -c '') ]
+    # check if can use the default credential to connect to postgres DB
+    if [[ -z $(psql postgresql://${db_user}:${db_pass}@localhost:5432/postgres -c '') ]]
     then
-        echo "1. DB connection succeed."
+        echo "1. DB connection successful."
     else
-        echo "1. ERROR: DB connection not work."
+        echo "1. ERROR: DB connection unsuccessful."
         exit
     fi
 
-    # check if the target DB created inside the postgre DB
+    # check if the target DB was created inside the postgres DB
     out=$(psql postgresql://${db_user}:${db_pass}@localhost:5432/postgres -lA | grep "${db_name}|")
 
-    if [ -z $out ]
+    if [[ -z ${out} ]]
     then
-        echo "2. ERROR: DB didn't created."
+        echo "2. ERROR: DB not created."
         exit
     else
         echo "2. DB \"${db_name}\" created."
@@ -62,9 +62,9 @@ function test() {
 
     for i in "${tables[@]}"
     do
-        if [ -z "$(echo $out | grep "${i}")" ]
+        if [[ -z "$(echo ${out} | grep "${i}")" ]]
         then
-            echo "3. ERROR: table \"${i}\" didn't created."
+            echo "3. ERROR: table \"${i}\" not created."
             exit
         else
             echo "3. Table \"${i}\" created."
@@ -73,7 +73,7 @@ function test() {
 
     # check if server is working
     out=$(curl -s http://localhost:${server_port})
-    if [ "${out}" == "Hello World" ]
+    if [[ "${out}" == "Hello World" ]]
     then
         echo "4. Web server is up."
     else
@@ -81,39 +81,35 @@ function test() {
         exit
     fi
 
-    # testing excel file IO
+    # testing spreadsheet IO
     out=$(curl -s localhost:${server_port}/list?table=test)
-    if [ "${out}" == "[]" ]
+    if [[ "${out}" == "[]" ]]
     then
-        echo "5. Loading excel file."
+        echo "5. Loading spreadsheet."
         
         out=$(curl -s --form "file=@files/Lists.xlsx" http://localhost:${server_port}/file)
-        if [ -n "$(echo $out | grep "File processed successfully")" ]
+        if [[ -n "$(echo ${out} | grep "File processed successfully")" ]]
         then
             for i in "${tables[@]}"
             do
                 echo "5. Table \"${i}\" result (first 10 lines):"
                 curl -s localhost:${server_port}/list?table=${i} | head -10
-                
             done
-
         else
             echo "5. ERROR: Failed to load file."
             exit
         fi
-
     else
         echo "5. ERROR: Web server can't list tables."
         exit
     fi
 
-
     echo ">>>> End testing."
 }
 
 # accept an argument to perform action, print usage if nothing given
-if [[ $1 == "clean" ]]; then
 
+if [[ $1 == "clean" ]]; then
     sudo docker image rm flask-server:v1
 
 elif [[ $1 == "run" ]]; then
@@ -128,13 +124,12 @@ elif [[ $1 == "run" ]]; then
 elif [[ $1 == "stop" ]]; then
 
     server_container="${CURRENT_FILE_FOLDER_NAME}_web_1" 
-    db_container="${CURRENT_FILE_FOLDER_NAME}_db_1" 
+    db_container="${CURRENT_FILE_FOLDER_NAME}_db_1"
 
     # stop the containers
-    sudo docker stop $server_container $db_container
+    sudo docker stop ${server_container} ${db_container}
 
 elif [[ $1 == "rebuild" ]]; then
-
     # rebuild everything
     sudo rm -r pgdata
     sudo docker image rm -f flask-server:v1
@@ -147,7 +142,7 @@ elif [[ $1 == "rebuild-db" ]]; then
     sudo rm -r pgdata && sudo docker-compose up
 
 elif [[ $1 == "test" ]]; then
-    test
+    run_test
 else
     usage
     exit 0
