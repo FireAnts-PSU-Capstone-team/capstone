@@ -31,7 +31,8 @@ function run_test() {
 
     # config variables
     server_port='800'
-    tables=('metadata' 'test')
+    tables=('metadata' 'intake' 'txn_history')
+    testing_spreadsheet='files/sample-extension.xlsx'
     db_name=$(cut -f 3 -d ' ' database.ini  | sed -n '2p')
     db_user=$(cut -f 3 -d ' ' database.ini  | sed -n '3p')
     db_pass=$(cut -f 3 -d ' ' database.ini  | sed -n '4p')
@@ -82,14 +83,25 @@ function run_test() {
     fi
 
     # testing spreadsheet IO
-    out=$(curl -s localhost:${server_port}/list?table=test)
+    out=$(curl -s localhost:${server_port}/list?table=${tables[0]})
     if [[ "${out}" == "[]" ]]
     then
-        echo "5. Loading spreadsheet."
+        echo "5. Testing spreadsheet uploading."
+        echo "5. Before uploading:"
+
+        for i in "${tables[@]}"
+        do
+            echo "5. Table \"${i}\" result (first 10 lines):"
+            curl -s localhost:${server_port}/list?table=${i} | head -10
+        done
+
+        echo "5. Loading spreadsheet \"${testing_spreadsheet}\""
         
-        out=$(curl -s --form "file=@files/Lists.xlsx" http://localhost:${server_port}/file)
+        out=$(curl -s --form "file=@${testing_spreadsheet}" http://localhost:${server_port}/file)
         if [[ -n "$(echo ${out} | grep "File processed successfully")" ]]
         then
+            echo "5. After uploading:"
+
             for i in "${tables[@]}"
             do
                 echo "5. Table \"${i}\" result (first 10 lines):"
@@ -139,7 +151,8 @@ elif [[ $1 == "rebuild" ]]; then
 elif [[ $1 == "rebuild-db" ]]; then
 
     # clear DB data and re-run the program
-    sudo rm -r pgdata && sudo docker-compose up
+    sudo rm -r pgdata
+    sudo docker-compose up
 
 elif [[ $1 == "test" ]]; then
     run_test

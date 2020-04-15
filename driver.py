@@ -6,11 +6,12 @@ import Connection as c
 import os
 import sys
 import time
+import math
 from openpyxl import load_workbook
 
 
 filename = 'files/Lists.xlsx'
-test_table = 'test'
+test_table = 'intake'
 metadata_table = 'metadata'
 is_connect = 0
 wait_time = 0
@@ -32,10 +33,11 @@ def fmt(s):
         s: the input element
     Returns (str): a SQL-friendly string representation
     """
-    if s is None:
+    # if s is None or is NaN
+    if (s is None) or ((not isinstance(s, str)) and math.isnan(s)):
         s = "NULL"
     else:
-        s = "'" + str(s) + "'"
+        s = "'" + str(s).replace('\'', '\'\'') + "'"
     return s
 
 
@@ -146,14 +148,101 @@ def write_info_data(df):
         df (dataframe): data from spreadsheet
     Returns: None
     """
-    cmd = "INSERT INTO {}(id, firstname, lastname, city) VALUES({}, {}, {}, {}) ON CONFLICT DO NOTHING"
+    # cmd = "INSERT INTO {}(id, firstname, lastname, city) VALUES({}, {}, {}, {}) ON CONFLICT DO NOTHING"
+    cmd = "INSERT INTO {} ( \
+    \"row\", \
+    submission_date, \
+    entity, \
+    dba, \
+    facility_address,\
+    facility_suite,\
+    facility_zip ,\
+    mailing_address,\
+    mrl,\
+    neighborhood_association,\
+    compliance_region,\
+    primary_contact_first_name,\
+    primary_contact_last_name,\
+    email,\
+    phone,\
+    endorse_type,\
+    license_type,\
+    repeat_location,\
+    app_complete,\
+    fee_schedule,\
+    receipt_num,\
+    cash_amount,\
+    check_amount,\
+    card_amount,\
+    check_num_approval_code,\
+    mrl_num,\
+    notes\
+    )\
+    VALUES ({}, {}, {}, {},{}, {}, {}, {},{}, {}, {}, {},{}, {}, {}, {},{}, {}, {}, {},{}, {}, {}, {},{}, {}, {}) ON CONFLICT DO NOTHING"
+    
     # unclear what we want to do on collision; depends on data we're inserting
 
     # potential missing functionality is ability to create a table from a spreadsheet with a non-pre-existing schema
     for i in np.ndenumerate(df.values).iter.base:
-        id_, firstname, lastname, city = i
-        cf = cmd.format(test_table, id_, fmt(firstname), fmt(lastname), fmt(city))
-        # print(cf)
+        row, \
+        submission_date, \
+        entity, \
+        dba, \
+        facility_address,\
+        facility_suite,\
+        facility_zip ,\
+        mailing_address,\
+        mrl,\
+        neighborhood_association,\
+        compliance_region,\
+        primary_contact_first_name,\
+        primary_contact_last_name,\
+        email,\
+        phone,\
+        endorse_type,\
+        license_type,\
+        repeat_location,\
+        app_complete,\
+        fee_schedule,\
+        receipt_num,\
+        cash_amount,\
+        check_amount,\
+        card_amount,\
+        check_num_approval_code,\
+        mrl_num,\
+        notes = i
+
+        cf = cmd.format(
+            test_table,
+            row,
+            fmt(submission_date),
+            fmt(entity),
+            fmt(dba),
+            fmt(facility_address),
+            fmt(facility_suite),
+            fmt(facility_zip),
+            fmt(mailing_address),
+            fmt(mrl),
+            fmt(neighborhood_association),
+            fmt(compliance_region),
+            fmt(primary_contact_first_name),
+            fmt(primary_contact_last_name),
+            fmt(email),
+            fmt(phone),
+            fmt(endorse_type),
+            fmt(license_type),
+            fmt(repeat_location),
+            fmt(app_complete),
+            ('NULL' if ((not isinstance(fee_schedule, str)) and math.isnan(fee_schedule)) else int(fee_schedule)),
+            receipt_num,
+            fmt(cash_amount).replace('$', ''),
+            fmt(check_amount).replace('$', ''),
+            fmt(card_amount).replace('$', ''),
+            fmt(check_num_approval_code),
+            fmt(mrl_num),
+            fmt(notes))
+
+        print(cf)
         pgSqlCur.execute(cf)
 
 
