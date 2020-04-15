@@ -14,12 +14,13 @@ def dump_table():
     Returns ({}): JSON object of table data
     """
     table_name = request.args.get('table', '')
+    if table_name == '':
+        return make_response(jsonify('Table name not supplied.'), 400)
     try:
         table_info_obj = driver.get_table(table_name)
-        r = make_response(jsonify(table_info_obj), 200)
+        return make_response(jsonify(table_info_obj), 200)
     except driver.InvalidTableException:
-        r = make_response(jsonify('Table ' + table_name + ' does not exist.'))
-    return r
+        return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
 
 
 @app.route("/load", methods=["PUT", "POST"])

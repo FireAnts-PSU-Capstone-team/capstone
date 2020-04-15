@@ -40,6 +40,10 @@ paths:
       responses:
         200:
           description: Contents of table
+        400:
+          description: Table name not supplied
+        404:
+          description: Named table does not exist
         500:
           $ref: "#/responses/Standard500ErrorResponse"
 
