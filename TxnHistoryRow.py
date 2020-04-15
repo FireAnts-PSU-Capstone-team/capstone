@@ -21,7 +21,7 @@ class TxnHistoryRow:
         """
         Constructor from a JSON object. Any unsupplied data defaults to None
         Args:
-            input_json ({}): JSON object representing a row of the intake table
+            input_json ({}): JSON object representing a row of the txn_history table
         """
         self.id = input_json.get('id')
         self.tstamp = input_json.get('tstamp')
