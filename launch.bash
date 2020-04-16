@@ -4,14 +4,14 @@
 
 CURRENT_FILE_FOLDER_NAME=$(basename $(dirname $(realpath $0)))
 
-if [ $(dirname $0) != '.' ]
+if [[ $(dirname $0) != '.' ]]
 then
     cd $(dirname $0)
 fi
 
 function usage() {
     echo "Usage: "
-    echo "  bash $0 clean          delete any existing version of the web server image"
+    echo "  bash $0 clean         delete any existing version of the web server image"
     echo "  bash $0 run            run the program"
     echo "  bash $0 stop           stop the program"
     echo "  bash $0 rebuild        remove all data and rebuild the program"
@@ -33,7 +33,7 @@ trap "trap_ctrlc" 2
 # count # of row of records in table
 function count_rows() {
     rows=$(($(echo "$1" | wc -l) - 2)) 
-    if [ $rows -gt  0 ]
+    if [[ ${rows} -gt  0 ]]
     then
         echo $(($rows/$2))
     else
@@ -91,7 +91,7 @@ function run_test() {
 
     # check if server is working
     out=$(curl -s http://localhost:${server_port})
-    if [[ "${out}" == "Hello World" ]]
+    if [[ "${out}" == "\"Hello World\"" ]]
     then
         echo "4. Web server is up."
     else
@@ -117,7 +117,7 @@ function run_test() {
 
         echo "5. Loading spreadsheet \"${testing_spreadsheet}\""
         
-        out=$(curl -s --form "file=@${testing_spreadsheet}" http://localhost:${server_port}/file)
+        out=$(curl -X POST -s --form "file=@${testing_spreadsheet}" http://localhost:${server_port}/load)
         if [[ -n "$(echo ${out} | grep "File processed successfully")" ]]
         then
             echo "5. After uploading:"

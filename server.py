@@ -6,7 +6,15 @@ UPLOAD_FOLDER = 'files'
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
 app = Flask(__name__)
 
+
 def allowed_file(filename):
+    """
+    Checks an input file for approved extensions.
+    Args:
+        filename (str): file to check
+    Returns (bool): file approved
+
+    """
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
@@ -56,7 +64,7 @@ def load_data():
                 return make_response(f'Filename \"{file.filename}\" is not supported.', 400)
             filename = f'{UPLOAD_FOLDER}/uploaded_' + file.filename
             file.save(filename)
-            success = driver.process_file(file_name)
+            success = driver.process_file(filename)
             if success:
                 return make_response(jsonify('File processed successfully'), 200)
             else:
