@@ -1,5 +1,5 @@
 /*
-This SQL file will be executed once the DB has set up.
+This SQL file will be executed once the DB is set up.
 
 */--
 -- PostgreSQL database dump
@@ -34,12 +34,13 @@ SET default_table_access_method = heap;
 
 --
 -- TOC entry 205 (class 1259 OID 355326)
--- Name: Intake; Type: TABLE; Schema: public; Owner: cc
+-- Name: intake; Type: TABLE; Schema: public; Owner: cc
 --
+
 
 CREATE TABLE IF NOT EXISTS metadata (
     filename TEXT NOT NULL,
-    creator TEXT NOT NULL,
+    creator TEXT,
     size INT,
     created_date TIMESTAMP,
     last_modified_date TIMESTAMP,
@@ -54,7 +55,7 @@ CREATE TABLE intake (
     dba text,
     facility_address text,
     facility_suite text,
-    facility_zip character(5),
+    facility_zip text,
     mailing_address text,
     mrl character varying(10),
     neighborhood_association character varying(30),
@@ -67,11 +68,11 @@ CREATE TABLE intake (
     license_type character varying(25),
     repeat_location character(1) DEFAULT 'N'::bpchar,
     app_complete character varying(3) DEFAULT 'N/A'::bpchar,
-    fee_schedule character varying(5),
+    fee_schedule character varying(10),
     receipt_num integer,
-    cash_amount money DEFAULT 0,
-    check_amount money DEFAULT 0,
-    card_amount money DEFAULT 0,
+    cash_amount text,
+    check_amount text,
+    card_amount text,
     check_num_approval_code character varying(25),
     mrl_num character varying(10),
     notes text
@@ -82,7 +83,7 @@ ALTER TABLE intake OWNER TO cc;
 
 --
 -- TOC entry 204 (class 1259 OID 355324)
--- Name: Intake_row_seq; Type: SEQUENCE; Schema: public; Owner: cc
+-- Name: intake_row_seq; Type: SEQUENCE; Schema: public; Owner: cc
 --
 
 CREATE SEQUENCE intake_row_seq
@@ -105,6 +106,11 @@ ALTER TABLE intake_row_seq OWNER TO cc;
 ALTER SEQUENCE intake_row_seq OWNED BY intake."row";
 
 
+--
+-- TOC entry 206 (class 1259 OID 355479)
+-- Name: txn_history; Type: TABLE; Schema: public; Owner: cc
+--
+
 CREATE TABLE txn_history (
     id integer NOT NULL,
     tstamp timestamp without time zone DEFAULT now(),
@@ -121,6 +127,7 @@ CREATE ROLE readaccess;
 CREATE ROLE writeaccess;
 CREATE ROLE adminaccess;
 
+
 -- Remove default permissions
 REVOKE ALL ON SCHEMA public FROM public;
 
@@ -133,7 +140,6 @@ ALTER TABLE txn_history OWNER TO cc;
 --
 
 COMMENT ON TABLE txn_history IS 'Table tracks the changes made to the intake database table';
-
 
 --
 -- TOC entry 202 (class 1259 OID 355250)
@@ -162,7 +168,7 @@ ALTER SEQUENCE txn_history_id_seq OWNED BY txn_history.id;
 
 --
 -- TOC entry 3076 (class 2604 OID 355329)
--- Name: Intake row; Type: DEFAULT; Schema: public; Owner: cc
+-- Name: intake row; Type: DEFAULT; Schema: public; Owner: cc
 --
 
 ALTER TABLE ONLY intake ALTER COLUMN "row" SET DEFAULT nextval('intake_row_seq'::regclass);
@@ -180,10 +186,12 @@ ALTER TABLE ONLY txn_history ALTER COLUMN id SET DEFAULT nextval('txn_history_id
 --
 -- TOC entry 3226 (class 0 OID 0)
 -- Dependencies: 204
--- Name: Intake_row_seq; Type: SEQUENCE SET; Schema: public; Owner: cc
+-- Name: intake_row_seq; Type: SEQUENCE SET; Schema: public; Owner: cc
 --
 
+
 SELECT pg_catalog.setval('intake_row_seq', 1, true);
+
 
 
 --
@@ -192,12 +200,14 @@ SELECT pg_catalog.setval('intake_row_seq', 1, true);
 -- Name: txn_history_id_seq; Type: SEQUENCE SET; Schema: public; Owner: cc
 --
 
+
 SELECT pg_catalog.setval('txn_history_id_seq', 1, true);
+
 
 
 --
 -- TOC entry 3085 (class 2606 OID 355337)
--- Name: Intake Intake_pkey; Type: CONSTRAINT; Schema: public; Owner: cc
+-- Name: intake Intake_pkey; Type: CONSTRAINT; Schema: public; Owner: cc
 --
 
 ALTER TABLE ONLY intake
@@ -215,7 +225,7 @@ ALTER TABLE ONLY txn_history
 
 --
 -- TOC entry 3086 (class 2620 OID 355444)
--- Name: Intake update; Type: TRIGGER; Schema: public; Owner: cc
+-- Name: intake update; Type: TRIGGER; Schema: public; Owner: cc
 --
 
 CREATE TRIGGER update BEFORE INSERT OR UPDATE ON intake FOR EACH ROW EXECUTE FUNCTION change_trigger();
@@ -232,6 +242,15 @@ CREATE TRIGGER update BEFORE INSERT OR UPDATE ON intake FOR EACH ROW EXECUTE FUN
 -- PostgreSQL database dump complete
 --
 
+CREATE TABLE IF NOT EXISTS metadata (
+    filename TEXT NOT NULL,
+    creator TEXT,
+    size INT,
+    created_date TIMESTAMP,
+    last_modified_date TIMESTAMP,
+    last_modified_by TEXT,
+    title TEXT
+);
 
 -- Grant access to read group
 GRANT USAGE ON SCHEMA public TO readaccess;
@@ -254,3 +273,4 @@ CREATE USER administrator WITH PASSWORD 'capstone';
 GRANT readaccess TO reader;
 GRANT writeaccess TO writer;
 GRANT adminaccess TO administrator;
+
