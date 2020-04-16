@@ -4,6 +4,10 @@
 
 CURRENT_FILE_FOLDER_NAME=$(basename $(dirname $(realpath $0)))
 
+if [ $(dirname $0) != '.' ]
+then
+    cd $(dirname $0)
+fi
 
 function usage() {
     echo "Usage: "
@@ -26,12 +30,25 @@ function trap_ctrlc() {
 }
 trap "trap_ctrlc" 2
 
+# count # of row of records in table
+function count_rows() {
+    rows=$(($(echo "$1" | wc -l) - 2)) 
+    if [ $rows -gt  0 ]
+    then
+        echo $(($rows/$2))
+    else
+        echo 0
+    fi
+}
+
+
 # perform some tests after building the program to ensure the program is correct
 function run_test() {
 
     # config variables
     server_port='800'
     tables=('metadata' 'intake' 'txn_history')
+    record_row=(9 29 38)
     testing_spreadsheet='files/sample-extension.xlsx'
     db_name=$(cut -f 3 -d ' ' database.ini  | sed -n '2p')
     db_user=$(cut -f 3 -d ' ' database.ini  | sed -n '3p')
@@ -89,10 +106,13 @@ function run_test() {
         echo "5. Testing spreadsheet uploading."
         echo "5. Before uploading:"
 
+        c=0
         for i in "${tables[@]}"
         do
-            echo "5. Table \"${i}\" result (first 10 lines):"
-            curl -s localhost:${server_port}/list?table=${i} | head -10
+            out=$(curl -s localhost:${server_port}/list?table=${i})
+            echo "5. Table \"${i}\" has $(count_rows "$out" ${record_row[${c}]}) rows (first 10 lines):"
+            echo "$out" | head -10
+            ((c++))
         done
 
         echo "5. Loading spreadsheet \"${testing_spreadsheet}\""
@@ -102,10 +122,13 @@ function run_test() {
         then
             echo "5. After uploading:"
 
+            c=0
             for i in "${tables[@]}"
             do
-                echo "5. Table \"${i}\" result (first 10 lines):"
-                curl -s localhost:${server_port}/list?table=${i} | head -10
+                out=$(curl -s localhost:${server_port}/list?table=${i})
+                echo "5. Table \"${i}\" has $(count_rows "$out" ${record_row[${c}]}) rows (first 10 lines):"
+                echo "$out" | head -10
+                ((c++))
             done
         else
             echo "5. ERROR: Failed to load file."
