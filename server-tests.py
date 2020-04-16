@@ -2,10 +2,12 @@ import json
 import unittest
 import server
 import Connection
+from server import app
 from flask_sqlalchemy import SQLAlchemy
 
 # initialize sql-alchemy
 db = SQLAlchemy()
+db.init_app(app)
 
 class TestServerApp(unittest.TestCase):
     """Api tests"""
@@ -13,9 +15,7 @@ class TestServerApp(unittest.TestCase):
     def setUp(self):
         """Define test variables and initialize app."""
         super().setUp()
-        # TODO: AHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-        # Connection.pgSQLconnect()
-        self.app = server.app
+        self.app = app
         self.client = self.app.test_client
         self.sample_data = {'firstname': 'John', 'lastname': 'Doe', 'city': 'Pyongyang'}
 
@@ -151,9 +151,8 @@ class TestServerApp(unittest.TestCase):
 
     def tearDown(self):
         """teardown all initialized variables."""
-        # TODO: AHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
         super().tearDown()
-        Connection.pgSqlDisconnect()
+        Connection.pg_disconnect()
 
         with self.app.app_context():
             # drop all tables
