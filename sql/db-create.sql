@@ -25,8 +25,7 @@ END IF;
 END;
 $$;
 
-ALTER FUNCTION archive_trigger() OWNER TO cc;
-
+ALTER FUNCTION change_trigger() OWNER TO cc;
 
 --
 -- Name: change_trigger(); Type: FUNCTION; Schema: public; Owner: cc
@@ -61,7 +60,8 @@ RETURN OLD;
 END IF;
 END;$$;
 
-ALTER FUNCTION change_trigger() OWNER TO cc;
+ALTER FUNCTION archive_trigger() OWNER TO cc;
+
 
 
 SET default_tablespace = '';
@@ -183,7 +183,7 @@ ALTER TABLE ONLY txn_history
 -- Name: archive; Type: TABLE; Schema: public; Owner: CC
 --
 CREATE TABLE archive (
-    row_id integer NOT NULL
+    row_id integer NOT NULL,
     old_row integer,
     old_submission_date date,
     old_entity text,
@@ -210,7 +210,7 @@ CREATE TABLE archive (
     old_card_amount text,
     old_check_num_approval_code character varying(25),
     old_mrl_num character varying(10),
-    old_notes text,
+    old_notes text
 );
 
 ALTER TABLE archive OWNER TO cc;
