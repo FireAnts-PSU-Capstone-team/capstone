@@ -179,8 +179,9 @@ def write_metadata(metadata):
                                 metadata['created'], metadata['modified'], metadata['lastModifiedBy'], metadata['title']))
 
 
-# TODO: once tables are modeled as classes, change this function to take an iterable of the schema
+# TODO?: once tables are modeled as classes, change this function to take an iterable of the schema
 # so we can insert into an arbitrary table
+# TODO: revisit row sequencing; change "DEFAULT, then start from row[1]" to process entire row one way or another
 def insert_row(table, row):
     """
     Insert an array of values into the specified table.
@@ -198,7 +199,6 @@ def insert_row(table, row):
 
 
 # TODO: catch exceptions and respond appropriately
-# TODO: allow single-sheet processing
 def process_file(f):
     """
     Read an Excel file; put info data into info table, metadata into metadata table

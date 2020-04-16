@@ -3,7 +3,6 @@ import driver
 from IntakeRow import IntakeRow
 
 app = Flask(__name__)
-status_ok = "{'status':'OK'}\n"
 
 
 @app.route("/list", methods=["GET"])
@@ -42,19 +41,19 @@ def load_data():
             driver.insert_row(table_name, row_data)
             # TODO: find a way to make this return something meaningful
             # e.g., return 404 if table doesn't exist
-            r = make_response('PUT complete\n', 200)
+            r = make_response(jsonify('PUT complete'), 200)
     elif request.method == 'POST':
         file_name = request.args.get('file', '')
         if file_name == '':
-            r = make_response('No file listed\n', 400)
+            r = make_response(jsonify('No file listed'), 400)
         else:
             success = driver.process_file(file_name)
             if success:
-                r = make_response('File processed successfully\n', 200)
+                r = make_response(jsonify('File processed successfully'), 200)
             else:
-                r = make_response('File could not be found\n', 400)
+                r = make_response(jsonify('File could not be found'), 400)
     else:
-        r = make_response('Unsupported operation\n', 404)
+        r = make_response(jsonify('Unsupported operation'), 404)
     return r
 
 
@@ -70,7 +69,7 @@ def show_metadata():
 
 @app.route('/')
 def hello_world():
-    return make_response('Hello World\n', 200)
+    return make_response(jsonify('Hello World'), 200)
 
 
 if __name__ == '__main__':
