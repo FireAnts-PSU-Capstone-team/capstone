@@ -259,7 +259,12 @@ class TestServerApp(unittest.TestCase):
 
     def tearDown(self):
         """teardown all initialized variables."""
+<<<<<<< HEAD
         db_connection.pg_disconnect(self.cur, self.conn)
+=======
+        super().tearDown()
+        Connection.pg_disconnect()
+>>>>>>> 37b5a3c... Fix setting up connection to app
 
         with self.app.app_context():
             # drop all tables
