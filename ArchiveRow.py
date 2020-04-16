@@ -42,7 +42,7 @@ class ArchiveRow:
         Args:
             input_json ({}): JSON object representing a row of the archive table
         """
-        self.row = input_json.get('row'
+        self.row = input_json.get('row')
         self.old_row = input_json.get('old_row')
         self.old_submission_date = input_json.get('old_submission_date')
         self.old_entity = input_json.get('old_entity')
@@ -70,5 +70,4 @@ class ArchiveRow:
         self.old_check_num = input_json.get('old_check_num_approval_code')
         self.old_mrl_num = input_json.get('old_mrl_num')
         self.old_notes = input_json.get('old_notes')
-
 
