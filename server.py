@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify, make_response
 import driver
-from IntakeRow import IntakeRow
+from models.IntakeRow import IntakeRow
 
 UPLOAD_FOLDER = 'files'
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
