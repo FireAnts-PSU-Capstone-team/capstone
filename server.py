@@ -1,8 +1,12 @@
 from flask import Flask, request, jsonify, Response, make_response
 from flask_cors import CORS
 import driver
+<<<<<<< HEAD
 from cors import cors_setup
 from models.IntakeRow import IntakeRow
+=======
+from IntakeRow import IntakeRow
+>>>>>>> 5754f4f... Revert "Reorganize files"
 
 UPLOAD_FOLDER = 'resources'
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
