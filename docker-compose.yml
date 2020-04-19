@@ -9,6 +9,7 @@ services:
     # DB container
     db:
         image: postgres:12.2
+        command: -c ssl=on -c ssl_cert_file=/var/lib/postgresql/server.crt -c ssl_key_file=/var/lib/postgresql/server.key -c hba_file=/var/lib/postgresql/pg_hba.conf
         environment:
             POSTGRES_USER: cc
             POSTGRES_PASSWORD: pp
@@ -17,6 +18,9 @@ services:
         volumes:
             # <local/path/to/store/data>:<path/inside/container>
             - ./pgdata:/var/lib/postgresql/data
+            - ./cert.pem:/var/lib/postgresql/server.crt:ro
+            - ./key.pem:/var/lib/postgresql/server.key:ro
+            - ./pg_hba.conf:/var/lib/postgresql/pg_hba.conf
             - ./sql/db-create.sql:/docker-entrypoint-initdb.d/init.sql
         
         ports:
