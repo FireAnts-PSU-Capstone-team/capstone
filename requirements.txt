@@ -7,3 +7,4 @@ flask
 flask-cors
 jsonify
 response
+flask_sqlalchemy

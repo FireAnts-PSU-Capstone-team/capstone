@@ -17,11 +17,11 @@ class TestServerApp(unittest.TestCase):
 
     def setUp(self):
         """Define test variables and initialize app."""
-        super().setUp()
         self.app = app
         self.client = self.app.test_client
         self.cur, self.conn = db_connection.pg_connect()
         self.nonsense = 'asdfgh'
+        self.base_url = 'http://localhost:800'
         with open('files/sample-row-1.json') as f:
             self.sample_row = json.load(f)
 
@@ -52,7 +52,7 @@ class TestServerApp(unittest.TestCase):
     def test_api_can_upload_file(self):
         """API should post file and process it if correctly formatted (POST)."""
         # Don't know about this one yet, not sure how posting the file works
-        with open('sample.xlsx', 'rb') as f:
+        with open('files/sample.xlsx', 'rb') as f:
             file_data = f.read()
         response = self.client().post('/load',
                                       buffered=True,
@@ -73,7 +73,7 @@ class TestServerApp(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
 
         # Check that data hasn't been added
-        getResponse = self.client().get('/cannabisdb/')
+        getResponse = self.get_intake()
         self.assertEqual(response.status_code, 200)
         self.assertNotIn(self.nonsense, str(getResponse.data))
 

@@ -73,7 +73,12 @@ class IntakeRow:
         Constructor from a JSON object. Any unsupplied data defaults to None
         Args:
             input_json ({}): JSON object representing a row of the intake table
+        Raises:
+            ValueError: if input is a string that can't be parsed into JSON
         """
+        if isinstance(input_json, str):
+            input_json = json.loads(input_json)
+
         self.row = input_json.get('row')
         self.submission_date = input_json.get('Submission date')
         self.entity = input_json.get('Entity')
