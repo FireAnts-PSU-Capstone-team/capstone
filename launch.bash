@@ -145,7 +145,7 @@ function run_test() {
 # accept an argument to perform action, print usage if nothing given
 
 if [[ $1 == "clean" ]]; then
-    sudo docker image rm flask-server:v1
+    sudo docker image rm flask-server:v1 >/dev/null 2>&1
 
 elif [[ $1 == "run" ]]; then
 
