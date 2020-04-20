@@ -274,3 +274,35 @@ GRANT readaccess TO reader;
 GRANT writeaccess TO writer;
 GRANT adminaccess TO administrator;
 
+
+
+
+--
+-- A trigger for insert conflict strategy
+-- Name: check_insertion_to_intake_trigger; Type: TRIGGER; Schema: public; Owner: cc
+--
+DROP TRIGGER IF EXISTS check_insertion_to_intake_tri ON intake;
+DROP FUNCTION IF EXISTS check_insertion_to_intake_tri_fnc;
+
+CREATE OR REPLACE FUNCTION check_insertion_to_intake_tri_fnc() RETURNS trigger AS $$
+BEGIN
+
+    IF (SELECT count(*)
+        FROM intake
+        WHERE submission_date = NEW.submission_date
+        AND entity = NEW.entity
+        AND dba = NEW.dba) = 0
+    THEN
+        RETURN NEW;
+    ELSE
+        RETURN NULL;
+    END if;
+
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER check_insertion_to_intake_tri
+BEFORE INSERT ON intake 
+FOR EACH ROW 
+EXECUTE FUNCTION check_insertion_to_intake_tri_fnc();
+
