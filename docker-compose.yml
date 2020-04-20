@@ -17,7 +17,7 @@ services:
         volumes:
             # <local/path/to/store/data>:<path/inside/container>
             - ./pgdata:/var/lib/postgresql/data
-            - ./db/db-create.db:/docker-entrypoint-initdb.d/init.db
+            - ./db/db-create.sql:/docker-entrypoint-initdb.d/init.sql
         
         ports:
             # <local/port>:<container/exposing/port>
