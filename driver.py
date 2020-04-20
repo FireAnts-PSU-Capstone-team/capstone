@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import psycopg2
 
-import connection as c
+from db import connection as c
 import os
 import sys
 import time

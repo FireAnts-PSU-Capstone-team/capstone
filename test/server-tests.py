@@ -2,7 +2,6 @@ import json
 import unittest
 from io import BytesIO
 
-import server
 import db.connection as db_connection
 from server import app
 from flask_sqlalchemy import SQLAlchemy
@@ -22,7 +21,7 @@ class TestServerApp(unittest.TestCase):
         self.cur, self.conn = db_connection.pg_connect()
         self.nonsense = 'asdfgh'
         self.base_url = 'http://localhost:800'
-        with open('files/sample-row-1.json') as f:
+        with open('../files/sample-row-1.json') as f:
             self.sample_row = json.load(f)
 
         # binds the app to the current context
@@ -52,7 +51,7 @@ class TestServerApp(unittest.TestCase):
     def test_api_can_upload_file(self):
         """API should post file and process it if correctly formatted (POST)."""
         # Don't know about this one yet, not sure how posting the file works
-        with open('files/sample.xlsx', 'rb') as f:
+        with open('../files/sample.xlsx', 'rb') as f:
             file_data = f.read()
         response = self.client().post('/load',
                                       buffered=True,
