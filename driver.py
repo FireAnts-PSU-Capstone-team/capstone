@@ -157,7 +157,7 @@ def write_info_data(df):
     Write data from spreadsheet to the information table.
     Args:
         df (dataframe): data from spreadsheet
-    Returns: integer rows affected
+    Returns: dict of data writing info
     """
     fail_rows = []
     success_count = 0
@@ -199,7 +199,7 @@ def insert_row(table, row):
     Args:
         table (str): name of table to insert into
         row ([]): row of values to insert
-    Returns: integer rows affected
+    Returns: (bool, dict) a bool indicate whether insertion is successful, a dict of failed row info
 
     """
     cmd = f"INSERT INTO {table} VALUES (DEFAULT"
@@ -225,7 +225,7 @@ def process_file(f):
     Read an Excel file; put info data into info table, metadata into metadata table
     Args:
         f (str): filename of spreadsheet
-    Returns (bool): True if successful, else False
+    Returns (bool, dict): bool is successful or not, dict includes processing info 
     """
 
     # validate file exists
