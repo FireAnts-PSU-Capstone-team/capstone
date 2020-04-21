@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify, Response, make_response
 import driver
 
-context = ('cert.pem', 'key.pem')
+context = ('./cert.pem', './key.pem')
 app = Flask(__name__)
 status_ok = "{'status':'OK'}\n"
 
