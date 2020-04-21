@@ -9,6 +9,8 @@ COPY . .
 
 # go to project dir and install dependencies
 RUN cd /server && pip install -r requirements.txt
+RUN ["apt-get", "update"]
+RUN ["apt-get", "install", "-y", "vim"]
 
 EXPOSE 80
 
