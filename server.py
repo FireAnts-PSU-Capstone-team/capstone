@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, Response, make_response
 import driver
 
+context = ('cert.pem', 'key.pem')
 app = Flask(__name__)
 status_ok = "{'status':'OK'}\n"
 
@@ -76,4 +77,4 @@ def hello_world():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=80, debug=True)
+    app.run(host='0.0.0.0', port=443, ssl_context=context, threaded=True, debug=True)
