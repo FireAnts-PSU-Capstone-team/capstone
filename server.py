@@ -1,8 +1,8 @@
-from flask import Flask, request, jsonify, Response, make_response
+from flask import Flask, request, jsonify, make_response
 import driver
+from IntakeRow import IntakeRow
 
 app = Flask(__name__)
-status_ok = "{'status':'OK'}\n"
 
 
 @app.route("/list", methods=["GET"])
@@ -13,50 +13,47 @@ def dump_table():
     Returns ({}): JSON object of table data
     """
     table_name = request.args.get('table', '')
+    if table_name == '':
+        return make_response(jsonify('Table name not supplied.'), 400)
     try:
         table_info_obj = driver.get_table(table_name)
-        r = make_response(jsonify(table_info_obj), 200)
+        return make_response(jsonify(table_info_obj), 200)
     except driver.InvalidTableException:
-        r = make_response(jsonify('Table ' + table_name + ' does not exist.\n'))
-    return r
+        return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
 
 
-# TODO: stub method
-@app.route("/load", methods=["GET"])
+@app.route("/load", methods=["PUT", "POST"])
 def load_data():
     """
-    Stub for a method to load data into one of the tables, e.g. via GUI
+    Load data into the database. PUT inserts a single row; POST uploads a file.
+    Usage:
+        PUT: /load?table=<table> -H "Content-Type: application/json" -d [<JSON object> | <filename>]
+        POST: /load?file=</path/to/file.xlsx>
     Returns ({}): HTTP response
     """
-
-    filename = 'files/Lists.xlsx'
-    driver.process_file(filename)
-
-    # response_obj = {'status': 'OK'}
-    # response = jsonify(response_obj)
-    return make_response(status_ok, 200)
-
-
-# TODO: change this to a GET; any listed file must be in the files subdir and is consumed from there;
-#  ensure this folder is copied to the container
-@app.route("/file", methods=["POST"])
-def upload_file(file_name):
-    """
-    Triggers the Python code to ingest a spreadsheet named <file_name> into the database.
-    Usage: /file?file=</path/to/file.xlsx>
-    Returns: HTTP response.
-    """
-    if request.method == 'POST':
-        if file_name == '' or 'file' not in request.files:
-            r = make_response('No file listed\n', 400)
+    # TODO: add error handling if JSON schema doesn't match
+    if request.method == 'PUT':
+        table_name = request.args.get('table')
+        if table_name is None:
+            r = make_response('Table name not specified\n', 400)
+        else:
+            row_data = IntakeRow(request.get_json()).value_array()
+            driver.insert_row(table_name, row_data)
+            # TODO: find a way to make this return something meaningful
+            # e.g., return 404 if table doesn't exist
+            r = make_response(jsonify('PUT complete'), 200)
+    elif request.method == 'POST':
+        file_name = request.args.get('file', '')
+        if file_name == '':
+            r = make_response(jsonify('No file listed'), 400)
         else:
             success = driver.process_file(file_name)
             if success:
-                r = make_response('File processed successfully\n', 200)
+                r = make_response(jsonify('File processed successfully'), 200)
             else:
-                r = make_response('File could not be found\n', 400)
+                r = make_response(jsonify('File could not be found'), 400)
     else:
-        r = make_response('Unsupported operation\n', 404)
+        r = make_response(jsonify('Unsupported operation'), 404)
     return r
 
 
@@ -64,7 +61,7 @@ def upload_file(file_name):
 def show_metadata():
     """
     Display the contents of the metadata table.
-    Returns: response object containing the contents of the table.
+    Returns ({}): response object containing the contents of the table.
     """
     response_body = jsonify(driver.get_table('metadata'))
     return make_response(response_body, 200)
@@ -72,7 +69,7 @@ def show_metadata():
 
 @app.route('/')
 def hello_world():
-    return make_response('Hello World\n', 200)
+    return make_response(jsonify('Hello World'), 200)
 
 
 if __name__ == '__main__':

@@ -1,6 +1,7 @@
 /*
-This SQL file will be executed once the DB has set up.
+This SQL file will be executed once the DB is set up.
 */
+
 
 --
 -- Name: change_trigger(); Type: FUNCTION; Schema: public; Owner: cc
@@ -68,7 +69,6 @@ SET default_tablespace = '';
 
 SET default_table_access_method = heap;
 
-
 --
 -- Name: metadata; Type: TABLE; Schema: public; Owner: cc
 --
@@ -134,6 +134,7 @@ ALTER SEQUENCE intake_row_seq OWNED BY intake."row";
 
 ALTER TABLE ONLY intake ALTER COLUMN "row" SET DEFAULT nextval('intake_row_seq'::regclass);
 
+
 SELECT pg_catalog.setval('intake_row_seq', 1, true);
 
 COMMENT ON TABLE intake IS 'Table to track all the data for cannabis program in city of portalnd';
@@ -156,6 +157,7 @@ CREATE TABLE txn_history (
     tabname text
 );
 
+
 ALTER TABLE txn_history OWNER TO cc;
 
 COMMENT ON TABLE txn_history IS 'Table tracks the changes made to the intake database table';
@@ -173,6 +175,7 @@ ALTER TABLE txn_history_id_seq OWNER TO cc;
 ALTER SEQUENCE txn_history_id_seq OWNED BY txn_history.id;
 
 ALTER TABLE ONLY txn_history ALTER COLUMN id SET DEFAULT nextval('txn_history_id_seq'::regclass);
+
 
 SELECT pg_catalog.setval('txn_history_id_seq', 1, true);
 
@@ -233,6 +236,7 @@ ALTER TABLE ONLY archive ALTER COLUMN row_id SET DEFAULT nextval('archive_row_se
 ALTER TABLE ONLY archive
     ADD CONSTRAINT archive_pkey PRIMARY KEY (row_id);
 
+
 --
 -- Create triggers for archive and txn_history tables
 --
@@ -250,15 +254,6 @@ CREATE ROLE adminaccess;
 -- Remove default permissions
 --
 REVOKE ALL ON SCHEMA public FROM public;
-
-
---
--- Name: Insert Sample Data; type: DATA; schema: public
---
-INSERT INTO intake VALUES (DEFAULT,'2015-12-01 00:00:00', 'New Horizons Consultants, LLC', 'Home Grown Apothecary', '1937 NE Pacific St.', NULL, '97232', 'PO Box 212, Brightwood, OR 97011', 'MRL3', 'Kerns', 'N', 'Randa', 'Shahin', 'randa@homegrownapothecary.com', '503-484-7254', NULL, 'DRE-MD', NULL, NULL, '2015', 4, 975, NULL, NULL, NULL, 'MRL3', NULL);
-INSERT INTO intake VALUES (DEFAULT,'2015-12-01 00:00:00', 'Blue Elephant Holdings, LLC', 'The Human Collective II', '9220 SW Barbur Blvd.', ' #107', '97219', '9220 SW Barbur Blvd. #107', 'MRL6', 'Southwest Neighborhood Inc', 'SW', 'Donald', 'Morse', 'don@humancollective.org', '503-956-1540', NULL, 'DRE-MD', NULL, NULL, '2015', 3, 975, NULL, NULL, NULL, 'MRL6', NULL);
-INSERT INTO intake VALUES (DEFAULT, '2015-12-01 00:00:00', 'Rooted Northwest, Inc.', NULL, '7817 NE Halsey St.', NULL, '97213', '2534 NE 50th Ave.', 'MRL7', 'Montavilla', 'NE', 'Christopher', 'Olson', 'olsonpdx@yahoo.com', '503-780-4834', NULL, 'DRE-MD', NULL, NULL, '2015', 6, NULL, 975, NULL, '17-292176052', 'MRL7', NULL);
-
 
 -- Grant access to read group
 GRANT USAGE ON SCHEMA public TO readaccess;
@@ -281,3 +276,4 @@ CREATE USER administrator WITH PASSWORD 'capstone';
 GRANT readaccess TO reader;
 GRANT writeaccess TO writer;
 GRANT adminaccess TO administrator;
+
