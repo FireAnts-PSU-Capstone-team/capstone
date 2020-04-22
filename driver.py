@@ -128,7 +128,9 @@ def read_metadata(f):
     """
     # TODO: add column and row counts, if possible
     data = {}
-    file_data = load_workbook(f).properties.__dict__
+    workbook = load_workbook(f)
+    file_data = workbook.properties.__dict__
+    sheet_data = workbook.worksheets[0]
     os_data = os.stat(f)
 
     data['filename'] = fmt(os.path.basename(f))
@@ -138,6 +140,8 @@ def read_metadata(f):
     data['modified'] = fmt(file_data.get('modified').strftime('%Y-%m-%d %H:%M:%S+08'))
     data['lastModifiedBy'] = fmt(file_data.get('lastModifiedBy'))
     data['title'] = fmt(file_data.get('title'))
+    data['rows'] = sheet_data.max_row
+    data['columns'] = sheet_data.max_column
 
     return data
 
@@ -173,10 +177,11 @@ def write_metadata(metadata):
         metadata (dict): the metadata dictionary
     Returns: None
     """
-    cmd = "INSERT INTO {}(filename, creator, size, created_date, last_modified_date, last_modified_by, title) " \
+    cmd = "INSERT INTO {}(filename, creator, size, created_date, last_modified_date, last_modified_by, title, rows, columns) " \
         "VALUES({},{},{},{},{},{},{}) ON CONFLICT DO NOTHING"
     pgSqlCur.execute(cmd.format(metadata_table, metadata['filename'], metadata['creator'], metadata['size'],
-                                metadata['created'], metadata['modified'], metadata['lastModifiedBy'], metadata['title']))
+                                metadata['created'], metadata['modified'], metadata['lastModifiedBy'], metadata['title'],
+                                metadata['rows'], metadata['columns']))
 
 
 # TODO?: once tables are modeled as classes, change this function to take an iterable of the schema
