@@ -1,13 +1,13 @@
 /*
 This SQL file will be executed once the DB is set up.
+*/
 
-*/--
--- PostgreSQL database dump
 --
-
 -- Name: change_trigger(); Type: FUNCTION; Schema: public; Owner: cc
+-- Desc: Monitors the intake table for any insert or update commands
+-- 		 It copys the old data and the new data in txn_history table as 
+--  	 JSON.
 --
-
 CREATE FUNCTION change_trigger() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$BEGIN
@@ -25,19 +25,53 @@ END IF;
 END;
 $$;
 
-
 ALTER FUNCTION change_trigger() OWNER TO cc;
+
+--
+-- Name: change_trigger(); Type: FUNCTION; Schema: public; Owner: cc
+-- Desc: Monitors the intake table for any delete command. It copies the
+-- 		 old data into the archive table, before removing it from the 
+--		 intake table.
+-- 
+CREATE FUNCTION public.archive_trigger() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$BEGIN
+IF TG_OP='DELETE'
+THEN
+INSERT INTO archive (old_row, old_submission_date, old_entity, old_dba,
+	    old_facility_address, old_facility_suite, old_facility_zip,
+		old_mailing_address, old_mrl, old_neighborhood_association,
+		old_compliance_region, old_primary_contact_first_name,
+		old_primary_contact_last_name,old_email,old_phone,
+		old_endorse_type,old_license_type,old_repeat_location,
+		old_app_complete,old_fee_schedule,old_receipt_num,
+		old_cash_amount,old_check_amount,old_card_amount,
+		old_check_num_approval_code,old_mrl_num,old_notes )
+VALUES(OLD.row, OLD.submission_date, OLD.entity, OLD.dba,
+	   OLD.facility_address, OLD.facility_suite, OLD.facility_zip,
+		OLD.mailing_address, OLD.mrl, OLD.neighborhood_association,
+		OLD.compliance_region, OLD.primary_contact_first_name,
+		OLD.primary_contact_last_name,OLD.email,OLD.phone,
+		OLD.endorse_type,OLD.license_type,OLD.repeat_location,
+		OLD.app_complete,OLD.fee_schedule,OLD.receipt_num,
+		OLD.cash_amount,OLD.check_amount,OLD.card_amount,
+		OLD.check_num_approval_code,OLD.mrl_num,OLD.notes);
+RETURN OLD;
+END IF;
+END;$$;
+
+ALTER FUNCTION archive_trigger() OWNER TO cc;
+
+
 
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
 
---
--- TOC entry 205 (class 1259 OID 355326)
--- Name: intake; Type: TABLE; Schema: public; Owner: cc
---
 
-
+--
+-- Name: metadata; Type: TABLE; Schema: public; Owner: cc
+--
 CREATE TABLE IF NOT EXISTS metadata (
     filename TEXT NOT NULL,
     creator TEXT,
@@ -48,6 +82,12 @@ CREATE TABLE IF NOT EXISTS metadata (
     title TEXT
 );
 
+COMMENT ON TABLE metadata IS 'Table to track the file metadata that is uploaded to DB';
+
+
+--
+-- Name: Intake; Type: TABLE; Schema: public; Owner: cc
+--
 CREATE TABLE intake (
      "row" integer NOT NULL,
     submission_date date,
@@ -66,8 +106,8 @@ CREATE TABLE intake (
     phone character(12),
     endorse_type character(25),
     license_type character varying(25),
-    repeat_location character(1) DEFAULT 'N'::bpchar,
-    app_complete character varying(3) DEFAULT 'N/A'::bpchar,
+    repeat_location character(1),
+    app_complete character varying(3),
     fee_schedule character varying(10),
     receipt_num integer,
     cash_amount text,
@@ -78,13 +118,8 @@ CREATE TABLE intake (
     notes text
 );
 
-
 ALTER TABLE intake OWNER TO cc;
 
---
--- TOC entry 204 (class 1259 OID 355324)
--- Name: intake_row_seq; Type: SEQUENCE; Schema: public; Owner: cc
---
 
 CREATE SEQUENCE intake_row_seq
     AS integer
@@ -94,23 +129,24 @@ CREATE SEQUENCE intake_row_seq
     NO MAXVALUE
     CACHE 1;
 
-
 ALTER TABLE intake_row_seq OWNER TO cc;
-
---
--- TOC entry 3223 (class 0 OID 0)
--- Dependencies: 204
--- Name: Intake_row_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: cc
---
 
 ALTER SEQUENCE intake_row_seq OWNED BY intake."row";
 
+ALTER TABLE ONLY intake ALTER COLUMN "row" SET DEFAULT nextval('intake_row_seq'::regclass);
+
+
+SELECT pg_catalog.setval('intake_row_seq', 1, true);
+
+COMMENT ON TABLE intake IS 'Table to track all the data for cannabis program in city of portalnd';
+
+ALTER TABLE ONLY intake
+    ADD CONSTRAINT intake_pkey PRIMARY KEY ("row");
+
 
 --
--- TOC entry 206 (class 1259 OID 355479)
 -- Name: txn_history; Type: TABLE; Schema: public; Owner: cc
 --
-
 CREATE TABLE txn_history (
     id integer NOT NULL,
     tstamp timestamp without time zone DEFAULT now(),
@@ -122,29 +158,11 @@ CREATE TABLE txn_history (
     tabname text
 );
 
--- Create groups
-CREATE ROLE readaccess;
-CREATE ROLE writeaccess;
-CREATE ROLE adminaccess;
-
-
--- Remove default permissions
-REVOKE ALL ON SCHEMA public FROM public;
 
 ALTER TABLE txn_history OWNER TO cc;
 
---
--- TOC entry 3224 (class 0 OID 0)
--- Dependencies: 203
--- Name: TABLE txn_history; Type: COMMENT; Schema: public; Owner: cc
---
-
 COMMENT ON TABLE txn_history IS 'Table tracks the changes made to the intake database table';
 
---
--- TOC entry 202 (class 1259 OID 355250)
--- Name: txn_history_id_seq; Type: SEQUENCE; Schema: public; Owner: cc
---
 
 CREATE SEQUENCE txn_history_id_seq
     AS integer
@@ -154,103 +172,105 @@ CREATE SEQUENCE txn_history_id_seq
     NO MAXVALUE
     CACHE 1;
 
-
 ALTER TABLE txn_history_id_seq OWNER TO cc;
-
---
--- TOC entry 3225 (class 0 OID 0)
--- Dependencies: 202
--- Name: txn_history_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: cc
---
 
 ALTER SEQUENCE txn_history_id_seq OWNED BY txn_history.id;
 
-
---
--- TOC entry 3076 (class 2604 OID 355329)
--- Name: intake row; Type: DEFAULT; Schema: public; Owner: cc
---
-
-ALTER TABLE ONLY intake ALTER COLUMN "row" SET DEFAULT nextval('intake_row_seq'::regclass);
-
-
---
--- TOC entry 3073 (class 2604 OID 355255)
--- Name: txn_history id; Type: DEFAULT; Schema: public; Owner: cc
---
-
 ALTER TABLE ONLY txn_history ALTER COLUMN id SET DEFAULT nextval('txn_history_id_seq'::regclass);
-
-
-
---
--- TOC entry 3226 (class 0 OID 0)
--- Dependencies: 204
--- Name: intake_row_seq; Type: SEQUENCE SET; Schema: public; Owner: cc
---
-
-
-SELECT pg_catalog.setval('intake_row_seq', 1, true);
-
-
-
---
--- TOC entry 3227 (class 0 OID 0)
--- Dependencies: 202
--- Name: txn_history_id_seq; Type: SEQUENCE SET; Schema: public; Owner: cc
---
 
 
 SELECT pg_catalog.setval('txn_history_id_seq', 1, true);
 
 
-
---
--- TOC entry 3085 (class 2606 OID 355337)
--- Name: intake Intake_pkey; Type: CONSTRAINT; Schema: public; Owner: cc
---
-
-ALTER TABLE ONLY intake
-    ADD CONSTRAINT intake_pkey PRIMARY KEY ("row");
-
-
---
--- TOC entry 3083 (class 2606 OID 355262)
--- Name: txn_history txn_history_pkey; Type: CONSTRAINT; Schema: public; Owner: cc
---
-
 ALTER TABLE ONLY txn_history
     ADD CONSTRAINT txn_history_pkey PRIMARY KEY (id);
 
+--
+-- Name: archive; Type: TABLE; Schema: public; Owner: CC
+--
+CREATE TABLE archive (
+    row_id integer NOT NULL,
+    old_row integer,
+    old_submission_date date,
+    old_entity text,
+    old_dba text,
+    old_facility_address text,
+    old_facility_suite text,
+    old_facility_zip text,
+    old_mailing_address text,
+    old_mrl character varying(10),
+    old_neighborhood_association character varying(30),
+    old_compliance_region character varying(2),
+    old_primary_contact_first_name text,
+    old_primary_contact_last_name text,
+    old_email text,
+    old_phone character(12),
+    old_endorse_type character(25),
+    old_license_type character varying(25),
+    old_repeat_location character(1),
+    old_app_complete character varying(3),
+    old_fee_schedule character varying(5),
+    old_receipt_num integer,
+    old_cash_amount text,
+    old_check_amount text,
+    old_card_amount text,
+    old_check_num_approval_code character varying(25),
+    old_mrl_num character varying(10),
+    old_notes text
+);
+
+ALTER TABLE archive OWNER TO cc;
+
+
+COMMENT ON TABLE archive IS 'Table tracks the rows removed from the intake database table';
+
+CREATE SEQUENCE archive_row_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER TABLE archive_row_seq OWNER TO cc;
+
+
+ALTER SEQUENCE archive_row_seq OWNED BY archive.row_id;
+
+ALTER TABLE ONLY archive ALTER COLUMN row_id SET DEFAULT nextval('archive_row_seq'::regclass);
+
+ALTER TABLE ONLY archive
+    ADD CONSTRAINT archive_pkey PRIMARY KEY (row_id);
+
 
 --
--- TOC entry 3086 (class 2620 OID 355444)
--- Name: intake update; Type: TRIGGER; Schema: public; Owner: cc
+-- Create triggers for archive and txn_history tables
 --
-
 CREATE TRIGGER update BEFORE INSERT OR UPDATE ON intake FOR EACH ROW EXECUTE FUNCTION change_trigger();
+CREATE TRIGGER archive BEFORE DELETE ON intake FOR EACH ROW EXECUTE FUNCTION archive_trigger();
+
+--
+-- Create groups
+--
+CREATE ROLE readaccess;
+CREATE ROLE writeaccess;
+CREATE ROLE adminaccess;
+
+--
+-- Remove default permissions
+--
+REVOKE ALL ON SCHEMA public FROM public;
+
 
 --
 -- Name: Insert Sample Data; type: DATA; schema: public
 --
 
+
 -- INSERT INTO intake VALUES (DEFAULT,'2015-12-01 00:00:00', 'New Horizons Consultants, LLC', 'Home Grown Apothecary', '1937 NE Pacific St.', NULL, '97232', 'PO Box 212, Brightwood, OR 97011', 'MRL3', 'Kerns', 'N', 'Randa', 'Shahin', 'randa@homegrownapothecary.com', '503-484-7254', NULL, 'DRE-MD', NULL, NULL, '2015', 4, 975, NULL, NULL, NULL, 'MRL3', NULL);
 -- INSERT INTO intake VALUES (DEFAULT,'2015-12-01 00:00:00', 'Blue Elephant Holdings, LLC', 'The Human Collective II', '9220 SW Barbur Blvd.', ' #107', '97219', '9220 SW Barbur Blvd. #107', 'MRL6', 'Southwest Neighborhood Inc', 'SW', 'Donald', 'Morse', 'don@humancollective.org', '503-956-1540', NULL, 'DRE-MD', NULL, NULL, '2015', 3, 975, NULL, NULL, NULL, 'MRL6', NULL);
 -- INSERT INTO intake VALUES (DEFAULT, '2015-12-01 00:00:00', 'Rooted Northwest, Inc.', NULL, '7817 NE Halsey St.', NULL, '97213', '2534 NE 50th Ave.', 'MRL7', 'Montavilla', 'NE', 'Christopher', 'Olson', 'olsonpdx@yahoo.com', '503-780-4834', NULL, 'DRE-MD', NULL, NULL, '2015', 6, NULL, 975, NULL, '17-292176052', 'MRL7', NULL);
 
---
--- PostgreSQL database dump complete
---
 
-CREATE TABLE IF NOT EXISTS metadata (
-    filename TEXT NOT NULL,
-    creator TEXT,
-    size INT,
-    created_date TIMESTAMP,
-    last_modified_date TIMESTAMP,
-    last_modified_by TEXT,
-    title TEXT
-);
 
 -- Grant access to read group
 GRANT USAGE ON SCHEMA public TO readaccess;
@@ -273,4 +293,36 @@ CREATE USER administrator WITH PASSWORD 'capstone';
 GRANT readaccess TO reader;
 GRANT writeaccess TO writer;
 GRANT adminaccess TO administrator;
+
+
+
+
+--
+-- A trigger for insert conflict strategy
+-- Name: check_insertion_to_intake_trigger; Type: TRIGGER; Schema: public; Owner: cc
+--
+DROP TRIGGER IF EXISTS check_insertion_to_intake_tri ON intake;
+DROP FUNCTION IF EXISTS check_insertion_to_intake_tri_fnc;
+
+CREATE OR REPLACE FUNCTION check_insertion_to_intake_tri_fnc() RETURNS trigger AS $$
+BEGIN
+
+    IF (SELECT count(*)
+        FROM intake
+        WHERE submission_date = NEW.submission_date
+        AND entity = NEW.entity
+        AND dba = NEW.dba) = 0
+    THEN
+        RETURN NEW;
+    ELSE
+        RETURN NULL;
+    END if;
+
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER check_insertion_to_intake_tri
+BEFORE INSERT ON intake 
+FOR EACH ROW 
+EXECUTE FUNCTION check_insertion_to_intake_tri_fnc();
 

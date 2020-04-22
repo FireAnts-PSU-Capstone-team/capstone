@@ -11,7 +11,7 @@ fi
 
 function usage() {
     echo "Usage: "
-    echo "  bash $0 clean         delete any existing version of the web server image"
+    echo "  bash $0 clean          delete any existing version of the web server image"
     echo "  bash $0 run            run the program"
     echo "  bash $0 stop           stop the program"
     echo "  bash $0 rebuild        remove all data and rebuild the program"

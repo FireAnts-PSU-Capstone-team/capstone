@@ -157,11 +157,24 @@ def write_info_data(df):
     Write data from spreadsheet to the information table.
     Args:
         df (dataframe): data from spreadsheet
-    Returns: None
+    Returns: dict of data writing info
     """
+    fail_rows = []
+    success_count = 0
     row_array = np.ndenumerate(df.values).iter.base
+    total_count = len(row_array)
     for row in row_array:
-        insert_row(primary_table, row)
+        (re, fail_row) = insert_row(primary_table, row)
+        if re == 1:
+            success_count += 1
+        else:
+            fail_rows.append(fail_row)
+    
+    return {
+        'attempt_to_insert': total_count,
+        'success_to_insert': success_count,
+        'fail_rows': fail_rows
+    }
 
 
 def write_metadata(metadata):
@@ -186,7 +199,7 @@ def insert_row(table, row):
     Args:
         table (str): name of table to insert into
         row ([]): row of values to insert
-    Returns: None
+    Returns: (bool, dict) a bool indicate whether insertion is successful, a dict of failed row info
 
     """
     cmd = f"INSERT INTO {table} VALUES (DEFAULT"
@@ -195,6 +208,16 @@ def insert_row(table, row):
     cmd += ")"
     pgSqlCur.execute(cmd)
 
+    if pgSqlCur.rowcount == 1:
+        return (1, None)
+    else:
+        fail_row = {
+            'submission_date': row[1],
+            'entity': row[2],
+            'dba': row[3]
+        }
+        return (0, fail_row)
+
 
 # TODO: catch exceptions and respond appropriately
 def process_file(f):
@@ -202,7 +225,7 @@ def process_file(f):
     Read an Excel file; put info data into info table, metadata into metadata table
     Args:
         f (str): filename of spreadsheet
-    Returns (bool): True if successful, else False
+    Returns (bool, dict): bool is successful or not, dict includes processing info 
     """
 
     # validate file exists
@@ -210,13 +233,13 @@ def process_file(f):
         if os.path.exists('files/' + f):
             f = 'files/' + f
         else:
-            return False
+            return (False, None)
 
     # read file content
     df = load_spreadsheet(f)
     
     # Write the data to the DB
-    write_info_data(df)
+    result_obj = write_info_data(df)
 
     # insert metadata into metadata table
     # should add version and revision to this schema, but don't know types yet
@@ -227,7 +250,7 @@ def process_file(f):
     # commit execution
     pgSqlConn.commit()
 
-    return True
+    return (True, result_obj)
 
 
 def test_driver():
