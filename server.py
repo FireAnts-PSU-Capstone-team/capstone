@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, make_response
 import driver
 from IntakeRow import IntakeRow
 
+context = ('./configs/cert.pem', './configs/key.pem')
 app = Flask(__name__)
 
 
@@ -29,7 +30,7 @@ def load_data():
     Usage:
         PUT: /load?table=<table> -H "Content-Type: application/json" -d [<JSON object> | <filename>]
         POST: /load?file=</path/to/file.xlsx>
-    Returns ({}): HTTP response
+    Returns ({}): HTTPS response
     """
     # TODO: add error handling if JSON schema doesn't match
     if request.method == 'PUT':
@@ -73,4 +74,4 @@ def hello_world():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=80, debug=True)
+    app.run(host='0.0.0.0', port=443, ssl_context=context, threaded=True, debug=True)
