@@ -48,8 +48,10 @@ function run_test() {
     # config variables
     server_port='800'
     tables=('metadata' 'intake' 'txn_history')
+    primary_table='intake'
     record_row=(9 29 38)
     testing_spreadsheet='files/sample-extension.xlsx'
+    test_row='files/sample-row-1.json'
     db_name=$(cut -f 3 -d ' ' database.ini  | sed -n '2p')
     db_user=$(cut -f 3 -d ' ' database.ini  | sed -n '3p')
     db_pass=$(cut -f 3 -d ' ' database.ini  | sed -n '4p')
@@ -136,6 +138,16 @@ function run_test() {
         fi
     else
         echo "5. ERROR: Web server can't list tables."
+        exit
+    fi
+
+    echo "6. Testing row insertion."
+    out=$(curl -X PUT localhost:${server_port}/load?table=${primary_table} -d @${test_row} -H "Content-Type: application/json")
+    if [[ -n "$(echo ${out} | grep 'PUT complete')" ]]
+    then
+        echo "Row insertion ran successfully."
+    else
+        echo ${out}
         exit
     fi
 

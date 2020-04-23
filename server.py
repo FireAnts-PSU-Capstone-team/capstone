@@ -51,10 +51,12 @@ def load_data():
             result = {'message': 'Table name not specified.'}
             return make_response(jsonify(result), 400)
         else:
+            try:
+                driver.get_table(table_name)
+            except driver.InvalidTableException:
+                return make_response(jsonify(f"Table {table_name} does not exist."), 404)
             row_data = IntakeRow(request.get_json()).value_array()
             (row_count, fail_row) = driver.insert_row(table_name, row_data)
-            # TODO: find a way to make this return something meaningful
-            # e.g., return 404 if table doesn't exist
             if row_count == 1:
                 result = {
                     'message': 'PUT completed',
