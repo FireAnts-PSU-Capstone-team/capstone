@@ -209,6 +209,7 @@ def write_metadata(metadata):
     try:
         pgSqlCur.execute(cmd.format(metadata_table, metadata['filename'], metadata['creator'], metadata['size'],
                                 metadata['created'], metadata['modified'], metadata['lastModifiedBy'], metadata['title']))
+        pgSqlConn.commit()
     except Exception as err:
         #print the exception
         sql_except(err)
