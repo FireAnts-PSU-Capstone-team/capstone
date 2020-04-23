@@ -194,7 +194,7 @@ def write_info_data(df):
     """
     row_array = np.ndenumerate(df.values).iter.base
     for row in row_array:
-        insert_row(primary_table, row)
+        insert_row(primary_table, row,False)
 
 
 def write_metadata(metadata):
@@ -218,12 +218,13 @@ def write_metadata(metadata):
 # TODO?: once tables are modeled as classes, change this function to take an iterable of the schema
 # so we can insert into an arbitrary table
 # TODO: revisit row sequencing; change "DEFAULT, then start from row[1]" to process entire row one way or another
-def insert_row(table, row):
+def insert_row(table, row, single_row):
     """
     Insert an array of values into the specified table.
     Args:
         table (str): name of table to insert into
         row ([]): row of values to insert
+        single_row: flag if function will be called as single insert for commited data to DB
     Returns: None
 
     """
@@ -233,11 +234,16 @@ def insert_row(table, row):
     cmd += ")"
     try:
         pgSqlCur.execute(cmd)
+        # commit the row if only a single row was inserted.
+        if single_row:
+            pgSqlConn.commit()
+        return True
     except Exception as err:
         # print the exception
         error_msg = sql_except(err)
         # roll back the last sql command
         pgSqlCur.execute("ROLLBACK")
+        return False
 
 # TODO: catch exceptions and respond appropriately
 def process_file(f):

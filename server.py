@@ -38,10 +38,13 @@ def load_data():
             r = make_response('Table name not specified\n', 400)
         else:
             row_data = IntakeRow(request.get_json()).value_array()
-            driver.insert_row(table_name, row_data)
+            success = driver.insert_row(table_name, row_data, True)
             # TODO: find a way to make this return something meaningful
             # e.g., return 404 if table doesn't exist
-            r = make_response(jsonify('PUT complete'), 200)
+            if success:
+                r = make_response(jsonify('PUT complete'), 200)
+            else:
+                r = make_response(jsonify('PUT failed'),400)
     elif request.method == 'POST':
         file_name = request.args.get('file', '')
         if file_name == '':
