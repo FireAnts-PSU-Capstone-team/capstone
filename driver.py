@@ -25,6 +25,21 @@ while not is_connected:
         sys.stdout.write(f'\rConnecting to DB ... {wait_time}')
 
 
+def sql_except(err):
+    """
+    Function to print out the error message generated from the exception
+    Args:
+        err - the error message generated
+    Returns None
+    """
+    # get the details for exception
+    err_type, err_obj, traceback=sys.exc_info()
+
+    # print the connect() error
+    print("\npsycopg2 ERROR:", err)
+    return ("psycopg2 ERROR:",err)
+
+
 def fmt(s):
     """
     Formats an input element for SQL-friendly injection. Translates None to "NULL", quotes strings, and stringifies
@@ -49,16 +64,28 @@ def dump_tables():
     Returns: None
     """
     print("Test:\n-------------------------------")
-    pgSqlCur.execute(f"select * from {primary_table}")
-    rows = pgSqlCur.fetchall()
-    for row in rows:
-        print(row)
+    try:
+        pgSqlCur.execute(f"select * from {primary_table}")
+        rows = pgSqlCur.fetchall()
+        for row in rows:
+            print(row)
+    except Exception as err:
+        # print the exception
+        sql_except(err)
+        # roll back the last sql command
+        pgSqlCur.execute("ROLLBACK")
 
     print("\nMetadata:\n-------------------------------")
-    pgSqlCur.execute("select * from metadata")
-    rows = pgSqlCur.fetchall()
-    for row in rows:
-        print(row)
+    try:
+        pgSqlCur.execute("select * from metadata")
+        rows = pgSqlCur.fetchall()
+        for row in rows:
+            print(row)
+    except Exception as err:
+        #print the exception
+        sql_except(err)
+        # roll back the last sql command
+        pgSqlCur.execute("ROLLBACK")
         
         
 def table_exists(cur, table):
@@ -74,8 +101,9 @@ def table_exists(cur, table):
         cur.execute("select exists(select relname from pg_class where relname='" + table + "')")
         exists = cur.fetchone()[0]
 
-    except psycopg2.Error:
+    except Exception as err:
         exists = False
+        sql_except(err)
 
     return exists
         
@@ -100,23 +128,26 @@ def get_table(table_name):
 
     if not table_exists(pgSqlCur, table_name):
         raise InvalidTableException
+    try:
+        pgSqlCur.execute(f'select * from {table_name}')
+        rows = pgSqlCur.fetchall()
     
-    pgSqlCur.execute(f'select * from {table_name}')
-    rows = pgSqlCur.fetchall()
+        for col in pgSqlCur.description:
+            column_name.append(col.name)
     
-    for col in pgSqlCur.description:
-        column_name.append(col.name)
-    
-    for row in rows:
-        a_row = {}
-        i = 0
-        for col in column_name:
-            a_row[col] = row[i]
-            i += 1
-        result.append(a_row)
-
-    return result
-
+        for row in rows:
+            a_row = {}
+            i = 0
+            for col in column_name:
+                a_row[col] = row[i]
+                i += 1
+            result.append(a_row)
+        return result
+    except Exception as err:
+        #print the exception
+        sql_except(err)
+        # roll back the last sql command
+        pgSqlCur.execute("ROLLBACK")
 
 # TODO: error handling
 def read_metadata(f):
@@ -175,9 +206,14 @@ def write_metadata(metadata):
     """
     cmd = "INSERT INTO {}(filename, creator, size, created_date, last_modified_date, last_modified_by, title) " \
         "VALUES({},{},{},{},{},{},{}) ON CONFLICT DO NOTHING"
-    pgSqlCur.execute(cmd.format(metadata_table, metadata['filename'], metadata['creator'], metadata['size'],
+    try:
+        pgSqlCur.execute(cmd.format(metadata_table, metadata['filename'], metadata['creator'], metadata['size'],
                                 metadata['created'], metadata['modified'], metadata['lastModifiedBy'], metadata['title']))
-
+    except Exception as err:
+        #print the exception
+        sql_except(err)
+        # roll back the last sql command
+        pgSqlCur.execute("ROLLBACK")
 
 # TODO?: once tables are modeled as classes, change this function to take an iterable of the schema
 # so we can insert into an arbitrary table
@@ -195,8 +231,13 @@ def insert_row(table, row):
     for i in range(1, len(row)):
         cmd += f", {fmt(row[i])}"
     cmd += ")"
-    pgSqlCur.execute(cmd)
-
+    try:
+        pgSqlCur.execute(cmd)
+    except Exception as err:
+        # print the exception
+        error_msg = sql_except(err)
+        # roll back the last sql command
+        pgSqlCur.execute("ROLLBACK")
 
 # TODO: catch exceptions and respond appropriately
 def process_file(f):
