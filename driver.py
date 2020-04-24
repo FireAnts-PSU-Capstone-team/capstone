@@ -2,14 +2,14 @@ import pandas as pd
 import numpy as np
 import psycopg2
 
-import connection as c
+from db import connection as c
 import os
 import sys
 import time
 from openpyxl import load_workbook
 
 
-test_file = 'files/sample.xlsx'
+test_file = 'resources/sample.xlsx'
 primary_table = 'intake'
 metadata_table = 'metadata'
 

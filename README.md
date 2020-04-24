@@ -53,4 +53,4 @@ You can open a browser and go to [http://localhost:800](http://localhost:800) to
 
 You can also query the API from the command line, using `curl`.\
 List the contents of the `intake` table: `curl http://localhost:800/list?table=intake` \
-Post the `sample.xlsx` file to the `/file` endpoint: `curl -X POST http://localhost:800/load?file=sample.xlsx`
+Post the `sample.xlsx` file to the `/load` endpoint: `curl -X POST http://localhost:800/load?file=sample.xlsx`

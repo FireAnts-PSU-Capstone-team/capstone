@@ -50,8 +50,8 @@ function run_test() {
     tables=('metadata' 'intake' 'txn_history')
     primary_table='intake'
     record_row=(9 29 38)
-    testing_spreadsheet='files/sample-extension.xlsx'
-    test_row='files/sample-row-1.json'
+    testing_spreadsheet='resources/sample-extension.xlsx'
+    test_row='resources/sample-row-1.json'
     db_name=$(cut -f 3 -d ' ' database.ini  | sed -n '2p')
     db_user=$(cut -f 3 -d ' ' database.ini  | sed -n '3p')
     db_pass=$(cut -f 3 -d ' ' database.ini  | sed -n '4p')
