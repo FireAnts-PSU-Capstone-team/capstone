@@ -25,6 +25,41 @@ while not is_connected:
         sys.stdout.write(f'\rConnecting to DB ... {wait_time}')
 
 
+def reconnectDB():
+    """
+    Function to reconnect to the database if connection is closed for some reason
+    Args:   None
+    Return: None
+    """
+    wait_time = 0
+    global pgSqlConn, pgSqlCur
+    global is_connected
+    is_connected = False
+    try:
+        pgSqlCur,pgSqlConn = c.pg_connect()
+        is_connected = True
+        return is_connected
+    except:
+        time.sleep(1)
+        wait_time+=1
+        if wait_time == 1000:
+            return False
+
+
+def check_conn():
+    """
+    Function to check the connection to the database and reconnect if closed
+    Args:  None
+    Return: None
+    """
+    # check to make sure that the connection is open and active
+    try:
+        pgSqlCur.execute('SELECT 1')
+        return True
+    except:
+        return reconnectDB()
+
+
 def sql_except(err):
     """
     Function to print out the error message generated from the exception
@@ -63,6 +98,10 @@ def dump_tables():
     Displays the contents of the tables in the database.
     Returns: None
     """
+    # check to make sure that the connection is open and active
+    if not check_conn():
+        return "The connection to DB is closed and cannot be opened. Verify DB server is up."
+
     print("Test:\n-------------------------------")
     try:
         pgSqlCur.execute(f"select * from {primary_table}")
@@ -96,13 +135,15 @@ def table_exists(cur, table):
     Returns (bool): whether the table was found
 
     """
+    # check to make sure that the connection is open and active
+    if not check_conn():
+        return "The connection to DB is closed and cannot be opened. Verify DB server is up."
     try:
         cur.execute("select exists(select relname from pg_class where relname='" + table + "')")
         exists = cur.fetchone()[0]
 
     except psycopg2.Error:
         exists = False
-
 
     return exists
         
@@ -125,16 +166,21 @@ def get_table(table_name):
     result = []
     column_name = []
 
+    # check to make sure that the connection is open and active
+    if not check_conn():
+        result.append("The connection to DB is closed and cannot be opened. Verify DB server is up.")
+        return result
+
     if not table_exists(pgSqlCur, table_name):
         raise InvalidTableException
 
     try:
         pgSqlCur.execute(f"select * from {table_name}")
         rows = pgSqlCur.fetchall()
-    
+
         for col in pgSqlCur.description:
             column_name.append(col.name)
-    
+
         for row in rows:
             a_row = {}
             i = 0
@@ -192,12 +238,16 @@ def write_info_data(df):
         df (dataframe): data from spreadsheet
     Returns: dict of data writing info
     """
+    # check to make sure that the connection is open and active
+    if not check_conn():
+        return "The connection to DB is closed and cannot be opened. Verify DB server is up."
+
     failed_rows = []
     success_count = 0
     row_array = np.ndenumerate(df.values).iter.base
     total_count = len(row_array)
     for row in row_array:
-        (re, failed_row) = insert_row(primary_table, row)
+        (re, failed_row) = insert_row(primary_table, row, True)
         if re == 1:
             success_count += 1
         else:
@@ -219,6 +269,11 @@ def write_metadata(metadata):
     """
     cmd = "INSERT INTO {}(filename, creator, size, created_date, last_modified_date, last_modified_by, title) " \
         "VALUES({},{},{},{},{},{},{}) ON CONFLICT DO NOTHING"
+
+    # check to make sure that the connection is open and active
+    if not check_conn():
+        return "The connection to DB is closed and cannot be opened. Verify DB server is up."
+
     try:
         pgSqlCur.execute(cmd.format(metadata_table, metadata['filename'], metadata['creator'], metadata['size'],
                                 metadata['created'], metadata['modified'], metadata['lastModifiedBy'], metadata['title']))
@@ -231,15 +286,21 @@ def write_metadata(metadata):
         pgSqlCur.execute("ROLLBACK")
 
 
-def insert_row(table, row):
+def insert_row(table, row, checked=False):
     """
     Insert an array of values into the specified table.
     Args:
         table (str): name of table to insert into
-        row ([]): row of values to insert
+        row ([]): row of values to insert, default to false,
+        checked (bool): flag that connection to DB has already be checked by calling function
     Returns: (bool, dict) a bool indicate whether insertion is successful, a dict of failed row info
 
     """
+    # Check flag for multi row insert, if false check to make sure that the connection is open and active
+    if not checked:
+        if not check_conn():
+            return 0, "The connection to DB is closed and cannot be opened. Verify DB server is up."
+
     cmd = f"INSERT INTO {table} VALUES (DEFAULT"
     for i in range(1, len(row)):
         cmd += f", {fmt(row[i])}"
