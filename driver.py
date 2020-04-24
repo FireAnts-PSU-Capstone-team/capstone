@@ -159,21 +159,21 @@ def write_info_data(df):
         df (dataframe): data from spreadsheet
     Returns: dict of data writing info
     """
-    fail_rows = []
+    failed_rows = []
     success_count = 0
     row_array = np.ndenumerate(df.values).iter.base
     total_count = len(row_array)
     for row in row_array:
-        (re, fail_row) = insert_row(primary_table, row)
+        (re, failed_row) = insert_row(primary_table, row)
         if re == 1:
             success_count += 1
         else:
-            fail_rows.append(fail_row)
+            failed_rows.append(failed_row)
     
     return {
-        'attempt_to_insert': total_count,
-        'success_to_insert': success_count,
-        'fail_rows': fail_rows
+        'insertions_attempted': total_count,
+        'insertions_successful': success_count,
+        'insertions_failed': failed_rows
     }
 
 
@@ -190,9 +190,6 @@ def write_metadata(metadata):
                                 metadata['created'], metadata['modified'], metadata['lastModifiedBy'], metadata['title']))
 
 
-# TODO?: once tables are modeled as classes, change this function to take an iterable of the schema
-# so we can insert into an arbitrary table
-# TODO: revisit row sequencing; change "DEFAULT, then start from row[1]" to process entire row one way or another
 def insert_row(table, row):
     """
     Insert an array of values into the specified table.
@@ -209,17 +206,16 @@ def insert_row(table, row):
     pgSqlCur.execute(cmd)
 
     if pgSqlCur.rowcount == 1:
-        return (1, None)
+        return 1, None
     else:
-        fail_row = {
+        failed_row = {
             'submission_date': row[1],
             'entity': row[2],
             'dba': row[3]
         }
-        return (0, fail_row)
+        return 0, failed_row
 
 
-# TODO: catch exceptions and respond appropriately
 def process_file(f):
     """
     Read an Excel file; put info data into info table, metadata into metadata table
@@ -227,13 +223,6 @@ def process_file(f):
         f (str): filename of spreadsheet
     Returns (bool, dict): bool is successful or not, dict includes processing info 
     """
-
-    # validate file exists
-    if not os.path.exists(f):
-        if os.path.exists('files/' + f):
-            f = 'files/' + f
-        else:
-            return (False, None)
 
     # read file content
     df = load_spreadsheet(f)
@@ -250,7 +239,8 @@ def process_file(f):
     # commit execution
     pgSqlConn.commit()
 
-    return (True, result_obj)
+    failed_insertions = result_obj['insertions_attempted'] - result_obj['insertions_successful']
+    return failed_insertions == 0, result_obj
 
 
 def test_driver():

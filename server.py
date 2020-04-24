@@ -60,7 +60,7 @@ def load_data():
             if row_count == 1:
                 result = {
                     'message': 'PUT completed',
-                    'row_affect': row_count
+                    'rows_affected': row_count
                 }
             else:
                 result = {
@@ -88,8 +88,11 @@ def load_data():
                 }
                 return make_response(jsonify(result), 200)
             else:
-                result = {'message': 'File could not be found'}
-                return make_response(jsonify(result), 400)
+                result = {
+                    'message': 'File processed, but with failed rows due to duplicate primary key:',
+                    'result': result_obj
+                }
+                return make_response(jsonify(result), 200)
 
     result = {'message': 'Unsupported operation.'}
     return make_response(jsonify(result), 404)
