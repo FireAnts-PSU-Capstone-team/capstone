@@ -6,7 +6,7 @@
 - Connor Kazmierczak
 - Ha Ly
 - Sean Mitchell
-- Huanhua Su
+- Kanra Su
 - Alicja Wolak
 
 
@@ -31,6 +31,18 @@ sudo docker stop <server-container> <db-container>
 ```
 
 
+## launch.bash Usage
+
+In project folder:
+
+``` sh
+bash launch.bash clean          delete any existing version of the web server image
+bash launch.bash run            run the program
+bash launch.bash stop           stop the program
+bash launch.bash rebuid         remove all data and rebuild the program
+bash launch.bash rebuid-db      remove only DB data and re-run the program
+bash launch.bash test           test the program (for a fresh/new built program)
+```
 
 ## Troubleshooting
 If you get an error when running `sudo docker-compose up` indicating that port 5432 (Postgres) is already in use, you need to stop postgresql and try again:\
@@ -41,4 +53,4 @@ You can open a browser and go to [http://localhost:800](http://localhost:800) to
 
 You can also query the API from the command line, using `curl`.\
 List the contents of the `intake` table: `curl http://localhost:800/list?table=intake` \
-Post the `sample.xlsx` file to the `/file` endpoint: `curl -X POST http://localhost:800/load?file=sample.xlsx`
+Post the `sample.xlsx` file to the `/load` endpoint: `curl -X POST http://localhost:800/load?file=sample.xlsx`
