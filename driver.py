@@ -9,7 +9,7 @@ import time
 from openpyxl import load_workbook
 
 
-test_file = 'files/sample.xlsx'
+test_file = 'resources/sample.xlsx'
 primary_table = 'intake'
 metadata_table = 'metadata'
 
