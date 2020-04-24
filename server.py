@@ -48,29 +48,54 @@ def load_data():
     if request.method == 'PUT':
         table_name = request.args.get('table')
         if table_name is None:
-            return make_response('Table name not specified\n', 400)
+            result = {'message': 'Table name not specified.'}
+            return make_response(jsonify(result), 400)
         else:
+            try:
+                driver.get_table(table_name)
+            except driver.InvalidTableException:
+                return make_response(jsonify(f"Table {table_name} does not exist."), 404)
             row_data = IntakeRow(request.get_json()).value_array()
-            driver.insert_row(table_name, row_data)
-            # TODO: find a way to make this return something meaningful
-            # e.g., return 404 if table doesn't exist
-            return make_response(jsonify('PUT complete'), 200)
+            (row_count, fail_row) = driver.insert_row(table_name, row_data)
+            if row_count == 1:
+                result = {
+                    'message': 'PUT completed',
+                    'rows_affected': row_count
+                }
+            else:
+                result = {
+                    'message': 'PUT failed',
+                    'fail_row': fail_row
+                }
+            return make_response(jsonify(result), 200)
     elif request.method == 'POST':
         if 'file' not in request.files or request.files.get('file', '') == '':
-            return make_response(jsonify('No file listed'), 400)
+            result = {'message': 'No file listed'}
+            return make_response(jsonify(result), 400)
         else:
             file = request.files['file']
             if not allowed_file(file.filename):
-                return make_response(f'Filename \"{file.filename}\" is not supported.', 400)
+                result = {'message': f'Filename \"{file.filename}\" is not supported.'}
+                return make_response(jsonify(result), 400)
+
             filename = f'{UPLOAD_FOLDER}/uploaded_' + file.filename
             file.save(filename)
-            success = driver.process_file(filename)
+            (success, result_obj) = driver.process_file(filename)
             if success:
-                return make_response(jsonify('File processed successfully'), 200)
+                result = {
+                    'message': 'File processed successfully',
+                    'result': result_obj
+                }
+                return make_response(jsonify(result), 200)
             else:
-                return make_response(jsonify('File could not be found'), 400)
+                result = {
+                    'message': 'File processed, but with failed rows due to duplicate primary key:',
+                    'result': result_obj
+                }
+                return make_response(jsonify(result), 200)
 
-    return make_response(jsonify('Unsupported operation'), 404)
+    result = {'message': 'Unsupported operation.'}
+    return make_response(jsonify(result), 404)
 
 
 @app.route('/metadata', methods=['GET'])

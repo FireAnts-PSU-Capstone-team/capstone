@@ -11,7 +11,7 @@ fi
 
 function usage() {
     echo "Usage: "
-    echo "  bash $0 clean         delete any existing version of the web server image"
+    echo "  bash $0 clean          delete any existing version of the web server image"
     echo "  bash $0 run            run the program"
     echo "  bash $0 stop           stop the program"
     echo "  bash $0 rebuild        remove all data and rebuild the program"
@@ -48,8 +48,10 @@ function run_test() {
     # config variables
     server_port='800'
     tables=('metadata' 'intake' 'txn_history')
+    primary_table='intake'
     record_row=(9 29 38)
     testing_spreadsheet='files/sample-extension.xlsx'
+    test_row='files/sample-row-1.json'
     db_name=$(cut -f 3 -d ' ' database.ini  | sed -n '2p')
     db_user=$(cut -f 3 -d ' ' database.ini  | sed -n '3p')
     db_pass=$(cut -f 3 -d ' ' database.ini  | sed -n '4p')
@@ -139,13 +141,23 @@ function run_test() {
         exit
     fi
 
+    echo "6. Testing row insertion."
+    out=$(curl -X PUT localhost:${server_port}/load?table=${primary_table} -d @${test_row} -H "Content-Type: application/json")
+    if [[ -n "$(echo ${out} | grep 'PUT complete')" ]]
+    then
+        echo "Row insertion ran successfully."
+    else
+        echo ${out}
+        exit
+    fi
+
     echo ">>>> End testing."
 }
 
 # accept an argument to perform action, print usage if nothing given
 
 if [[ $1 == "clean" ]]; then
-    sudo docker image rm flask-server:v1
+    sudo docker image rm flask-server:v1 >/dev/null 2>&1
 
 elif [[ $1 == "run" ]]; then
 
