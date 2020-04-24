@@ -20,8 +20,7 @@ class TestServerApp(unittest.TestCase):
         self.client = self.app.test_client
         self.cur, self.conn = db_connection.pg_connect()
         self.nonsense = 'asdfgh'
-        self.base_url = 'http://localhost:800'
-        with open('files/sample-row-1.json') as f:
+        with open('resources/sample-row-1.json') as f:
             self.sample_row = json.load(f)
 
         # binds the app to the current context
