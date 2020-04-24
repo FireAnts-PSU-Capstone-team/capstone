@@ -69,7 +69,6 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 
---
 -- Name: metadata; Type: TABLE; Schema: public; Owner: cc
 --
 CREATE TABLE IF NOT EXISTS metadata (
@@ -120,7 +119,6 @@ CREATE TABLE intake (
 
 ALTER TABLE intake OWNER TO cc;
 
-
 CREATE SEQUENCE intake_row_seq
     AS integer
     START WITH 1
@@ -163,7 +161,6 @@ ALTER TABLE txn_history OWNER TO cc;
 
 COMMENT ON TABLE txn_history IS 'Table tracks the changes made to the intake database table';
 
-
 CREATE SEQUENCE txn_history_id_seq
     AS integer
     START WITH 1
@@ -180,7 +177,6 @@ ALTER TABLE ONLY txn_history ALTER COLUMN id SET DEFAULT nextval('txn_history_id
 
 
 SELECT pg_catalog.setval('txn_history_id_seq', 1, true);
-
 
 ALTER TABLE ONLY txn_history
     ADD CONSTRAINT txn_history_pkey PRIMARY KEY (id);
@@ -221,7 +217,6 @@ CREATE TABLE archive (
 
 ALTER TABLE archive OWNER TO cc;
 
-
 COMMENT ON TABLE archive IS 'Table tracks the rows removed from the intake database table';
 
 CREATE SEQUENCE archive_row_seq
@@ -232,7 +227,6 @@ CREATE SEQUENCE archive_row_seq
     CACHE 1;
 
 ALTER TABLE archive_row_seq OWNER TO cc;
-
 
 ALTER SEQUENCE archive_row_seq OWNED BY archive.row_id;
 
@@ -259,18 +253,6 @@ CREATE ROLE adminaccess;
 -- Remove default permissions
 --
 REVOKE ALL ON SCHEMA public FROM public;
-
-
---
--- Name: Insert Sample Data; type: DATA; schema: public
---
-
-
--- INSERT INTO intake VALUES (DEFAULT,'2015-12-01 00:00:00', 'New Horizons Consultants, LLC', 'Home Grown Apothecary', '1937 NE Pacific St.', NULL, '97232', 'PO Box 212, Brightwood, OR 97011', 'MRL3', 'Kerns', 'N', 'Randa', 'Shahin', 'randa@homegrownapothecary.com', '503-484-7254', NULL, 'DRE-MD', NULL, NULL, '2015', 4, 975, NULL, NULL, NULL, 'MRL3', NULL);
--- INSERT INTO intake VALUES (DEFAULT,'2015-12-01 00:00:00', 'Blue Elephant Holdings, LLC', 'The Human Collective II', '9220 SW Barbur Blvd.', ' #107', '97219', '9220 SW Barbur Blvd. #107', 'MRL6', 'Southwest Neighborhood Inc', 'SW', 'Donald', 'Morse', 'don@humancollective.org', '503-956-1540', NULL, 'DRE-MD', NULL, NULL, '2015', 3, 975, NULL, NULL, NULL, 'MRL6', NULL);
--- INSERT INTO intake VALUES (DEFAULT, '2015-12-01 00:00:00', 'Rooted Northwest, Inc.', NULL, '7817 NE Halsey St.', NULL, '97213', '2534 NE 50th Ave.', 'MRL7', 'Montavilla', 'NE', 'Christopher', 'Olson', 'olsonpdx@yahoo.com', '503-780-4834', NULL, 'DRE-MD', NULL, NULL, '2015', 6, NULL, 975, NULL, '17-292176052', 'MRL7', NULL);
-
-
 
 -- Grant access to read group
 GRANT USAGE ON SCHEMA public TO readaccess;
@@ -322,7 +304,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER check_insertion_to_intake_tri
-BEFORE INSERT ON intake 
-FOR EACH ROW 
+BEFORE INSERT ON intake
+FOR EACH ROW
 EXECUTE FUNCTION check_insertion_to_intake_tri_fnc();
 
