@@ -336,25 +336,23 @@ def process_file(f):
     # check to make sure that the connection is open and active
     if not check_conn():
         return 0, "The connection to DB is closed and cannot be opened. Verify DB server is up."
+    else:
+        # read file content
+        df = load_spreadsheet(f)
 
-    # read file content
-    df = load_spreadsheet(f)
-    
-    # Write the data to the DB
-    result_obj = write_info_data(df)
-    if not is_connected:
-        return 0, "Could not insert into the DB."
-    # insert metadata into metadata table
-    # should add version and revision to this schema, but don't know types yet
-    metadata = read_metadata(f)
+        # Write the data to the DB
+        result_obj = write_info_data(df)
+        # insert metadata into metadata table
+        # should add version and revision to this schema, but don't know types yet
+        metadata = read_metadata(f)
 
-    write_metadata(metadata)
+        write_metadata(metadata)
 
-    # commit execution
-    pgSqlConn.commit()
+        # commit execution
+        pgSqlConn.commit()
 
-    failed_insertions = result_obj['insertions_attempted'] - result_obj['insertions_successful']
-    return failed_insertions == 0, result_obj
+        failed_insertions = result_obj['insertions_attempted'] - result_obj['insertions_successful']
+        return failed_insertions == 0, result_obj
 
 
 def test_driver():
