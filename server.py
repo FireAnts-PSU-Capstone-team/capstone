@@ -80,7 +80,7 @@ def load_data():
 
             filename = f'{UPLOAD_FOLDER}/uploaded_' + file.filename
             file.save(filename)
-            (success, result_obj) = driver.process_file(filename)
+            success, result_obj = driver.process_file(filename)
             if success:
                 result = {
                     'message': 'File processed successfully',
@@ -88,11 +88,13 @@ def load_data():
                 }
                 return make_response(jsonify(result), 200)
             else:
+                if result_obj.get('status', '') == 'invalid':
+                    return make_response(jsonify(result_obj.get('error_msg'), 400))
                 result = {
                     'message': 'File processed, but with failed rows due to duplicate primary key:',
                     'result': result_obj
                 }
-                return make_response(jsonify(result), 200)
+                return make_response(jsonify(result), 400)
 
     result = {'message': 'Unsupported operation.'}
     return make_response(jsonify(result), 404)

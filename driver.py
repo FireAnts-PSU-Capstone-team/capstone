@@ -228,8 +228,10 @@ def process_file(f):
     # read file content
     df = load_spreadsheet(f)
 
-    #Validat data frame
-    df = validate_data_file(df)
+    # Validate data frame
+    valid, error_msg = validate_data_file(df)
+    if not valid:
+        return False, {'status': 'invalid', 'error_msg': error_msg}
     
     # Write the data to the DB
     result_obj = write_info_data(df)

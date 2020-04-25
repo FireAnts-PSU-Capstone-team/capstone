@@ -1,226 +1,244 @@
 import pandas as pd
 import numpy as np
 import re as re
+from models.IntakeRow import RowNames
 
-addressRegex = r'^(\d+)\s([a-zA-Z]{1,2})\s(([a-zA-Z1-9]+\s)+)([a-zA-Z]+)'
+'''Regular expression translated: Any amount of integers but at least one, a space, a 1-2 letter word (for directions N, SW, etc)
+    Followed by a space, followed by any number of letters/numbers (but at least one) followed by a space. 
+    This is followed by a space, followed by a word (for the St., Ave., etc).
+    This is difficult to maintain though!! Holy cow!'''
+addressRegex = r'^(\d+)\s([a-zA-Z]{1,2})\s([a-zA-Z0-9]+\s)([a-zA-Z]+)'
 addressWithFacilityRegex = r'^(\d+)\s([a-zA-Z]{1,2})\s(([a-zA-Z1-9]+\s)+)([a-zA-Z]+)\s(#\d+)'
-POBoxRegex = r'([P|p][O|o])\s(Box|box)\s(\d+\,)((\s[a-zA-Z1-9]+)+)(\,\s[A-Z]{2}\s\d{5})'
+POBoxRegex = r'^([P|p][O|o])\s(Box|box)\s(\d+)(\,)*(\s)[a-zA-Z1-9]+(\,)*\s[A-Z]{2}(\,)*\s\d{5}'
+emailRegex = r'(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)'
+repeat_location_values = ['Y', 'N', 'X', 'NAN']
+app_complete_values = ['M', 'N', 'N/A', 'Y', 'NAN']
 
-validNeighbours = ['Central Northeast Neighbors', 'Beaumont-Wilshire', 'Cully', 'Grant Park', 'Hollywood', 'Madison South',
-                        'Rose City Park', 'Roseway', 'Sumner', 'Sunderland', 'East Portland', 'Argay Terrace', 'Centennial',
-                        'Glenfair','Hazelwood','Lents','Mill Park','Parkrose Heights','Parkrose','Pleasant Valley',
-                        'Powellhurst-Gilbert','Russell','Wilkes','Woodland Park', 'Northeast Coalition', 'Alameda',
-                        'Boise', 'Concordia', 'Eliot','Humboldt','Irvington','King', 'Lloyd District', 'Sabin', "Sullivan's Gulch",
-                        'Vernon', 'Woodlawn', 'Southeast Uplift','Ardenwald/Johnson Creek','Brentwood/Darlington','Brooklyn',
-                        'Buckman','Creston-Kenilworth', 'Eastmoreland','Foster-Powell','Hosford-Abernethy','Kerns', 'Laurelhurst',
-                        'Montavilla', 'Mt Scott-Arleta','Mt Tabor', 'North Tabor','Reed','Richmond','Sellwood-Moreland',
-                        'South Tabor', 'Sunnyside','Woodstock','Arbor Lodge', 'Bridgeton', 'Cathedral Park', 'East Columbia',
-                        'Hayden Island', 'Kenton', 'Overlook','Piedmont', 'Portsmouth', 'St Johns', 'University Park',
-                        'Arlington Heights','Forest Park','Goosehollow Foothills','Hillside','Linnton','Northwest District',
-                        'Northwest Heights','Old Town','Pearl District','Portland Downtown','Sylvan-Highlands','Southwest Neighborhoods Inc',
-                        'Arnold Creek','Ashcreek','Bridlemile','Collins View','Crestwood','Far Southwest','Hayhurst','Healy Heights',
-                        'Hillsdale','Homestead','Maplewood','Markham','Marshall Park','Multnomah','South Burlingame','South Portland',
-                        'Southwest Hills','West Portland Park']
+validNeighborhoods = ['Central Northeast Neighbors', 'Beaumont-Wilshire', 'Cully', 'Grant Park', 'Hollywood',
+                      'Madison South', 'Rose City Park', 'Roseway', 'Sumner', 'Sunderland', 'East Portland',
+                      'Argay Terrace', 'Centennial', 'Glenfair', 'Hazelwood', 'Lents', 'Mill Park', 'Parkrose Heights',
+                      'Parkrose', 'Pleasant Valley', 'Powellhurst-Gilbert', 'Russell', 'Wilkes', 'Woodland Park',
+                      'Northeast Coalition', 'Alameda', 'Boise', 'Concordia', 'Eliot', 'Humboldt', 'Irvington', 'King',
+                      'Lloyd District', 'Sabin', "Sullivan's Gulch", 'Vernon', 'Woodlawn', 'Southeast Uplift',
+                      'Ardenwald/Johnson Creek', 'Brentwood/Darlington', 'Brooklyn', 'Buckman', 'Creston-Kenilworth',
+                      'Eastmoreland', 'Foster-Powell', 'Hosford-Abernethy', 'Kerns', 'Laurelhurst', 'Montavilla',
+                      'Mt Scott-Arleta', 'Mt Tabor', 'North Tabor', 'Reed', 'Richmond', 'Sellwood-Moreland',
+                      'South Tabor', 'Sunnyside', 'Woodstock', 'Arbor Lodge', 'Bridgeton', 'Cathedral Park',
+                      'East Columbia', 'Hayden Island', 'Kenton', 'Overlook', 'Piedmont', 'Portsmouth', 'St Johns',
+                      'University Park', 'Arlington Heights', 'Forest Park', 'Goosehollow Foothills', 'Hillside',
+                      'Linnton', 'Northwest District', 'Northwest Heights', 'Old Town', 'Pearl District',
+                      'Portland Downtown', 'Sylvan-Highlands', 'Southwest Neighborhood Inc', 'Arnold Creek', 'Ashcreek',
+                      'Bridlemile', 'Collins View', 'Crestwood', 'Far Southwest', 'Hayhurst', 'Healy Heights',
+                      'Hillsdale', 'Homestead', 'Maplewood', 'Markham', 'Marshall Park', 'Multnomah',
+                      'South Burlingame', 'South Portland', 'Southwest Hills', 'West Portland Park']
 
 validEndorsement = {"CT": 0, "ED": 0, "EX": 0, "TO": 0}
 licenseType = ['MD', 'MR', 'MC', 'MW', 'MP', 'MU']
 uniqueReceipts = {}
+seen_mrl_nums = {}
 
 
-def validateSuite_OR_fixAndValidateSuite_OR_RejectSuite(x):
-    if x[0] == '#' and x[1:].isdigit():
-        return x
-    if x[0] != '#' and x.isdigit():
-        return '#' + str(x)
-    else:
-        return np.nan
+def validate_suite_number(x):
+    try:
+        if (x[0] == '#' and x[1:].isdigit()) or (x[0] != '#' and x.isdigit()):
+            return True
+    except TypeError:
+        pass
+    return False
 
 
 def validateMailingAddress(addr):
-    if bool(re.search(addressRegex, addr)):
-        return addr
-    elif bool(re.search(addressWithFacilityRegex, addr)):
-        return addr
-    elif bool(re.search(POBoxRegex, addr)):
-        return addr
-    else:
-        return np.nan
+    return re.search(addressRegex, addr) is not None or \
+           re.search(addressWithFacilityRegex, addr) is not None or \
+           re.search(POBoxRegex, addr) is not None
 
 
 def validateComplianceRegion(region):
     length = len(region)
     if length == 1:
-        if region[0] == 'N' or region[0] == 'S' or region[0] == 'E' or region[0] == 'W':
-            return region
-        else:
-            return np.nan
+        if region[0] in ['N', 'S', 'E', 'W']:
+            return True
     if length == 2:
-        if (region[0] == 'N' or region[0] == 'S') and (region[1] == 'E' or region[1] == 'W'):
-            return region
-        else:
-            return np.nan
-
-    return np.nan
+        if region[0] in ['N', 'S'] and region[1] in ['E', 'W']:
+            return True
+    return False
 
 
-def validEndorsementAndEndorsementAmount(endorsementList):
+def validateEndorsement(endorsementList):
+    # validates that each of the involved substrings are one of the endorse types and none are repeated.
     stringEndorsement = str(endorsementList).upper()
-    if len(stringEndorsement) == 0:  # This is a valid outcome
-        return stringEndorsement
-
+    if len(stringEndorsement) == 0 or stringEndorsement.lower() == 'nan':  # This is a valid outcome
+        return True
     splitEndorse = stringEndorsement.split(',')
     for item in splitEndorse:
         if item in validEndorsement:
             validEndorsement[item] += 1
         else:
-            return np.nan
-
+            return False
         if validEndorsement[item] > 1:
-            return np.nan
-    return stringEndorsement
+            return False
+    return True
 
 
-def validateLicenseTypeAndPrefix(license):
+def validate_license_type(license):
     tempLicense = str(license)
     if len(license) > 2:
         if license[0:4] != 'DRE-':
-            return np.nan
+            return False
         else:
             tempLicense = tempLicense[4:]
-
     if tempLicense in licenseType:
         return tempLicense
     else:
-        return np.nan
+        return False
 
 
-def validateIntegerAndUniqueness(receiptNo):
+def validate_receipt_num(receiptNo):
+    # validates parseable integer with no repeated values
     if receiptNo in uniqueReceipts or not str(receiptNo).isdigit():
-        return np.nan
+        return False
     else:
         # Must be converted to string upon return! Otherwise casts to a float and refuses to be cast back
         uniqueReceipts[receiptNo] = 1
-        return str(receiptNo)
+        return True
 
 
-def validateBeginInMRLEndsInIntegers(mrl):
-    mrl.upper()
-    if mrl[0:3] != "MRL":
-        return np.nan
-    if not mrl[4:].isdigit():
-        return np.nan
+def validate_mrl_num(mrl):
+    """
+    Validate that this field matches "MRL<number>" pattern.
+    """
+    m = mrl.upper()
+    if m[0:3] != "MRL" or not m[3:].isdigit() or m in seen_mrl_nums:
+        return False
+    seen_mrl_nums[m] = 1
+    return True
 
-    return mrl
+
+def fmt_failed_row(row):
+    msg = "Failed row: "
+    for item in row:
+        msg += f"{item}, "
+    msg = msg[0:len(msg) - 2]
+    return msg
+
+
+def replacePhoneNumber(phone):
+    return ''.join([d for d in phone if d.isdigit()])
+
+
+def validatePhoneNumber(phone):
+    return len(''.join([d for d in phone if d.isdigit()])) == 10
+
+
+def validate_monetary_amount(amt):
+    try:
+        s = str(amt)
+        if s.upper() == 'NAN':
+            return True
+        if s[0] == '$':
+            s = s[1:]
+        a = int(s)
+        return a >= 0
+    except ValueError:
+        return False
 
 
 def validate_data_file(df):
-    # Dataframe is created with an "Unnamed column". The following cleans that up
-    df.drop(df.columns[df.columns.str.contains('unnamed', case=False)], axis=1, inplace=True)
+    def error_row(field_index, failed_row):
+        msg = f"Invalid {df.columns[field_index]}.\n"
+        msg += f"Failed element: {failed_row[field_index]}\n"
+        msg += f"Failed row: {fmt_failed_row(failed_row)}"
+        return False, msg
 
-    # Submission Date
-    '''The following line takes the "Submission date" object and converts it to datetime, expecting it in the format of mm/dd/yy. 
-    If it encounters it out of that range, it fills in a "NaN", and attempts to determine if is a datetime expected in the format
-    of mm/dd/yyyy. If yes, it converts that to a datetime object of format m/d/yy. If no 
-    (such as out of bounds numbers, letters, etc), it fills in the value with NaN'''
+    df.rename(columns={'Unnamed: 0': 'row'}, inplace=True)
 
-    df['Submission date'] = pd.to_datetime(df['Submission date'], format='%m/%d/%y', errors="coerce").fillna(
-        pd.to_datetime(df['Submission date'], format='%m/%d/%Y', errors="coerce")
-    ).dt.strftime('%m/%d/%y')
+    for row in df.itertuples(index=False):
+        # Submission Date: parseable into a datetime
+        try:
+            pd.to_datetime(row[RowNames.SUBMISSION_DATE.value], format='%m/%d/%y', errors="raise")
+        except ValueError:
+            return error_row(RowNames.SUBMISSION_DATE.value, row)
+        # Facility Address: matches regex
+        if re.match(addressRegex, row[RowNames.FACILITY_ADDRESS.value]) is None:
+            return error_row(RowNames.FACILITY_ADDRESS.value, row)
+        # 'Facility Suite #': '#' + digits
+        if validate_suite_number(row[RowNames.FACILITY_SUITE.value]) == np.nan:
+            return error_row(RowNames.FACILITY_SUITE.value, row)
+        # Facility Zip: 5-digit number
+        try:
+            bad_zip = not 0 <= int(row[RowNames.FACILITY_ZIP.value]) < 100000
+        except ValueError:
+            bad_zip = True
+        if bad_zip:
+            return error_row(RowNames.FACILITY_ZIP.value, row)
+        # Mailing Address: matches regex
+        if not validateMailingAddress(row[RowNames.MAILING_ADDRESS.value]):
+            return error_row(RowNames.MAILING_ADDRESS.value, row)
+        # MRL: matches "MRL<number>"
+        mrl = row[RowNames.MRL.value].lstrip()
+        if not (mrl[0:3].upper() == 'MRL' and mrl[3:].isdigit()):
+            return error_row(RowNames.MRL.value, row)
+        # Neighborhood Association: in approved list
+        if not row[RowNames.NEIGHBORHOOD_ASSN.value] in validNeighborhoods:
+            return error_row(RowNames.NEIGHBORHOOD_ASSN.value, row)
+        # Compliance Region: cardinal direction
+        if not validateComplianceRegion(row[RowNames.COMPLIANCE_REGION.value]):
+            return error_row(RowNames.COMPLIANCE_REGION.value, row)
+        # Primary Contact Name - no validation
+        # Email - matches regex
+        if not re.match(emailRegex, row[RowNames.EMAIL.value]):
+            return error_row(RowNames.EMAIL.value, row)
+        # Phone: coerceable into a 10-digit number
+        if not validatePhoneNumber(row[RowNames.PHONE.value]):
+            return error_row(RowNames.PHONE.value, row)
+        # Endorsement: combination from approved list
+        if not validateEndorsement(row[RowNames.ENDORSE_TYPE.value]):
+            return error_row(RowNames.ENDORSE_TYPE.value, row)
+        # License Type: matches expected values
+        if not validate_license_type(row[RowNames.LICENSE_TYPE.value]):
+            return error_row(RowNames.LICENSE_TYPE.value, row)
+        # Repeat location: in approved list
+        if not str(row[RowNames.REPEAT_LOCATION.value]).upper() in repeat_location_values:
+            return error_row(RowNames.REPEAT_LOCATION.value, row)
+        # App complete: in approved list
+        if not str(row[RowNames.APP_COMPLETE.value]).upper() in app_complete_values:
+            return error_row(RowNames.APP_COMPLETE.value, row)
+        # Fee schedule: parseable date
+        try:
+            pd.to_datetime(row[RowNames.FEE_SCHEDULE.value], errors="raise")
+        except:
+            return error_row(RowNames.FEE_SCHEDULE.value, row)
+        # Receipt num: numeric value with no repeats
+        if not validate_receipt_num(row[RowNames.RECEIPT_NUM.value]):
+            return error_row(RowNames.RECEIPT_NUM.value, row)
+        # Cash amount: number, possibly preceded by '$'
+        if not validate_monetary_amount(row[RowNames.CASH_AMT.value]):
+            return error_row(RowNames.CASH_AMT.value, row)
+        # Check amount: number, possibly preceded by '$'
+        if not validate_monetary_amount(row[RowNames.CHECK_AMT.value]):
+            return error_row(RowNames.CHECK_AMT.value, row)
+        # Card amount: number, possibly preceded by '$'
+        if not validate_monetary_amount(row[RowNames.CARD_AMT.value]):
+            return error_row(RowNames.CARD_AMT.value, row)
+        # Check No./Approval Code
+        # No validation here, since it seems that they can be any combination of characters
+        # MRL num: matches "MRL<number>" with no repeats
+        if not validate_mrl_num(row[RowNames.MRL_NUM.value]):
+            return error_row(RowNames.MRL_NUM.value, row)
 
-    # Entity
-    df['Entity'] = df['Entity'].str.title()
-
-    # DBA
-    df['DBA'] = df['DBA'].str.title()
-
-    # Facility Address - validates format of street address through a regex (after adding a '.' just in case).
-    # Otherwise just rejects into NaN
-    '''Regular expression translated: Any amount of integers but at least one, a space, a 1-2 letter word (for directions N, SW, etc)
-    Followed by a space, followed by any number of letters/numbers (but at least one) followed by a space. 
-    This is followed by a space, followed by a word (for the St., Ave., etc).
-    This is difficult to maintain though!! Holy cow!'''
-
-    # df['Facility Address'] = df['Facility Address'].apply(lambda x: x if (x[-1] == '.') else x + '.')
-    df['Facility Address'] = df['Facility Address'].where(df['Facility Address'].str.match(addressRegex))
-    df['Facility Address'] = df['Facility Address'].str.title()
-    # print(df['Facility Address'])
-
-    # Facility Suite Validation. Gets rid of white space in front. If it's just missing a #, adds it. Otherwise returns Nan
-    # Function to use for the lambda later on
-    df['Facility Suite #'] = df['Facility Suite #'].str.lstrip().apply(
-        validateSuite_OR_fixAndValidateSuite_OR_RejectSuite
-    )
-
-    # Facility Zip - validate it has 5 numbers, otherwise Nan
-    df['Facility Zip'] = df['Facility Zip'].apply(lambda x: x if (len(x) == 10) else np.nan)
-
-    # Mailing Address Validation :/
-    df['Mailing Address'] = df['Mailing Address'].apply(validateMailingAddress)
-
-    # MRL Validation - validate that it beings with MRL and the last half is a number, otherwise nan
-    df['MRL'] = df['MRL'].str.lstrip().apply(lambda x: x if (x[0:3] == 'MRL' and x[4:].isdigit()) else np.nan)
-
-    # Neighborhood Association - validate that it's a part of this list. Probably best to input into text file to easily change in the future. Nan otherwise
-    df['Neighborhood Association'] = df['Neighborhood Association'].apply(
-        lambda x: x.title() if (str(x).title() in validNeighbours) else np.nan
-    )
-
-    # Compliance Region - ensures that the letters are in the right order, and that the correct letters exist. Otherwise nan
-    df['Compliance Region'] = df['Compliance Region'].str.upper().apply(validateComplianceRegion)
-
-    # Primary Contact Name (first) - just uppercases first letter, lowcases the rest
-    df['Primary Contact Name (first)'] = df['Primary Contact Name (first)'].str.title()
-
-    # Primary Contact Name (last) - just uppercases first letter, lowcases the rest
-    df['Primary Contact Name (last)'] = df['Primary Contact Name (last)'].str.title()
-
-    # Email - validate string format against regular expression. NaN if it doesn't fit the format
-    emailRegex = r'(\w+)\@(\w+)\.(\w+)'
-    df['Email'] = df['Email'].where(df['Email'].str.match(emailRegex))
-
-    # Phone = Replace the phone number formatting with only the raw numbers, and then ensure it's the correct length. Nan otherwise
-    df['Phone'] = df['Phone'].apply(lambda x: ''.join([i for i in x if i.isdigit()]))
-    df['Phone'] = df['Phone'].apply(lambda x: x if (len(x) == 10) else np.nan)
-
-    # Endorse type - validates that each of the involved substrings are one of the endorse types and none are repeated. If not, NaN
-    df['Endorse Type'] = df['Endorse Type'].apply(validEndorsementAndEndorsementAmount)
-
-    # License Type - validates if appropriate license type (can have DRE in front). Otherwise NaN
-    df['License Type'] = df['License Type'].apply(validateLicenseTypeAndPrefix)
-
-    # Repeat location? - validate it's either a 'Y' or 'N' answer, and also upper cases it for good formatting
-    df['Repeat location?'] = df['Repeat location?'].apply(
-        lambda x: str(x).upper() if (str(x).upper() == 'Y' or str(x).upper() == 'N') else np.nan)
-
-    # App complete?
+    # Regularize the following values:
+    # Suite number
+    df['Facility Suite #'] = df['Facility Suite #'].str.lstrip()
+    # MRL
+    df['MRL'] = df['MRL'].str.lstrip()
+    # Phone numbers
+    df['Phone'] = df['Phone'].apply(replacePhoneNumber)
+    # Repeat location
+    df['Repeat location?'] = df['Repeat location?'].apply(lambda x: str(x).upper())
+    # App complete
     df['App complete?'] = df['App complete?'].apply(lambda x: str(x).upper())
-    df['App complete?'] = df['App complete?'].apply(
-        lambda x: x if (x == 'Y' or x == 'N' or x == 'YES' or x == 'NO' or x == 'N/A') else np.nan)
 
-    # Fee Schedule - validates it's in a yyyy format. Otherwise yeets it out into a NaN
-    df['Fee Schedule'] = pd.to_datetime(df['Fee Schedule'], format='%Y', errors="coerce").dt.strftime('%Y')
+    return True, None
 
-    # Receipt No. - validates that it's an integer, doesn't validate it's a unique number, Otherwise NaN
-    # Ignoring the error because otherwise it doesn't convert NaN to an int, which is what we want
-    df['Receipt No.'] = df['Receipt No.'].apply(validateIntegerAndUniqueness).astype(int, errors="ignore")
-
-    # Cash Amount - validates it's a number and non-negative
-    df['Cash Amount'] = df['Cash Amount'].apply(lambda x: x if (str(x)[1:].isdigit() and int(str(x)[1:]) >= 0) else np.nan)
-
-    # Check Amount - validates it's a number and non-negative
-    df['Check Amount'] = df['Check Amount'].apply(lambda x: x if (str(x)[1:].isdigit() and int(str(x)[1:]) >= 0) else np.nan)
-
-    # Card Amount - validates it's a number and non-negative
-    df['Card Amount'] = df['Card Amount'].apply(lambda x: x if (str(x)[1:].isdigit() and int(str(x)[1:]) >= 0) else np.nan)
-
-    # Check No./Approval Code
-    # No validation here - since it seems that they can be any combo of letters, numbers, dashes, and we're assuming a non-malicious
-    # user who wouldn't randomly put in in non-valid characters
-
-    # MRL# - validates that it begins in "MRL" and ends in some number
-
-    df['MRL#'] = df['MRL#'].apply(validateBeginInMRLEndsInIntegers)
-
-    return df
-
-# add something that leverages the validation to return pass/fail and a summary of errors
+# TODO: add something that leverages the validation to return pass/fail and a summary of errors
+# TODO: add support for single-row input, via PUT (need to convert to dataframe)
