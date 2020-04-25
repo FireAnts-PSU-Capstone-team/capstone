@@ -35,15 +35,16 @@ def reconnectDB():
     global pgSqlConn, pgSqlCur
     global is_connected
     is_connected = False
-    try:
-        pgSqlCur,pgSqlConn = c.pg_connect()
-        is_connected = True
-        return is_connected
-    except:
-        time.sleep(1)
-        wait_time+=1
-        if wait_time == 1000:
-            return False
+    while not is_connected:
+        try:
+            pgSqlCur,pgSqlConn = c.pg_connect()
+            is_connected = True
+            return is_connected
+        except:
+            time.sleep(1)
+            wait_time+=1
+            if wait_time == 30:
+                return False
 
 
 def check_conn():
@@ -52,6 +53,8 @@ def check_conn():
     Args:  None
     Return: None
     """
+    if not is_connected:
+        return reconnectDB()
     # check to make sure that the connection is open and active
     try:
         pgSqlCur.execute('SELECT 1')
@@ -238,10 +241,9 @@ def write_info_data(df):
         df (dataframe): data from spreadsheet
     Returns: dict of data writing info
     """
-    # check to make sure that the connection is open and active
+    #check if the connection is alive
     if not check_conn():
-        return "The connection to DB is closed and cannot be opened. Verify DB server is up."
-
+        return {'failure': True,'message':"Can't connect to the DB. Verify server is up."}
     failed_rows = []
     success_count = 0
     row_array = np.ndenumerate(df.values).iter.base
@@ -331,17 +333,21 @@ def process_file(f):
         f (str): filename of spreadsheet
     Returns (bool, dict): bool is successful or not, dict includes processing info 
     """
+    # check to make sure that the connection is open and active
+    if not check_conn():
+        return 0, "The connection to DB is closed and cannot be opened. Verify DB server is up."
 
     # read file content
     df = load_spreadsheet(f)
     
     # Write the data to the DB
     result_obj = write_info_data(df)
-
+    if not is_connected:
+        return 0, "Could not insert into the DB."
     # insert metadata into metadata table
     # should add version and revision to this schema, but don't know types yet
     metadata = read_metadata(f)
-    
+
     write_metadata(metadata)
 
     # commit execution
