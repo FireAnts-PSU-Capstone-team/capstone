@@ -52,9 +52,9 @@ function run_test() {
     record_row=(9 29 38)
     testing_spreadsheet='resources/sample-extension.xlsx'
     test_row='resources/sample-row-1.json'
-    db_name=$(cut -f 3 -d ' ' database.ini  | sed -n '2p')
-    db_user=$(cut -f 3 -d ' ' database.ini  | sed -n '3p')
-    db_pass=$(cut -f 3 -d ' ' database.ini  | sed -n '4p')
+    db_name=$(cut -f 3 -d ' ' db/database.ini  | sed -n '2p')
+    db_user=$(cut -f 3 -d ' ' db/database.ini  | sed -n '3p')
+    db_pass=$(cut -f 3 -d ' ' db/database.ini  | sed -n '4p')
 
 
     # check if can use the default credential to connect to postgres DB
@@ -167,6 +167,8 @@ elif [[ $1 == "run" ]]; then
 
     # bring up the container
     sudo docker-compose up
+    # TODO: refactor duplicated code
+    # TODO: automatically catch error requiring 'postgresql stop'; execute that and retry
 
 elif [[ $1 == "stop" ]]; then
 

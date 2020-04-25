@@ -8,11 +8,12 @@ import sys
 import time
 from openpyxl import load_workbook
 
-
 test_file = 'resources/sample.xlsx'
 primary_table = 'intake'
 metadata_table = 'metadata'
+connection_error_msg = 'The connection to the database is closed and cannot be opened. Verify DB server is up.'
 
+# TODO: refactor to remove duplicated code
 is_connected = False
 wait_time = 0
 while not is_connected:
@@ -29,7 +30,7 @@ def reconnectDB():
     """
     Function to reconnect to the database if connection is closed for some reason
     Args:   None
-    Return: None
+    Return (bool): True if connection successful, else False
     """
     wait_time = 0
     global pgSqlConn, pgSqlCur
@@ -37,21 +38,23 @@ def reconnectDB():
     is_connected = False
     while not is_connected:
         try:
-            pgSqlCur,pgSqlConn = c.pg_connect()
+            pgSqlCur, pgSqlConn = c.pg_connect()
             is_connected = True
             return is_connected
         except:
             time.sleep(1)
-            wait_time+=1
-            if wait_time == 30:
+            wait_time += 1
+            sys.stdout.write(f'\rConnecting to DB ... {wait_time}')
+            if wait_time >= 30:
                 return False
+    return True
 
 
 def check_conn():
     """
     Function to check the connection to the database and reconnect if closed
     Args:  None
-    Return: None
+    Return (bool): True if connected, False if connection could not be established
     """
     if not is_connected:
         return reconnectDB()
@@ -71,11 +74,11 @@ def sql_except(err):
     Returns None
     """
     # get the details for exception
-    err_type, err_obj, traceback=sys.exc_info()
+    err_type, err_obj, traceback = sys.exc_info()
 
     # print the connect() error
-    print("\npsycopg2 ERROR:", err)
-    return ("psycopg2 ERROR:",err)
+    sys.stderr.write(f"\npsycopg2 ERROR: {err}")
+    return "psycopg2 ERROR:", err
 
 
 def fmt(s):
@@ -103,7 +106,7 @@ def dump_tables():
     """
     # check to make sure that the connection is open and active
     if not check_conn():
-        return "The connection to DB is closed and cannot be opened. Verify DB server is up."
+        return connection_error_msg
 
     print("Test:\n-------------------------------")
     try:
@@ -128,7 +131,8 @@ def dump_tables():
         sql_except(err)
         # roll back the last sql command
         pgSqlCur.execute("ROLLBACK")
-        
+
+
 def table_exists(cur, table):
     """
     Checks whether the named table exists.
@@ -149,7 +153,7 @@ def table_exists(cur, table):
         exists = False
 
     return exists
-        
+
 
 # TODO: error handling
 class InvalidTableException(Exception):
@@ -171,7 +175,7 @@ def get_table(table_name):
 
     # check to make sure that the connection is open and active
     if not check_conn():
-        result.append("The connection to DB is closed and cannot be opened. Verify DB server is up.")
+        result.append(connection_error_msg)
         return result
 
     if not table_exists(pgSqlCur, table_name):
@@ -241,9 +245,9 @@ def write_info_data(df):
         df (dataframe): data from spreadsheet
     Returns: dict of data writing info
     """
-    #check if the connection is alive
+    # check if the connection is alive
     if not check_conn():
-        return {'failure': True,'message':"Can't connect to the DB. Verify server is up."}
+        return {'failure': True, 'message': connection_error_msg}
     failed_rows = []
     success_count = 0
     row_array = np.ndenumerate(df.values).iter.base
@@ -254,7 +258,7 @@ def write_info_data(df):
             success_count += 1
         else:
             failed_rows.append(failed_row)
-    
+
     return {
         'insertions_attempted': total_count,
         'insertions_successful': success_count,
@@ -270,15 +274,17 @@ def write_metadata(metadata):
     Returns: None
     """
     cmd = "INSERT INTO {}(filename, creator, size, created_date, last_modified_date, last_modified_by, title) " \
-        "VALUES({},{},{},{},{},{},{}) ON CONFLICT DO NOTHING"
+          "VALUES({},{},{},{},{},{},{}) ON CONFLICT DO NOTHING"
 
     # check to make sure that the connection is open and active
     if not check_conn():
-        return "The connection to DB is closed and cannot be opened. Verify DB server is up."
+        return connection_error_msg
 
     try:
         pgSqlCur.execute(cmd.format(metadata_table, metadata['filename'], metadata['creator'], metadata['size'],
-                                metadata['created'], metadata['modified'], metadata['lastModifiedBy'], metadata['title']))
+                                    metadata['created'], metadata['modified'], metadata['lastModifiedBy'],
+                                    metadata['title'])
+                         )
         pgSqlConn.commit()
 
     except Exception as err:
@@ -288,20 +294,21 @@ def write_metadata(metadata):
         pgSqlCur.execute("ROLLBACK")
 
 
+# TODO: implement multi-row insertion
 def insert_row(table, row, checked=False):
     """
     Insert an array of values into the specified table.
     Args:
         table (str): name of table to insert into
         row ([]): row of values to insert, default to false,
-        checked (bool): flag that connection to DB has already be checked by calling function
+        checked (bool): flag that connection to DB has already been checked by calling function
     Returns: (bool, dict) a bool indicate whether insertion is successful, a dict of failed row info
 
     """
     # Check flag for multi row insert, if false check to make sure that the connection is open and active
     if not checked:
         if not check_conn():
-            return 0, "The connection to DB is closed and cannot be opened. Verify DB server is up."
+            return 0, connection_error_msg
 
     cmd = f"INSERT INTO {table} VALUES (DEFAULT"
     for i in range(1, len(row)):
@@ -326,6 +333,7 @@ def insert_row(table, row, checked=False):
         # roll back the last sql command
         pgSqlCur.execute("ROLLBACK")
 
+
 def process_file(f):
     """
     Read an Excel file; put info data into info table, metadata into metadata table
@@ -335,7 +343,7 @@ def process_file(f):
     """
     # check to make sure that the connection is open and active
     if not check_conn():
-        return 0, "The connection to DB is closed and cannot be opened. Verify DB server is up."
+        return 0, connection_error_msg
     else:
         # read file content
         df = load_spreadsheet(f)
