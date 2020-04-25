@@ -12,12 +12,12 @@ services:
         environment:
             POSTGRES_USER: cc
             POSTGRES_PASSWORD: pp
-            POSTGRES_DB: capstone-db
+            POSTGRES_DB: capstone
         # volume to persistent data
         volumes:
             # <local/path/to/store/data>:<path/inside/container>
             - ./pgdata:/var/lib/postgresql/data
-            - ./sql/db-create.sql:/docker-entrypoint-initdb.d/init.sql
+            - ./db/db-create.sql:/docker-entrypoint-initdb.d/init.sql
         
         ports:
             # <local/port>:<container/exposing/port>
@@ -30,4 +30,4 @@ services:
         depends_on:
             - db
         ports:
-            - "80:80"
+            - "800:80"

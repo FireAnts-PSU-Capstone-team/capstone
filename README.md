@@ -6,7 +6,7 @@
 - Connor Kazmierczak
 - Ha Ly
 - Sean Mitchell
-- Huanhua Su
+- Kanra Su
 - Alicja Wolak
 
 
@@ -17,27 +17,40 @@ If you have changed the project contents recently and wish to rebuild the Docker
 
 ### If you prefer to run the commands manually
 
-Delete existing (cached) Docker image: `sudo docker image rm flask-server:v1` \
-Build flask server image (in project folder): `sudo docker build -t flask-server:v1 .`\
-Compose and run server: `sudo docker-compose up`\
-                        `sudo docker-compose up -d`       # run in background\
-Stop running server: `ctrl-c`
+`sudo docker image rm flask-server:v1` &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&nbsp;&nbsp;Delete existing (cached) Docker image  \
+`sudo docker build -t flask-server:v1 .`&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;Build flask server image (in project folder): \
+`sudo docker-compose up` &ensp;&nbsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;Compose and run server \
+`sudo docker-compose up -d`        &nbsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;Run in background\
+`ctrl-c` &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;Stop running server \
+`sudo docker-compose down` &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&ensp;&nbsp;Remove built server and PostgreSQL DB containers
 
-If run in background:
+If run in background, stop containers with:
 ``` sh
 sudo docker ps
 sudo docker stop <server-container> <db-container>
 ```
-Remove built server and PostgreSQL DB containers: `sudo docker-compose down`
 
+
+## launch.bash Usage
+
+In project folder:
+
+``` sh
+bash launch.bash clean          delete any existing version of the web server image
+bash launch.bash run            run the program
+bash launch.bash stop           stop the program
+bash launch.bash rebuid         remove all data and rebuild the program
+bash launch.bash rebuid-db      remove only DB data and re-run the program
+bash launch.bash test           test the program (for a fresh/new built program)
+```
 
 ## Troubleshooting
 If you get an error when running `sudo docker-compose up` indicating that port 5432 (Postgres) is already in use, you need to stop postgresql and try again:\
 `sudo service postgresql stop`
 
 ## Interacting with the server
-You can open a browser and go to [http://localhost:80](http://localhost:80) to connect to the running API. From here, you can hit any of the endpoints specified in the `server.py` file.
+You can open a browser and go to [http://localhost:800](http://localhost:800) to connect to the running API. From here, you can hit any of the endpoints specified in the `server.py` file.
 
 You can also query the API from the command line, using `curl`.\
-List the contents of the `test` database: `curl http://localhost:80/list?table=test`\
-Post the `Lists.xlsx` file to the `/file` endpoint: `curl -X POST -F filename="files/Lists.xlsx" http://localhost:80/file`
+List the contents of the `intake` table: `curl http://localhost:800/list?table=intake` \
+Post the `sample.xlsx` file to the `/load` endpoint: `curl -X POST http://localhost:800/load?file=sample.xlsx`

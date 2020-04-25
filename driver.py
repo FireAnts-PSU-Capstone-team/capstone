@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import psycopg2
 
-import Connection as c
+from db import connection as c
 import os
 import sys
 import time
@@ -10,15 +10,16 @@ from openpyxl import load_workbook
 from validation import validate_data_file
 
 
-filename = 'files/Lists.xlsx'
-test_table = 'test'
+test_file = 'resources/sample.xlsx'
+primary_table = 'intake'
 metadata_table = 'metadata'
-is_connect = 0
+
+is_connected = False
 wait_time = 0
-while not is_connect:
+while not is_connected:
     try:
         pgSqlCur, pgSqlConn = c.pg_connect()
-        is_connect = 1
+        is_connected = True
     except:
         time.sleep(1)
         wait_time += 1
@@ -33,10 +34,13 @@ def fmt(s):
         s: the input element
     Returns (str): a SQL-friendly string representation
     """
-    if s is None:
+    if s is None or str(s).lower() == 'nan':
         s = "NULL"
     else:
-        s = "'" + str(s) + "'"
+        if type(s) is str:
+            s = "'" + str(s).replace('"', '').replace("'", "") + "'"  # strip quotation marks
+        else:
+            s = str(s)
     return s
 
 
@@ -46,11 +50,11 @@ def dump_tables():
     Returns: None
     """
     print("Test:\n-------------------------------")
-    pgSqlCur.execute("select * from test")
+    pgSqlCur.execute(f"select * from {primary_table}")
     rows = pgSqlCur.fetchall()
     for row in rows:
         print(row)
-    
+
     print("\nMetadata:\n-------------------------------")
     pgSqlCur.execute("select * from metadata")
     rows = pgSqlCur.fetchall()
@@ -59,12 +63,21 @@ def dump_tables():
         
         
 def table_exists(cur, table):
-    exists = False
+    """
+    Checks whether the named table exists.
+    Args:
+        cur ({}): the Postgres cursor
+        table (str): the table to validate
+    Returns (bool): whether the table was found
+
+    """
     try:
         cur.execute("select exists(select relname from pg_class where relname='" + table + "')")
         exists = cur.fetchone()[0]
-    except psycopg2.Error as e:
-        print(e)
+
+    except psycopg2.Error:
+        exists = False
+
     return exists
         
 
@@ -85,7 +98,7 @@ def get_table(table_name):
     """
     result = []
     column_name = []
-    
+
     if not table_exists(pgSqlCur, table_name):
         raise InvalidTableException
     
@@ -117,14 +130,14 @@ def read_metadata(f):
     data = {}
     file_data = load_workbook(f).properties.__dict__
     os_data = os.stat(f)
-    
+
     data['filename'] = fmt(os.path.basename(f))
-    data['creator'] = fmt(file_data['creator'])
+    data['creator'] = fmt(file_data.get('creator'))
     data['size'] = os_data.st_size
-    data['created'] = fmt(file_data['created'].strftime('%Y-%m-%d %H:%M:%S+08'))
-    data['modified'] = fmt(file_data['modified'].strftime('%Y-%m-%d %H:%M:%S+08'))
-    data['lastModifiedBy'] = fmt(file_data['lastModifiedBy'])
-    data['title'] = fmt(file_data['title'])
+    data['created'] = fmt(file_data.get('created').strftime('%Y-%m-%d %H:%M:%S+08'))
+    data['modified'] = fmt(file_data.get('modified').strftime('%Y-%m-%d %H:%M:%S+08'))
+    data['lastModifiedBy'] = fmt(file_data.get('lastModifiedBy'))
+    data['title'] = fmt(file_data.get('title'))
 
     return data
 
@@ -145,17 +158,24 @@ def write_info_data(df):
     Write data from spreadsheet to the information table.
     Args:
         df (dataframe): data from spreadsheet
-    Returns: None
+    Returns: dict of data writing info
     """
-    cmd = "INSERT INTO {}(id, firstname, lastname, city) VALUES({}, {}, {}, {}) ON CONFLICT DO NOTHING"
-    # unclear what we want to do on collision; depends on data we're inserting
-
-    # potential missing functionality is ability to create a table from a spreadsheet with a non-pre-existing schema
-    for i in np.ndenumerate(df.values).iter.base:
-        id_, firstname, lastname, city = i
-        cf = cmd.format(test_table, id_, fmt(firstname), fmt(lastname), fmt(city))
-        # print(cf)
-        pgSqlCur.execute(cf)
+    failed_rows = []
+    success_count = 0
+    row_array = np.ndenumerate(df.values).iter.base
+    total_count = len(row_array)
+    for row in row_array:
+        (re, failed_row) = insert_row(primary_table, row)
+        if re == 1:
+            success_count += 1
+        else:
+            failed_rows.append(failed_row)
+    
+    return {
+        'insertions_attempted': total_count,
+        'insertions_successful': success_count,
+        'insertions_failed': failed_rows
+    }
 
 
 def write_metadata(metadata):
@@ -171,21 +191,39 @@ def write_metadata(metadata):
                                 metadata['created'], metadata['modified'], metadata['lastModifiedBy'], metadata['title']))
 
 
-# TODO: catch exceptions and respond appropriately
+def insert_row(table, row):
+    """
+    Insert an array of values into the specified table.
+    Args:
+        table (str): name of table to insert into
+        row ([]): row of values to insert
+    Returns: (bool, dict) a bool indicate whether insertion is successful, a dict of failed row info
+
+    """
+    cmd = f"INSERT INTO {table} VALUES (DEFAULT"
+    for i in range(1, len(row)):
+        cmd += f", {fmt(row[i])}"
+    cmd += ")"
+    pgSqlCur.execute(cmd)
+
+    if pgSqlCur.rowcount == 1:
+        return 1, None
+    else:
+        failed_row = {
+            'submission_date': row[1],
+            'entity': row[2],
+            'dba': row[3]
+        }
+        return 0, failed_row
+
+
 def process_file(f):
     """
     Read an Excel file; put info data into info table, metadata into metadata table
     Args:
         f (str): filename of spreadsheet
-    Returns (bool): True if successful, else False
+    Returns (bool, dict): bool is successful or not, dict includes processing info 
     """
-
-    # validate file exists
-    if not os.path.exists(f):
-        if os.path.exists('files/' + f):
-            f = 'files/' + f
-        else:
-            return False
 
     # read file content
     df = load_spreadsheet(f)
@@ -194,7 +232,7 @@ def process_file(f):
     df = validate_data_file(df)
     
     # Write the data to the DB
-    write_info_data(df)
+    result_obj = write_info_data(df)
 
     # insert metadata into metadata table
     # should add version and revision to this schema, but don't know types yet
@@ -205,7 +243,8 @@ def process_file(f):
     # commit execution
     pgSqlConn.commit()
 
-    return True
+    failed_insertions = result_obj['insertions_attempted'] - result_obj['insertions_successful']
+    return failed_insertions == 0, result_obj
 
 
 def test_driver():
@@ -214,7 +253,7 @@ def test_driver():
     dump_tables()
 
     print('\nInsert data -------------------------------------------------')
-    process_file(filename)
+    process_file(test_file)
 
     # three options for collisions:
     # 1. do nothing (discard new row; probably want to return an error to the user in this case)
@@ -233,6 +272,7 @@ def test_driver():
     dump_tables()
 
     # close the db connection
+    print("Closing connection to database.")
     c.pg_disconnect(pgSqlCur, pgSqlConn)
 
 
