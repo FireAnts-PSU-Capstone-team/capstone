@@ -89,7 +89,7 @@ def load_data():
                 return make_response(jsonify(result), 200)
             else:
                 if result_obj.get('status', '') == 'invalid':
-                    return make_response(jsonify(result_obj.get('error_msg'), 400))
+                    return make_response(jsonify(result_obj.get('error_msg')), 400)
                 result = {
                     'message': 'File processed, but with failed rows due to duplicate primary key:',
                     'result': result_obj
