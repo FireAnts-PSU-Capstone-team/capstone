@@ -189,7 +189,7 @@ def write_metadata(metadata):
     Returns: None
     """
     cmd = "INSERT INTO {}(filename, creator, size, created_date, last_modified_date, last_modified_by, title, rows, columns) " \
-        "VALUES({},{},{},{},{},{},{}) ON CONFLICT DO NOTHING"
+        "VALUES({},{},{},{},{},{},{}, {}, {}) ON CONFLICT DO NOTHING"
     pgSqlCur.execute(cmd.format(metadata_table, metadata['filename'], metadata['creator'], metadata['size'],
                                 metadata['created'], metadata['modified'], metadata['lastModifiedBy'], metadata['title'],
                                 metadata['rows'], metadata['columns']))
