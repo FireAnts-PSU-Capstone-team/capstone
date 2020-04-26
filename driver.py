@@ -2,14 +2,14 @@ import pandas as pd
 import numpy as np
 import psycopg2
 
-import connection as c
+from db import connection as c
 import os
 import sys
 import time
 from openpyxl import load_workbook
 
 
-test_file = 'files/sample.xlsx'
+test_file = 'resources/sample.xlsx'
 primary_table = 'intake'
 metadata_table = 'metadata'
 
@@ -101,7 +101,7 @@ def get_table(table_name):
     if not table_exists(pgSqlCur, table_name):
         raise InvalidTableException
     
-    pgSqlCur.execute(f'select * from {table_name}')
+    pgSqlCur.execute(f"select * from {table_name}")
     rows = pgSqlCur.fetchall()
     
     for col in pgSqlCur.description:
@@ -126,7 +126,6 @@ def read_metadata(f):
         f (str): the filename of the spreadsheet
     Returns (dict): the metadata collection
     """
-    # TODO: add column and row counts, if possible
     data = {}
     workbook = load_workbook(f)
     file_data = workbook.properties.__dict__
@@ -152,7 +151,6 @@ def load_spreadsheet(f):
     Read the spreadsheet file into a dataframe object.
     Args:
         f (str): the filename of the spreadsheet to consume
-        sheet_name (str): the worksheet to process within a larger file
     Returns (dataframe): extracted data
     """
     return pd.read_excel(f)
@@ -163,11 +161,24 @@ def write_info_data(df):
     Write data from spreadsheet to the information table.
     Args:
         df (dataframe): data from spreadsheet
-    Returns: None
+    Returns: dict of data writing info
     """
+    failed_rows = []
+    success_count = 0
     row_array = np.ndenumerate(df.values).iter.base
+    total_count = len(row_array)
     for row in row_array:
-        insert_row(primary_table, row)
+        (re, failed_row) = insert_row(primary_table, row)
+        if re == 1:
+            success_count += 1
+        else:
+            failed_rows.append(failed_row)
+    
+    return {
+        'insertions_attempted': total_count,
+        'insertions_successful': success_count,
+        'insertions_failed': failed_rows
+    }
 
 
 def write_metadata(metadata):
@@ -184,16 +195,13 @@ def write_metadata(metadata):
                                 metadata['rows'], metadata['columns']))
 
 
-# TODO?: once tables are modeled as classes, change this function to take an iterable of the schema
-# so we can insert into an arbitrary table
-# TODO: revisit row sequencing; change "DEFAULT, then start from row[1]" to process entire row one way or another
 def insert_row(table, row):
     """
     Insert an array of values into the specified table.
     Args:
         table (str): name of table to insert into
         row ([]): row of values to insert
-    Returns: None
+    Returns: (bool, dict) a bool indicate whether insertion is successful, a dict of failed row info
 
     """
     cmd = f"INSERT INTO {table} VALUES (DEFAULT"
@@ -202,28 +210,30 @@ def insert_row(table, row):
     cmd += ")"
     pgSqlCur.execute(cmd)
 
+    if pgSqlCur.rowcount == 1:
+        return 1, None
+    else:
+        failed_row = {
+            'submission_date': row[1],
+            'entity': row[2],
+            'dba': row[3]
+        }
+        return 0, failed_row
 
-# TODO: catch exceptions and respond appropriately
+
 def process_file(f):
     """
     Read an Excel file; put info data into info table, metadata into metadata table
     Args:
         f (str): filename of spreadsheet
-    Returns (bool): True if successful, else False
+    Returns (bool, dict): bool is successful or not, dict includes processing info 
     """
-
-    # validate file exists
-    if not os.path.exists(f):
-        if os.path.exists('files/' + f):
-            f = 'files/' + f
-        else:
-            return False
 
     # read file content
     df = load_spreadsheet(f)
     
     # Write the data to the DB
-    write_info_data(df)
+    result_obj = write_info_data(df)
 
     # insert metadata into metadata table
     # should add version and revision to this schema, but don't know types yet
@@ -234,7 +244,8 @@ def process_file(f):
     # commit execution
     pgSqlConn.commit()
 
-    return True
+    failed_insertions = result_obj['insertions_attempted'] - result_obj['insertions_successful']
+    return failed_insertions == 0, result_obj
 
 
 def test_driver():
@@ -264,3 +275,8 @@ def test_driver():
     # close the db connection
     print("Closing connection to database.")
     c.pg_disconnect(pgSqlCur, pgSqlConn)
+
+
+if __name__ == '__main__':
+    test_driver()
+    print(get_table('test'))

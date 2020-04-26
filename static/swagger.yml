@@ -50,7 +50,7 @@ paths:
   /load:
     post:
       summary: Uploads a file
-      description: Add the contents of a file to the database. The file must be located in the /files directory.
+      description: Add the contents of a file to the database. The file must be located in the /resources directory.
       parameters:
         - name: filename
           in: query
