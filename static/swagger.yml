@@ -3,14 +3,14 @@ swagger: "2.0"
 info:
   version: 1.0.0
   title: TBD
-  description: Spreadsheet ingestor and data management tool for Bureau of Planning and Sustainability's cannabis program.
+  description: Spreadsheet ingestor and data management tool for the Department of Community and Civic Life's cannabis licensing program.
   contact:
     name: Project Lead
     email: andrew13haley@gmail.com
 
 schemes:
   - http
-host: localhost:80
+host: localhost:800
 basePath: /
 
 paths:
@@ -23,7 +23,7 @@ paths:
         200:
           description: Contents of metadata table
           schema:
-            $ref: "#/definitions/Metadata"
+            $ref: "#/definitions/metadata"
         500:
           $ref: "#/responses/Standard500ErrorResponse"
 
@@ -40,19 +40,28 @@ paths:
       responses:
         200:
           description: Contents of table
+        400:
+          description: Table name not supplied
+        404:
+          description: Named table does not exist
         500:
           $ref: "#/responses/Standard500ErrorResponse"
 
-  /file:
+  /load:
     post:
       summary: Uploads a file
-      description: Add the contents of a file to the database. The file must be located in the /files directory.
+      description: Add the contents of a file to the database. The file must be located in the /resources directory.
       parameters:
         - name: filename
           in: query
           required: true
           description: Name of file to process
           type: string
+        - name: payload
+          in: body
+          required: true
+          schema:
+            $ref: "#/definitions/intake"
       responses:
         200:
           description: File successfully consumed
@@ -62,9 +71,90 @@ paths:
           description: File could not be located
         500:
           $ref: "#/responses/Standard500ErrorResponse"
+    put:
+      summary: Inserts a row
+      description: Upload a single row and insert it into the named table.
+      parameters:
+        - name: table
+          in: query
+          required: true
+          description: Name of table to insert into
+          type: string
+        - name: row
+          in: body
+          required: true
+          description: JSON object of row to insert
+          schema:
+            $ref: "#/definitions/intake"
+      responses:
+        200:
+          description: Row insertion successful
+        400:
+          description: Table name not supplied
+        500:
+          $ref: "#/responses/Standard500ErrorResponse"
 
 definitions:
-  Metadata:
+  intake:
+    type: object
+    properties:
+      row:
+        type: integer
+      Submission date:
+        type: string
+        format: date-time
+      Entity:
+        type: string
+      DBA:
+        type: string
+      Facility Address:
+        type: string
+      "Facility Suite #":
+        type: string
+      Facility Zip:
+        type: string
+      Mailing Address:
+        type: string
+      MRL:
+        type: string
+      Neighborhood Association:
+        type: string
+      Compliance Region:
+        type: string
+      Primary Contact First Name:
+        type: string
+      Primary Contact Last Name:
+        type: string
+      Email:
+        type: string
+      Phone:
+        type: string
+      Endorse Type:
+        type: string
+      License Type:
+        type: string
+      "Repeat location?":
+        type: string
+      "App complete?":
+        type: string
+      Fee Schedule:
+        type: string
+      Receipt No.:
+        type: integer
+      Cash Amount:
+        type: string
+      Check Amount:
+        type: string
+      Card Amount:
+        type: string
+      Check No. / Approval Code:
+        type: string
+      "MRL#":
+        type: string
+      Notes:
+        type: string
+
+  metadata:
     properties:
       filename:
         type: string
@@ -83,6 +173,7 @@ definitions:
         type: string
       title:
         type: string
+
   Error:
     properties:
       code:

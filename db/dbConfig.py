@@ -2,7 +2,7 @@
 from configparser import ConfigParser
 
 
-def pgSqlConfig(filename='database.ini', section='postgresql'):
+def pgSqlConfig(filename='db/database.ini', section='postgresql'):
     """
     Extracts configuration parameters from the .ini file
     Args:
