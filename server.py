@@ -1,10 +1,19 @@
-from flask import Flask, request, jsonify, make_response
+from flask import Flask, request, jsonify, Response, make_response
+from flask_cors import CORS
 import driver
+from cors import cors_setup
 from models.IntakeRow import IntakeRow
 
 UPLOAD_FOLDER = 'resources'
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
 app = Flask(__name__)
+
+# Load the list of accepted origin domains from the "accepted_domains.ini" file.
+origin_list = cors_setup.load_domains_from_file()
+# Including this header is required when using POST with JSON across domains
+app.config['CORS_HEADERS'] = 'Content-Type'
+# Utilizes CORS with the list of origin strings and regex expressions to validate resource requests.
+CORS(app, origins=origin_list)
 
 
 def allowed_file(filename):
@@ -29,6 +38,7 @@ def dump_table():
     if table_name == '':
         return make_response(jsonify('Table name not supplied.'), 400)
     try:
+        # TODO: once authentication is in place, restrict the tables that can be listed here
         table_info_obj = driver.get_table(table_name)
         return make_response(jsonify(table_info_obj), 200)
     except driver.InvalidTableException:
