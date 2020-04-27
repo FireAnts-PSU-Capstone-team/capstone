@@ -1,3 +1,36 @@
+from enum import Enum
+
+
+class RowNames(Enum):
+    ROW = 0
+    SUBMISSION_DATE = 1
+    ENTITY = 2
+    DBA = 3
+    FACILITY_ADDRESS = 4
+    FACILITY_SUITE = 5
+    FACILITY_ZIP = 6
+    MAILING_ADDRESS = 7
+    MRL = 8
+    NEIGHBORHOOD_ASSN = 9
+    COMPLIANCE_REGION = 10
+    FIRST_NAME = 11
+    LAST_NAME = 12
+    EMAIL = 13
+    PHONE = 14
+    ENDORSE_TYPE = 15
+    LICENSE_TYPE = 16
+    REPEAT_LOCATION = 17
+    APP_COMPLETE = 18
+    FEE_SCHEDULE = 19
+    RECEIPT_NUM = 20
+    CASH_AMT = 21
+    CHECK_AMT = 22
+    CARD_AMT = 23
+    CHECK_NUM = 24
+    MRL_NUM = 25
+    NOTES = 26
+
+
 class IntakeRow:
     """
     Represents a row of the intake table.
