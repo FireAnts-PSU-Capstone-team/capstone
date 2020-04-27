@@ -78,7 +78,9 @@ CREATE TABLE IF NOT EXISTS metadata (
     created_date TIMESTAMP,
     last_modified_date TIMESTAMP,
     last_modified_by TEXT,
-    title TEXT
+    title TEXT,
+    "rows" INT,
+    columns INT
 );
 
 COMMENT ON TABLE metadata IS 'Table to track the file metadata that is uploaded to DB';
