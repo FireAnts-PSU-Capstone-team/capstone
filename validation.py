@@ -13,27 +13,29 @@ POBoxRegex = r'^([P|p][O|o])\s(Box|box)\s(\d+)(\,)*(\s)[a-zA-Z1-9]+(\,)*\s[A-Z]{
 emailRegex = r'(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)'
 repeat_location_values = ['Y', 'N', 'X', 'NAN']
 app_complete_values = ['M', 'N', 'N/A', 'Y', 'NAN']
+valid_compliance_regions = ['N', 'NW', 'NE', 'W', 'SW', 'SE', 'NAN']
 
-validNeighborhoods = ['Central Northeast Neighbors', 'Beaumont-Wilshire', 'Cully', 'Grant Park', 'Hollywood',
-                      'Madison South', 'Rose City Park', 'Roseway', 'Sumner', 'Sunderland', 'East Portland',
-                      'Argay Terrace', 'Centennial', 'Glenfair', 'Hazelwood', 'Lents', 'Mill Park', 'Parkrose Heights',
-                      'Parkrose', 'Pleasant Valley', 'Powellhurst-Gilbert', 'Russell', 'Wilkes', 'Woodland Park',
-                      'Northeast Coalition', 'Alameda', 'Boise', 'Concordia', 'Eliot', 'Humboldt', 'Irvington', 'King',
-                      'Lloyd District', 'Sabin', "Sullivan's Gulch", 'Vernon', 'Woodlawn', 'Southeast Uplift',
-                      'Ardenwald/Johnson Creek', 'Brentwood/Darlington', 'Brooklyn', 'Buckman', 'Creston-Kenilworth',
-                      'Eastmoreland', 'Foster-Powell', 'Hosford-Abernethy', 'Kerns', 'Laurelhurst', 'Montavilla',
-                      'Mt Scott-Arleta', 'Mt Tabor', 'North Tabor', 'Reed', 'Richmond', 'Sellwood-Moreland',
-                      'South Tabor', 'Sunnyside', 'Woodstock', 'Arbor Lodge', 'Bridgeton', 'Cathedral Park',
-                      'East Columbia', 'Hayden Island', 'Kenton', 'Overlook', 'Piedmont', 'Portsmouth', 'St Johns',
-                      'University Park', 'Arlington Heights', 'Forest Park', 'Goosehollow Foothills', 'Hillside',
-                      'Linnton', 'Northwest District', 'Northwest Heights', 'Old Town', 'Pearl District',
-                      'Portland Downtown', 'Sylvan-Highlands', 'Southwest Neighborhood Inc', 'Arnold Creek', 'Ashcreek',
-                      'Bridlemile', 'Collins View', 'Crestwood', 'Far Southwest', 'Hayhurst', 'Healy Heights',
-                      'Hillsdale', 'Homestead', 'Maplewood', 'Markham', 'Marshall Park', 'Multnomah',
-                      'South Burlingame', 'South Portland', 'Southwest Hills', 'West Portland Park']
+validNeighborhoods = ['Alameda', 'Arbor Lodge', 'Ardenwald/Johnson Creek', 'Argay Terrace', 'Arlington Heights',
+                      'Arnold Creek', 'Ashcreek', 'Beaumont-Wilshire', 'Boise', 'Brentwood/Darlington', 'Bridgeton',
+                      'Bridlemile', 'Brooklyn', 'Buckman', 'Cathedral Park', 'Centennial',
+                      'Central Northeast Neighbors',
+                      'Collins View', 'Concordia', 'Creston-Kenilworth', 'Crestwood', 'Cully', 'East Columbia',
+                      'East Portland', 'Eastmoreland', 'Eliot', 'Far Southwest', 'Forest Park', 'Foster-Powell',
+                      'Glenfair', 'Goosehollow Foothills', 'Grant Park', 'Hayden Island', 'Hayhurst', 'Hazelwood',
+                      'Healy Heights', 'Hillsdale', 'Hillside', 'Hollywood', 'Homestead', 'Hosford-Abernethy',
+                      'Humboldt', 'Irvington', 'Kenton', 'Kerns', 'King', 'Laurelhurst', 'Lents', 'Linnton',
+                      'Lloyd District', 'Madison South', 'Maplewood', 'Markham', 'Marshall Park', 'Mill Park',
+                      'Montavilla', 'Mt Scott-Arleta', 'Mt Tabor', 'Multnomah', 'N/A', 'North Tabor',
+                      'Northeast Coalition', 'Northwest District', 'Northwest Heights', 'Old Town', 'Overlook',
+                      'Parkrose', 'Parkrose Heights', 'Pearl District', 'Piedmont', 'Pleasant Valley',
+                      'Portland Downtown', 'Portsmouth', 'Powellhurst-Gilbert', 'Reed', 'Richmond', 'Rose City Park',
+                      'Roseway', 'Russell', 'Sabin', 'Sellwood-Moreland', 'South Burlingame', 'South Portland',
+                      'South Tabor', 'Southeast Uplift', 'Southwest Hills', 'Southwest Neighborhood Inc', 'St Johns',
+                      "Sullivan's Gulch", 'Sumner', 'Sunderland', 'Sunnyside', 'Sylvan-Highlands', 'University Park',
+                      'Vernon', 'West Portland Park', 'Wilkes', 'Woodland Park', 'Woodlawn', 'Woodstock']
 
-validEndorsement = {"CT": 0, "ED": 0, "EX": 0, "TO": 0}
-licenseType = ['MD', 'MR', 'MC', 'MW', 'MP', 'MU']
+valid_endorsements = ["CT", "ED", "EX", "TO"]
+license_types = ['MD', 'MR', 'MC', 'MW', 'MP', 'MU']
 uniqueReceipts = {}
 seen_mrl_nums = {}
 
@@ -53,44 +55,37 @@ def validateMailingAddress(addr):
            re.search(POBoxRegex, addr) is not None
 
 
-def validateComplianceRegion(region):
-    length = len(region)
-    if length == 1:
-        if region[0] in ['N', 'S', 'E', 'W']:
-            return True
-    if length == 2:
-        if region[0] in ['N', 'S'] and region[1] in ['E', 'W']:
-            return True
-    return False
-
-
 def validateEndorsement(endorsementList):
     # validates that each of the involved substrings are one of the endorse types and none are repeated.
     stringEndorsement = str(endorsementList).upper()
     if len(stringEndorsement) == 0 or stringEndorsement.lower() == 'nan':  # This is a valid outcome
         return True
     splitEndorse = stringEndorsement.split(',')
+    # keep track of seen items
+    endorsement_counts = {}
     for item in splitEndorse:
-        if item in validEndorsement:
-            validEndorsement[item] += 1
+        # if we haven't seen the item before, set count to 0
+        if item not in endorsement_counts:
+            endorsement_counts[item] = 0
+        # if item is valid, increment counter
+        if item in valid_endorsements:
+            endorsement_counts[item] += 1
         else:
             return False
-        if validEndorsement[item] > 1:
+        # if we've already seen the item, reject it
+        if endorsement_counts[item] > 1:
             return False
     return True
 
 
-def validate_license_type(license):
-    tempLicense = str(license)
-    if len(license) > 2:
-        if license[0:4] != 'DRE-':
+def validate_license_type(lic):
+    licenses = str(lic).split(',')
+    for lic in licenses:
+        if lic[:4] == 'DRE-':
+            lic = lic[4:]
+        if lic not in license_types:
             return False
-        else:
-            tempLicense = tempLicense[4:]
-    if tempLicense in licenseType:
-        return tempLicense
-    else:
-        return False
+    return True
 
 
 def validate_receipt_num(receiptNo):
@@ -182,7 +177,7 @@ def validate_data_file(df):
         if not row[RowNames.NEIGHBORHOOD_ASSN.value] in validNeighborhoods:
             return error_row(RowNames.NEIGHBORHOOD_ASSN.value, row)
         # Compliance Region: cardinal direction
-        if not validateComplianceRegion(row[RowNames.COMPLIANCE_REGION.value]):
+        if not row[RowNames.COMPLIANCE_REGION.value] in valid_compliance_regions:
             return error_row(RowNames.COMPLIANCE_REGION.value, row)
         # Primary Contact Name - no validation
         # Email - matches regex
@@ -227,8 +222,14 @@ def validate_data_file(df):
             return error_row(RowNames.MRL_NUM.value, row)
 
     # Regularize the following values:
+    # DBA
+    df['DBA'] = df['DBA'].str.title()
+    # Entity
+    df['Entity'] = df['Entity'].str.title()
+    # Facility Address
+    df['Facility Address'] = df['Facility Address'].str.title()
     # Suite number
-    df['Facility Suite #'] = df['Facility Suite #'].str.lstrip()
+    df['Facility Suite #'] = df['Facility Suite #'].str.strip()
     # MRL
     df['MRL'] = df['MRL'].str.lstrip()
     # Phone numbers
