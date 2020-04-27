@@ -7,6 +7,7 @@ import os
 import sys
 import time
 from openpyxl import load_workbook
+from validation import validate_data_file
 
 test_file = 'resources/sample.xlsx'
 primary_table = 'intake'
@@ -144,7 +145,7 @@ def table_exists(cur, table):
     """
     # check to make sure that the connection is open and active
     if not check_conn():
-        return "The connection to DB is closed and cannot be opened. Verify DB server is up."
+        return connection_error_msg
     try:
         cur.execute("select exists(select relname from pg_class where relname='" + table + "')")
         exists = cur.fetchone()[0]
@@ -213,7 +214,9 @@ def read_metadata(f):
     Returns (dict): the metadata collection
     """
     data = {}
-    file_data = load_workbook(f).properties.__dict__
+    workbook = load_workbook(f)
+    file_data = workbook.properties.__dict__
+    sheet_data = workbook.worksheets[0]
     os_data = os.stat(f)
 
     data['filename'] = fmt(os.path.basename(f))
@@ -223,6 +226,8 @@ def read_metadata(f):
     data['modified'] = fmt(file_data.get('modified').strftime('%Y-%m-%d %H:%M:%S+08'))
     data['lastModifiedBy'] = fmt(file_data.get('lastModifiedBy'))
     data['title'] = fmt(file_data.get('title'))
+    data['rows'] = sheet_data.max_row
+    data['columns'] = sheet_data.max_column
 
     return data
 
@@ -273,8 +278,11 @@ def write_metadata(metadata):
         metadata (dict): the metadata dictionary
     Returns: None
     """
-    cmd = "INSERT INTO {}(filename, creator, size, created_date, last_modified_date, last_modified_by, title) " \
-          "VALUES({},{},{},{},{},{},{}) ON CONFLICT DO NOTHING"
+    cmd = "INSERT INTO {}(filename, creator, size, created_date, last_modified_date, last_modified_by, title, rows, columns) " \
+        "VALUES(" + "{}" * 9 + ") ON CONFLICT DO NOTHING"
+    pgSqlCur.execute(cmd.format(metadata_table, metadata['filename'], metadata['creator'], metadata['size'],
+                                metadata['created'], metadata['modified'], metadata['lastModifiedBy'], metadata['title'],
+                                metadata['rows'], metadata['columns']))
 
     # check to make sure that the connection is open and active
     if not check_conn():
@@ -347,7 +355,10 @@ def process_file(f):
     else:
         # read file content
         df = load_spreadsheet(f)
-
+        # Validate data frame
+        valid, error_msg = validate_data_file(df)
+        if not valid:
+            return False, {'status': 'invalid', 'error_msg': error_msg}
         # Write the data to the DB
         result_obj = write_info_data(df)
         # insert metadata into metadata table
@@ -394,4 +405,4 @@ def test_driver():
 
 if __name__ == '__main__':
     test_driver()
-    print(get_table('test'))
+    print(get_table({primary_table}))
