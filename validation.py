@@ -9,7 +9,7 @@ from models.IntakeRow import RowNames
     This is difficult to maintain though!! Holy cow!'''
 addressRegex = r'^(\d+)\s([a-zA-Z]{1,2})\s([a-zA-Z0-9]+\s)([a-zA-Z]+)'
 addressWithFacilityRegex = r'^(\d+)\s([a-zA-Z]{1,2})\s(([a-zA-Z1-9]+\s)+)([a-zA-Z]+)\s(#\d+)'
-POBoxRegex = r'^([P|p][O|o])\s(Box|box)\s(\d+)(\,)*(\s)[a-zA-Z1-9]+(\,)*\s[A-Z]{2}(\,)*\s\d{5}'
+POBoxRegex = r'^([P|p][O|o])\s(Box|box|BOX)\s(\d+)(\,)*(\s)[a-zA-Z1-9]+(\,)*\s[A-Z]{2}(\,)*\s\d{5}'
 emailRegex = r'(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)'
 repeat_location_values = ['Y', 'N', 'X', 'NAN']
 app_complete_values = ['M', 'N', 'N/A', 'Y', 'NAN']
