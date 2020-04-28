@@ -21,6 +21,11 @@ THEN
 INSERT INTO txn_history(tabname,schemaname,operation, new_val, old_val)
 VALUES(TG_RELNAME,TG_TABLE_SCHEMA, TG_OP, row_to_json(NEW), row_to_json(OLD));
 RETURN NEW;
+ELSIF TG_OP = 'DELETE'
+THEN
+INSERT INTO txn_history(tabname,schemaname,operation,old_val)
+VALUES(TG_RELNAME,TG_TABLE_SCHEMA, TG_OP, row_to_json(OLD));
+RETURN OLD;
 END IF;
 END;
 $$;
@@ -188,6 +193,8 @@ ALTER TABLE ONLY txn_history
 --
 CREATE TABLE archive (
     row_id integer NOT NULL,
+    tstamp timestamp without time zone DEFAULT now(),
+    who text DEFAULT CURRENT_USER,
     old_row integer,
     old_submission_date date,
     old_entity text,
@@ -241,7 +248,7 @@ ALTER TABLE ONLY archive
 --
 -- Create triggers for archive and txn_history tables
 --
-CREATE TRIGGER update BEFORE INSERT OR UPDATE ON intake FOR EACH ROW EXECUTE FUNCTION change_trigger();
+CREATE TRIGGER update BEFORE INSERT OR UPDATE OR DELETE ON intake FOR EACH ROW EXECUTE FUNCTION change_trigger();
 CREATE TRIGGER archive BEFORE DELETE ON intake FOR EACH ROW EXECUTE FUNCTION archive_trigger();
 
 --
@@ -263,10 +270,12 @@ GRANT SELECT ON ALL TABLES IN SCHEMA public TO readaccess;
 -- Grant access to write group
 GRANT USAGE ON SCHEMA public TO writeaccess;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO writeaccess;
+GRANT USAGE ON ALL SEQUENCES IN SCHEMA public to writeaccess;
 
 -- Grant access to admin group
 GRANT ALL PRIVILEGES ON SCHEMA public TO adminaccess;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO adminaccess;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO adminaccess;
 
 -- Create users
 CREATE USER reader WITH PASSWORD 'capstone';
