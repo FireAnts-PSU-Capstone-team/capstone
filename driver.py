@@ -279,7 +279,7 @@ def write_metadata(metadata):
     Returns: None
     """
     cmd = "INSERT INTO {}(filename, creator, size, created_date, last_modified_date, last_modified_by, title, rows, columns) " \
-        "VALUES(" + "{}" * 9 + ") ON CONFLICT DO NOTHING"
+        "VALUES(" + "{} " + ", {}" * 8 + ") ON CONFLICT DO NOTHING"
 
 
     # check to make sure that the connection is open and active
@@ -289,8 +289,7 @@ def write_metadata(metadata):
     try:
         pgSqlCur.execute(cmd.format(metadata_table, metadata['filename'], metadata['creator'], metadata['size'],
                                     metadata['created'], metadata['modified'], metadata['lastModifiedBy'],
-                                    metadata['title'],
-                                    metadata['rows'], metadata['columns']))
+                                    metadata['title'], metadata['rows'], metadata['columns']))
         pgSqlConn.commit()
 
     except Exception as err:

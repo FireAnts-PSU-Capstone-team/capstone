@@ -140,8 +140,8 @@ def validate_monetary_amount(amt):
 
 def validate_data_file(df):
     def error_row(field_index, failed_row):
-        msg = f"Invalid {df.columns[field_index]}.\n"
-        msg += f"Failed element: {failed_row[field_index]}\n"
+        msg = f"Invalid {df.columns[field_index]}. \n"
+        msg += f"Failed element: {failed_row[field_index]} \n"
         msg += f"Failed row: {fmt_failed_row(failed_row)}"
         return False, msg
 
@@ -192,7 +192,7 @@ def validate_data_file(df):
         # License Type: matches expected values
         if not validate_license_type(row[RowNames.LICENSE_TYPE.value]):
             return error_row(RowNames.LICENSE_TYPE.value, row)
-        # Repeat location: in approved list
+        # Repeat location: unique and in approved list
         if not str(row[RowNames.REPEAT_LOCATION.value]).upper() in repeat_location_values:
             return error_row(RowNames.REPEAT_LOCATION.value, row)
         # App complete: in approved list

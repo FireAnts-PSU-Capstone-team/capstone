@@ -103,7 +103,7 @@ function run_test() {
 
     # testing spreadsheet IO
     out=$(curl -s localhost:${server_port}/list?table=${tables[0]})
-    if [[ "${out}" == "[]" ]]
+    if [[ "${out}" =~ \[.*\] ]]
     then
         echo "5. Testing spreadsheet uploading."
         echo "5. Before uploading:"
