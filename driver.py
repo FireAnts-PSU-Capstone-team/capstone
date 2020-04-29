@@ -333,7 +333,23 @@ def insert_row(table, row, checked=False):
         if not check_conn():
             return 0, connection_error_msg
 
-    cmd = f"INSERT INTO {table} VALUES (DEFAULT"
+    cmd = f"INSERT INTO {table} VALUES ("
+
+    # Determine whether to insert at a specific row number or use default
+    if row[0] is not None:
+        if row_number_exists(pgSqlCur, int(row[0])):
+            failed_row = {
+                'submission_date': row[1],
+                'entity': row[2],
+                'dba': row[3],
+                'message': f'Row number {row[0]} already taken.'
+            }
+            return 0, failed_row
+        else:
+            cmd += str(row[0])
+    else:
+        cmd += "DEFAULT"
+
     for i in range(1, len(row)):
         cmd += f", {fmt(row[i])}"
     cmd += ")"
