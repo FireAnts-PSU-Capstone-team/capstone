@@ -304,7 +304,7 @@ def row_number_exists(cur, row_number, table=primary_table):
     Checks whether the row number already exists in a table.
     Args:
         cur ({}): the Postgres cursor
-        row (int): the row number to validate
+        row_number (int): the row number to validate
         table (str): the table to validate, default is primary_table
     Returns (bool): whether the row number already exists
     """
