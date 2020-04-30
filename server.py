@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify, Response, make_response
 from flask_cors import CORS
-import driver
+import driver, sys
 from cors import cors_setup
 from models.IntakeRow import IntakeRow
 
@@ -39,7 +39,17 @@ def dump_table():
         return make_response(jsonify('Table name not supplied.'), 400)
     try:
         # TODO: once authentication is in place, restrict the tables that can be listed here
-        table_info_obj = driver.get_table(table_name)
+        columns = request.args.get('column', '')
+        if columns == '':
+            columns = None
+        else:
+            app.logger.info('columns')
+            app.logger.info(columns)
+            columns = str.split(columns.strip(), ' ')
+            app.logger.info('columns')
+            app.logger.info(columns)
+
+        table_info_obj = driver.get_table(table_name, columns)
         return make_response(jsonify(table_info_obj), 200)
     except driver.InvalidTableException:
         return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
@@ -62,7 +72,7 @@ def load_data():
             return make_response(jsonify(result), 400)
         else:
             try:
-                driver.get_table(table_name)
+                driver.get_table(table_name, None)
             except driver.InvalidTableException:
                 return make_response(jsonify(f"Table {table_name} does not exist."), 404)
             row_data = IntakeRow(request.get_json()).value_array()
@@ -114,7 +124,7 @@ def show_metadata():
     Display the contents of the metadata table.
     Returns ({}): response object containing the contents of the table.
     """
-    response_body = jsonify(driver.get_table('metadata'))
+    response_body = jsonify(driver.get_table('metadata', None))
     return make_response(response_body, 200)
 
 

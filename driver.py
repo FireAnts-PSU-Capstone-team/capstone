@@ -11,6 +11,7 @@ from openpyxl import load_workbook
 
 test_file = 'resources/sample.xlsx'
 primary_table = 'intake'
+db_tables = ['intake', 'txn_history', 'archive', 'metadata']
 metadata_table = 'metadata'
 
 is_connected = False
@@ -88,7 +89,7 @@ class InvalidTableException(Exception):
     pass
 
 
-def get_table(table_name):
+def get_table(table_name, columns):
     """
     Return a JSON-like format of table data.
     Args:
@@ -98,21 +99,26 @@ def get_table(table_name):
     result = []
     column_name = []
 
-    if not table_exists(pgSqlCur, table_name):
+    if (not table_exists(pgSqlCur, table_name)) or (table_name not in db_tables):
         raise InvalidTableException
-    
+
     pgSqlCur.execute(f"select * from {table_name}")
     rows = pgSqlCur.fetchall()
-    
+
     for col in pgSqlCur.description:
         column_name.append(col.name)
-    
+
     for row in rows:
         a_row = {}
         i = 0
         for col in column_name:
-            a_row[col] = row[i]
+            if(columns):
+                if col in columns:
+                    a_row[col] = row[i]
+            else:
+                a_row[col] = row[i]
             i += 1
+
         result.append(a_row)
 
     return result
@@ -274,4 +280,4 @@ def test_driver():
 
 if __name__ == '__main__':
     test_driver()
-    print(get_table('test'))
+    print(get_table('test', None))

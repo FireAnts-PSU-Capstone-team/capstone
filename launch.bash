@@ -52,9 +52,9 @@ function run_test() {
     record_row=(9 29 38)
     testing_spreadsheet='resources/sample-extension.xlsx'
     test_row='resources/sample-row-1.json'
-    db_name=$(cut -f 3 -d ' ' database.ini  | sed -n '2p')
-    db_user=$(cut -f 3 -d ' ' database.ini  | sed -n '3p')
-    db_pass=$(cut -f 3 -d ' ' database.ini  | sed -n '4p')
+    db_name=$(cut -f 3 -d ' ' db/database.ini  | sed -n '2p')
+    db_user=$(cut -f 3 -d ' ' db/database.ini  | sed -n '3p')
+    db_pass=$(cut -f 3 -d ' ' db/database.ini  | sed -n '4p')
 
 
     # check if can use the default credential to connect to postgres DB
@@ -142,7 +142,7 @@ function run_test() {
     fi
 
     echo "6. Testing row insertion."
-    out=$(curl -X PUT localhost:${server_port}/load?table=${primary_table} -d @${test_row} -H "Content-Type: application/json")
+    out=$(curl -s -X PUT localhost:${server_port}/load?table=${primary_table} -d @${test_row} -H "Content-Type: application/json")
     if [[ -n "$(echo ${out} | grep 'PUT complete')" ]]
     then
         echo "Row insertion ran successfully."
