@@ -297,22 +297,34 @@ GRANT adminaccess TO administrator;
 DROP TRIGGER IF EXISTS check_insertion_to_intake_tri ON intake;
 DROP FUNCTION IF EXISTS check_insertion_to_intake_tri_fnc;
 
-CREATE OR REPLACE FUNCTION check_insertion_to_intake_tri_fnc() RETURNS trigger AS $$
-BEGIN
-
-    IF (SELECT count(*)
-        FROM intake
-        WHERE submission_date = NEW.submission_date
-        AND entity = NEW.entity
-        AND dba = NEW.dba) = 0
-    THEN
-        RETURN NEW;
-    ELSE
-        RETURN NULL;
-    END if;
-
-END;
-$$ LANGUAGE plpgsql;
+CREATE FUNCTION public.check_insertion_to_intake_tri_fnc()
+    RETURNS trigger
+    LANGUAGE 'plpgsql'
+AS $BODY$BEGIN
+CASE WHEN NEW.dba IS NULL
+THEN
+IF (SELECT count(*)
+   FROM intake
+   WHERE submission_date = new.submission_date
+   AND entity = new.entity) = 0
+THEN
+   RETURN NEW;
+ELSE
+   RETURN NULL;
+END IF;
+ELSE
+IF (SELECT count(*)
+   FROM intake
+   WHERE submission_date = NEW.submission_date
+   AND entity = NEW.entity
+   AND dba = NEW.dba) = 0
+THEN
+   RETURN NEW;
+ELSE
+   RETURN NULL;
+END IF;
+END CASE;
+END;$BODY$;
 
 CREATE TRIGGER check_insertion_to_intake_tri
 BEFORE INSERT ON intake
