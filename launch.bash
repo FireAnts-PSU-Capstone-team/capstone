@@ -103,7 +103,7 @@ function run_test() {
 
     # testing spreadsheet IO
     out=$(curl -s localhost:${server_port}/list?table=${tables[0]})
-    if [[ "${out}" == "[]" ]]
+    if [[ "${out}" =~ \[.*\] ]]
     then
         echo "5. Testing spreadsheet uploading."
         echo "5. Before uploading:"
@@ -167,6 +167,8 @@ elif [[ $1 == "run" ]]; then
 
     # bring up the container
     sudo docker-compose up
+    # TODO: refactor duplicated code
+    # TODO: automatically catch error requiring 'postgresql stop'; execute that and retry
 
 elif [[ $1 == "stop" ]]; then
 
