@@ -2,6 +2,10 @@
 This SQL file will be executed once the DB is set up.
 */
 
+-------------------------
+-- Functions
+-------------------------
+
 --
 -- Name: change_trigger(); Type: FUNCTION; Schema: public; Owner: cc
 -- Desc: Monitors the intake table for any insert or update commands
@@ -9,7 +13,7 @@ This SQL file will be executed once the DB is set up.
 --  	 JSON.
 --
 CREATE FUNCTION change_trigger() RETURNS trigger
-    LANGUAGE plpgsql SECURITY DEFINER
+    LANGUAGE plpgsql
     AS $$BEGIN
 IF TG_OP='INSERT'
 THEN
@@ -38,7 +42,7 @@ ALTER FUNCTION change_trigger() OWNER TO cc;
 -- 		 old data into the archive table, before removing it from the 
 --		 intake table.
 -- 
-CREATE FUNCTION public.archive_trigger() RETURNS trigger
+CREATE FUNCTION archive_trigger() RETURNS trigger
     LANGUAGE plpgsql
     AS $$BEGIN
 IF TG_OP='DELETE'
@@ -67,13 +71,54 @@ END;$$;
 
 ALTER FUNCTION archive_trigger() OWNER TO cc;
 
+--
+-- A trigger for insert conflict strategy
+-- Name: check_insertion_to_intake_trigger; Type: TRIGGER; Schema: public; Owner: cc
+--
 
+CREATE FUNCTION check_insertion_to_intake_tri_fnc()
+    RETURNS trigger
+    LANGUAGE 'plpgsql'
+AS $BODY$BEGIN
+CASE WHEN NEW.dba IS NULL
+THEN
+IF (SELECT count(*)
+   FROM intake
+   WHERE submission_date = new.submission_date
+   AND entity = new.entity) = 0
+THEN
+   RETURN NEW;
+ELSE
+   RETURN NULL;
+END IF;
+ELSE
+IF (SELECT count(*)
+   FROM intake
+   WHERE submission_date = NEW.submission_date
+   AND entity = NEW.entity
+   AND dba = NEW.dba) = 0
+THEN
+   RETURN NEW;
+ELSE
+   RETURN NULL;
+END IF;
+END CASE;
+END;$BODY$;
+
+ALTER FUNCTION check_insertion_to_intake_tri_fnc() OWNER TO cc;
+
+-------------------------
+-- DB Parameters
+-------------------------
 
 SET default_tablespace = '';
-
 SET default_table_access_method = heap;
 
+-------------------------
+-- Tables
+-------------------------
 
+--
 -- Name: metadata; Type: TABLE; Schema: public; Owner: cc
 --
 CREATE TABLE IF NOT EXISTS metadata (
@@ -87,15 +132,14 @@ CREATE TABLE IF NOT EXISTS metadata (
     "rows" INT,
     columns INT
 );
-
+ALTER TABLE metadata OWNER TO cc;
 COMMENT ON TABLE metadata IS 'Table to track the file metadata that is uploaded to DB';
-
 
 --
 -- Name: Intake; Type: TABLE; Schema: public; Owner: cc
 --
 CREATE TABLE intake (
-     "row" integer NOT NULL,
+    "row" integer NOT NULL,
     submission_date date,
     entity text,
     dba text,
@@ -123,32 +167,11 @@ CREATE TABLE intake (
     mrl_num character varying(10),
     notes text
 );
-
 ALTER TABLE intake OWNER TO cc;
-
-CREATE SEQUENCE intake_row_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-ALTER TABLE intake_row_seq OWNER TO cc;
-
-ALTER SEQUENCE intake_row_seq OWNED BY intake."row";
-
-ALTER TABLE ONLY intake ALTER COLUMN "row" SET DEFAULT nextval('intake_row_seq'::regclass);
-
-
-SELECT pg_catalog.setval('intake_row_seq', 1, true);
-
 COMMENT ON TABLE intake IS 'Table to track all the data for cannabis program in city of portalnd';
-
 ALTER TABLE ONLY intake
     ADD CONSTRAINT intake_pkey PRIMARY KEY ("row");
-
-
+    
 --
 -- Name: txn_history; Type: TABLE; Schema: public; Owner: cc
 --
@@ -162,32 +185,11 @@ CREATE TABLE txn_history (
     old_val json,
     tabname text
 );
-
-
 ALTER TABLE txn_history OWNER TO cc;
-
 COMMENT ON TABLE txn_history IS 'Table tracks the changes made to the intake database table';
-
-CREATE SEQUENCE txn_history_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-ALTER TABLE txn_history_id_seq OWNER TO cc;
-
-ALTER SEQUENCE txn_history_id_seq OWNED BY txn_history.id;
-
-ALTER TABLE ONLY txn_history ALTER COLUMN id SET DEFAULT nextval('txn_history_id_seq'::regclass);
-
-
-SELECT pg_catalog.setval('txn_history_id_seq', 1, true);
-
 ALTER TABLE ONLY txn_history
     ADD CONSTRAINT txn_history_pkey PRIMARY KEY (id);
-
+    
 --
 -- Name: archive; Type: TABLE; Schema: public; Owner: CC
 --
@@ -223,12 +225,53 @@ CREATE TABLE archive (
     old_mrl_num character varying(10),
     old_notes text
 );
-
 ALTER TABLE archive OWNER TO cc;
-
 COMMENT ON TABLE archive IS 'Table tracks the rows removed from the intake database table';
+ALTER TABLE ONLY archive
+    ADD CONSTRAINT archive_pkey PRIMARY KEY (row_id);
+    
+-------------------------
+-- Sequences
+-------------------------
 
+--
+-- Name: intake_row_seq
+-- Desc: Sequence used as PK for intake table Owner: cc
+--
+CREATE SEQUENCE intake_row_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER TABLE intake_row_seq OWNER TO cc;
+ALTER SEQUENCE intake_row_seq OWNED BY intake."row";
+ALTER TABLE ONLY intake ALTER COLUMN "row" SET DEFAULT nextval('intake_row_seq'::regclass);
+
+--
+-- Name: txn_history_id_seq
+-- Desc: Sequence used as PK for txn_history table Owner: cc
+--
+CREATE SEQUENCE txn_history_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER TABLE txn_history_id_seq OWNER TO cc;
+ALTER SEQUENCE txn_history_id_seq OWNED BY txn_history.id;
+ALTER TABLE ONLY txn_history ALTER COLUMN id SET DEFAULT nextval('txn_history_id_seq'::regclass);
+
+--
+-- Name: archive_row_seq
+-- Desc: Sequence used as PK for archive table Owner: cc
+--
 CREATE SEQUENCE archive_row_seq
+    AS integer
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -236,98 +279,73 @@ CREATE SEQUENCE archive_row_seq
     CACHE 1;
 
 ALTER TABLE archive_row_seq OWNER TO cc;
-
 ALTER SEQUENCE archive_row_seq OWNED BY archive.row_id;
-
 ALTER TABLE ONLY archive ALTER COLUMN row_id SET DEFAULT nextval('archive_row_seq'::regclass);
 
-ALTER TABLE ONLY archive
-    ADD CONSTRAINT archive_pkey PRIMARY KEY (row_id);
-
-
---
--- Create triggers for archive and txn_history tables
---
-CREATE TRIGGER update BEFORE INSERT OR UPDATE OR DELETE ON intake FOR EACH ROW EXECUTE FUNCTION change_trigger();
-CREATE TRIGGER archive BEFORE DELETE ON intake FOR EACH ROW EXECUTE FUNCTION archive_trigger();
+-------------------------
+-- Triggers
+-------------------------
 
 --
--- Create groups
+-- Name: transactions
+-- Desc: Monitor intake table, before any transaction calls function change_trigger
 --
+CREATE TRIGGER transactions 
+BEFORE INSERT OR UPDATE OR DELETE ON intake 
+FOR EACH ROW EXECUTE FUNCTION change_trigger();
+
+--
+-- Name: archive
+-- Desc: Monitor intake table, before any delete operation calls function archive_trigger
+--
+CREATE TRIGGER archive 
+BEFORE DELETE ON intake 
+FOR EACH ROW EXECUTE FUNCTION archive_trigger();
+
+--
+-- Name: check_insertion
+-- Desc: Monitor intake table, before any INSERT calls function check_insertion_to_intake_tri_fnc
+--
+CREATE TRIGGER check_insertion 
+BEFORE INSERT ON intake 
+FOR EACH ROW EXECUTE FUNCTION check_insertion_to_intake_tri_fnc();
+
+-------------------------
+-- Groups
+-------------------------
+
 CREATE ROLE readaccess;
 CREATE ROLE writeaccess;
 CREATE ROLE adminaccess;
 
---
--- Remove default permissions
---
+-------------------------
+-- Users
+-------------------------
+
+CREATE USER reader WITH PASSWORD 'capstone';
+CREATE USER writer WITH PASSWORD 'capstone';
+CREATE USER administrator WITH PASSWORD 'capstone';
+
+-------------------------
+-- Access
+-------------------------
 REVOKE ALL ON SCHEMA public FROM public;
 
--- Grant access to read group
+-- Read Group
 GRANT USAGE ON SCHEMA public TO readaccess;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO readaccess;
 
--- Grant access to write group
+-- Write Group
 GRANT USAGE ON SCHEMA public TO writeaccess;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO writeaccess;
 GRANT USAGE ON ALL SEQUENCES IN SCHEMA public to writeaccess;
 
--- Grant access to admin group
+-- Admin Group
 GRANT ALL PRIVILEGES ON SCHEMA public TO adminaccess;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO adminaccess;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO adminaccess;
-
--- Create users
-CREATE USER reader WITH PASSWORD 'capstone';
-CREATE USER writer WITH PASSWORD 'capstone';
-CREATE USER administrator WITH PASSWORD 'capstone';
 
 -- Grant group access
 GRANT readaccess TO reader;
 GRANT writeaccess TO writer;
 GRANT adminaccess TO administrator;
-
-
-
-
---
--- A trigger for insert conflict strategy
--- Name: check_insertion_to_intake_trigger; Type: TRIGGER; Schema: public; Owner: cc
---
-DROP TRIGGER IF EXISTS check_insertion_to_intake_tri ON intake;
-DROP FUNCTION IF EXISTS check_insertion_to_intake_tri_fnc;
-
-CREATE FUNCTION public.check_insertion_to_intake_tri_fnc()
-    RETURNS trigger
-    LANGUAGE 'plpgsql'
-AS $BODY$BEGIN
-CASE WHEN NEW.dba IS NULL
-THEN
-IF (SELECT count(*)
-   FROM intake
-   WHERE submission_date = new.submission_date
-   AND entity = new.entity) = 0
-THEN
-   RETURN NEW;
-ELSE
-   RETURN NULL;
-END IF;
-ELSE
-IF (SELECT count(*)
-   FROM intake
-   WHERE submission_date = NEW.submission_date
-   AND entity = NEW.entity
-   AND dba = NEW.dba) = 0
-THEN
-   RETURN NEW;
-ELSE
-   RETURN NULL;
-END IF;
-END CASE;
-END;$BODY$;
-
-CREATE TRIGGER check_insertion_to_intake_tri
-BEFORE INSERT ON intake
-FOR EACH ROW
-EXECUTE FUNCTION check_insertion_to_intake_tri_fnc();
-
