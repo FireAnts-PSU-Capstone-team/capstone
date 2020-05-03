@@ -13,7 +13,7 @@ This SQL file will be executed once the DB is set up.
 --  	 JSON.
 --
 CREATE FUNCTION change_trigger() RETURNS trigger
-    LANGUAGE plpgsql SECURITY DEFINER
+    LANGUAGE plpgsql
     AS $$BEGIN
 IF TG_OP='INSERT'
 THEN
