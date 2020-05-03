@@ -13,7 +13,7 @@ This SQL file will be executed once the DB is set up.
 --  	 JSON.
 --
 CREATE FUNCTION change_trigger() RETURNS trigger
-    LANGUAGE plpgsql
+    LANGUAGE plpgsql SECURITY DEFINER
     AS $$BEGIN
 IF TG_OP='INSERT'
 THEN
@@ -26,26 +26,6 @@ INSERT INTO txn_history(tabname,schemaname,operation, new_val, old_val)
 VALUES(TG_RELNAME,TG_TABLE_SCHEMA, TG_OP, row_to_json(NEW), row_to_json(OLD));
 RETURN NEW;
 ELSIF TG_OP = 'DELETE'
-THEN
-INSERT INTO txn_history(tabname,schemaname,operation,old_val)
-VALUES(TG_RELNAME,TG_TABLE_SCHEMA, TG_OP, row_to_json(OLD));
-RETURN OLD;
-END IF;
-END;
-$$;
-
-ALTER FUNCTION change_trigger() OWNER TO cc;
-
---
--- Name: change_trigger(); Type: FUNCTION; Schema: public; Owner: cc
--- Desc: Monitors the intake table for any delete command. It copies the
--- 		 old data into the archive table, before removing it from the 
---		 intake table.
--- 
-CREATE FUNCTION archive_trigger() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$BEGIN
-IF TG_OP='DELETE'
 THEN
 INSERT INTO archive (old_row, old_submission_date, old_entity, old_dba,
 	    old_facility_address, old_facility_suite, old_facility_zip,
@@ -65,11 +45,14 @@ VALUES(OLD.row, OLD.submission_date, OLD.entity, OLD.dba,
 		OLD.app_complete,OLD.fee_schedule,OLD.receipt_num,
 		OLD.cash_amount,OLD.check_amount,OLD.card_amount,
 		OLD.check_num_approval_code,OLD.mrl_num,OLD.notes);
+INSERT INTO txn_history(tabname,schemaname,operation, archive_row)
+VALUES(TG_RELNAME,TG_TABLE_SCHEMA, TG_OP, (SELECT currval('archive_row_seq')));
 RETURN OLD;
 END IF;
-END;$$;
+END;
+$$;
 
-ALTER FUNCTION archive_trigger() OWNER TO cc;
+ALTER FUNCTION change_trigger() OWNER TO cc;
 
 --
 -- A trigger for insert conflict strategy
@@ -183,7 +166,8 @@ CREATE TABLE txn_history (
     who text DEFAULT CURRENT_USER,
     new_val json,
     old_val json,
-    tabname text
+    tabname text,
+    archive_row integer
 );
 ALTER TABLE txn_history OWNER TO cc;
 COMMENT ON TABLE txn_history IS 'Table tracks the changes made to the intake database table';
@@ -293,14 +277,6 @@ ALTER TABLE ONLY archive ALTER COLUMN row_id SET DEFAULT nextval('archive_row_se
 CREATE TRIGGER transactions 
 BEFORE INSERT OR UPDATE OR DELETE ON intake 
 FOR EACH ROW EXECUTE FUNCTION change_trigger();
-
---
--- Name: archive
--- Desc: Monitor intake table, before any delete operation calls function archive_trigger
---
-CREATE TRIGGER archive 
-BEFORE DELETE ON intake 
-FOR EACH ROW EXECUTE FUNCTION archive_trigger();
 
 --
 -- Name: check_insertion
