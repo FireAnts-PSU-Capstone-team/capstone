@@ -44,11 +44,7 @@ def dump_table():
         if columns == '':
             columns = None
         else:
-            app.logger.info('columns')
-            app.logger.info(columns)
             columns = str.split(columns.strip(), ' ')
-            app.logger.info('columns')
-            app.logger.info(columns)
 
         table_info_obj = driver.get_table(table_name, columns)
         return make_response(jsonify(table_info_obj), 200)
@@ -99,7 +95,7 @@ def load_data():
                 result = {'message': f'Filename \"{file.filename}\" is not supported.'}
                 return make_response(jsonify(result), 400)
 
-            filename = f'{UPLOAD_FOLDER}/uploaded_' + file.filename
+            filename = f'{UPLOAD_FOLDER}/' + file.filename
             file.save(filename)
             success, result_obj = driver.process_file(filename)
             if success:
