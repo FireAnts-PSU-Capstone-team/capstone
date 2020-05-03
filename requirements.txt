@@ -4,5 +4,6 @@ pandas
 openpyxl
 psycopg2
 flask
+flask-cors
 jsonify
 response

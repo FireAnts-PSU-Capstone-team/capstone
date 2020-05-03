@@ -31,5 +31,3 @@ class TxnHistoryRow:
         self.new_val = input_json.get('new_val')
         self.old_val = input_json.get('old_val')
         self.tabname = input_json.get('tabname')
-
-

@@ -14,6 +14,8 @@ class MetadataRow:
         self.last_modified_date = ''
         self.last_modified_by = ''
         self.title = ''
+        self.rows = ''
+        self.columns = ''
         
 
     def __init__(self, input_json):
@@ -29,6 +31,8 @@ class MetadataRow:
         self.last_modified_date = input_json.get('last_modified_date')
         self.last_modified_by = input_json.get('last_modified_by')
         self.title = input_json.get('title')
+        self.rows = input_json.get('rows')
+        self.columns = input_json.get('columns')
         
         
     def value_array(self):
@@ -36,5 +40,5 @@ class MetadataRow:
         Order data into an array that can be consumed by the row insertion method.
         Returns ([]): array of data members
         """
-        return [self.filename, self.creator, self.size, self.created_date, self.last_modified_date, self.last_modified_by,self.title]
+        return [self.filename, self.creator, self.size, self.created_date, self.last_modified_date, self.last_modified_by,self.title,self.rows, self.columns]
 

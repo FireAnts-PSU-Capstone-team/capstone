@@ -1,9 +1,31 @@
-from flask import Flask, request, jsonify, make_response
+from flask import Flask, request, jsonify, Response, make_response
+from flask_cors import CORS
 import driver
-from IntakeRow import IntakeRow
+from cors import cors_setup
+from models.IntakeRow import IntakeRow
 
+UPLOAD_FOLDER = 'resources'
+ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
 context = ('./configs/cert.pem', './configs/key.pem')
 app = Flask(__name__)
+
+# Load the list of accepted origin domains from the "accepted_domains.ini" file.
+origin_list = cors_setup.load_domains_from_file()
+# Including this header is required when using POST with JSON across domains
+app.config['CORS_HEADERS'] = 'Content-Type'
+# Utilizes CORS with the list of origin strings and regex expressions to validate resource requests.
+CORS(app, origins=origin_list)
+
+
+def allowed_file(filename):
+    """
+    Checks an input file for approved extensions.
+    Args:
+        filename (str): file to check
+    Returns (bool): file approved
+
+    """
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 @app.route("/list", methods=["GET"])
@@ -17,6 +39,7 @@ def dump_table():
     if table_name == '':
         return make_response(jsonify('Table name not supplied.'), 400)
     try:
+        # TODO: once authentication is in place, restrict the tables that can be listed here
         table_info_obj = driver.get_table(table_name)
         return make_response(jsonify(table_info_obj), 200)
     except driver.InvalidTableException:
@@ -36,26 +59,56 @@ def load_data():
     if request.method == 'PUT':
         table_name = request.args.get('table')
         if table_name is None:
-            r = make_response('Table name not specified\n', 400)
+            result = {'message': 'Table name not specified.'}
+            return make_response(jsonify(result), 400)
         else:
+            try:
+                driver.get_table(table_name)
+            except driver.InvalidTableException:
+                return make_response(jsonify(f"Table {table_name} does not exist."), 404)
             row_data = IntakeRow(request.get_json()).value_array()
-            driver.insert_row(table_name, row_data)
-            # TODO: find a way to make this return something meaningful
-            # e.g., return 404 if table doesn't exist
-            r = make_response(jsonify('PUT complete'), 200)
-    elif request.method == 'POST':
-        file_name = request.args.get('file', '')
-        if file_name == '':
-            r = make_response(jsonify('No file listed'), 400)
-        else:
-            success = driver.process_file(file_name)
-            if success:
-                r = make_response(jsonify('File processed successfully'), 200)
+            (row_count, fail_row) = driver.insert_row(table_name, row_data)
+            if row_count == 1:
+                result = {
+                    'message': 'PUT completed',
+                    'rows_affected': row_count
+                }
             else:
-                r = make_response(jsonify('File could not be found'), 400)
-    else:
-        r = make_response(jsonify('Unsupported operation'), 404)
-    return r
+                result = {
+                    'message': 'PUT failed',
+                    'fail_row': fail_row
+                }
+            return make_response(jsonify(result), 200)
+    elif request.method == 'POST':
+        if 'file' not in request.files or request.files.get('file', '') == '':
+            result = {'message': 'No file listed'}
+            return make_response(jsonify(result), 400)
+        else:
+            file = request.files['file']
+            if not allowed_file(file.filename):
+                result = {'message': f'Filename \"{file.filename}\" is not supported.'}
+                return make_response(jsonify(result), 400)
+
+            filename = f'{UPLOAD_FOLDER}/uploaded_' + file.filename
+            file.save(filename)
+            success, result_obj = driver.process_file(filename)
+            if success:
+                result = {
+                    'message': 'File processed successfully',
+                    'result': result_obj
+                }
+                return make_response(jsonify(result), 200)
+            else:
+                if result_obj.get('status', '') == 'invalid':
+                    return make_response(jsonify(result_obj.get('error_msg')), 400)
+                result = {
+                    'message': 'File processed, but with failed rows due to duplicate primary key:',
+                    'result': result_obj
+                }
+                return make_response(jsonify(result), 400)
+
+    result = {'message': 'Unsupported operation.'}
+    return make_response(jsonify(result), 404)
 
 
 @app.route('/metadata', methods=['GET'])

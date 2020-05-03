@@ -21,8 +21,8 @@ services:
             - ./configs/cert.pem:/var/lib/postgresql/server.crt:ro
             - ./configs/key.pem:/var/lib/postgresql/server.key:ro
             - ./configs/pg_hba.conf:/var/lib/postgresql/pg_hba.conf:ro
-            - ./sql/db-create.sql:/docker-entrypoint-initdb.d/init.sql
-        
+            - ./db/db-create.sql:/docker-entrypoint-initdb.d/init.sql
+
         ports:
             # <local/port>:<container/exposing/port>
             - "5432:5432"
