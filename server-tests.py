@@ -192,4 +192,8 @@ class TestServerApp(unittest.TestCase):
 
 # Make the tests conveniently executable
 if __name__ == "__main__":
+<<<<<<< HEAD
     unittest.main()
+=======
+    unittest.main()
+>>>>>>> 59b03185110a26febc76b78a105f625de2cabafb
