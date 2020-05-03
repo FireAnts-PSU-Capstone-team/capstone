@@ -12,6 +12,7 @@ from validation import validate_data_file
 
 test_file = 'resources/sample.xlsx'
 primary_table = 'intake'
+db_tables = ['intake', 'txn_history', 'archive', 'metadata']
 metadata_table = 'metadata'
 connection_error_msg = 'The connection to the database is closed and cannot be opened. Verify DB server is up.'
 
@@ -164,11 +165,12 @@ class InvalidTableException(Exception):
     pass
 
 
-def get_table(table_name):
+def get_table(table_name, columns):
     """
     Return a JSON-like format of table data.
     Args:
-        table_name: the table to fetch
+        table_name (str): the table to fetch
+        columns ([str]):
     Returns ([str]): an object-notated dump of the table
     """
     result = []
@@ -179,7 +181,7 @@ def get_table(table_name):
         result.append(connection_error_msg)
         return result
 
-    if not table_exists(pgSqlCur, table_name):
+    if not table_exists(pgSqlCur, table_name) or table_name not in db_tables:
         raise InvalidTableException
 
     try:
@@ -193,9 +195,15 @@ def get_table(table_name):
             a_row = {}
             i = 0
             for col in column_name:
-                a_row[col] = row[i]
+                if columns:
+                    if col in columns:
+                        a_row[col] = row[i]
+                else:
+                    a_row[col] = row[i]
                 i += 1
+
             result.append(a_row)
+            
     except Exception as err:
         # print the exception
         sql_except(err)
@@ -230,17 +238,6 @@ def read_metadata(f):
     data['columns'] = sheet_data.max_column
 
     return data
-
-
-# TODO: validate filename and respond without throwing
-def load_spreadsheet(f):
-    """
-    Read the spreadsheet file into a dataframe object.
-    Args:
-        f (str): the filename of the spreadsheet to consume
-    Returns (dataframe): extracted data
-    """
-    return pd.read_excel(f)
 
 
 def write_info_data(df):
@@ -281,7 +278,6 @@ def write_metadata(metadata):
     cmd = "INSERT INTO {}(filename, creator, size, created_date, last_modified_date, last_modified_by, title, rows, columns) " \
         "VALUES(" + "{} " + ", {}" * 8 + ") ON CONFLICT DO NOTHING"
 
-
     # check to make sure that the connection is open and active
     if not check_conn():
         return connection_error_msg
@@ -309,7 +305,7 @@ def row_number_exists(cur, row_number, table=primary_table):
     Returns (bool): whether the row number already exists
     """
     try:
-        cur.execute("SELECT EXISTS(SELECT * FROM " + primary_table + " WHERE row=" + str(row_number) + ")")
+        cur.execute("SELECT EXISTS(SELECT * FROM " + table + " WHERE row=" + str(row_number) + ")")
         exists = cur.fetchone()[0]
 
     except psycopg2.Error:
@@ -386,7 +382,7 @@ def process_file(f):
         return 0, connection_error_msg
     else:
         # read file content
-        df = load_spreadsheet(f)
+        df = pd.read_excel(f)
         # Validate data frame
         valid, error_msg = validate_data_file(df)
         if not valid:
@@ -437,4 +433,4 @@ def test_driver():
 
 if __name__ == '__main__':
     test_driver()
-    print(get_table({primary_table}))
+    print(get_table({primary_table}, None))

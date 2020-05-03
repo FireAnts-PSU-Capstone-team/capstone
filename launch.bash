@@ -142,7 +142,7 @@ function run_test() {
     fi
 
     echo "6. Testing row insertion."
-    out=$(curl -X PUT localhost:${server_port}/load?table=${primary_table} -d @${test_row} -H "Content-Type: application/json")
+    out=$(curl -s -X PUT localhost:${server_port}/load?table=${primary_table} -d @${test_row} -H "Content-Type: application/json")
     if [[ -n "$(echo ${out} | grep 'PUT complete')" ]]
     then
         echo "Row insertion ran successfully."
