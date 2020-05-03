@@ -8,3 +8,4 @@ pgdata
 .idea
 *.exe
 uploaded_*.xlsx
+.DS_Store
