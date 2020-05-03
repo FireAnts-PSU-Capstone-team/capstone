@@ -3,6 +3,7 @@ import numpy as np
 import psycopg2
 
 from db import connection as c
+from models.IntakeRow import RowNames
 import os
 import sys
 import time
@@ -141,7 +142,6 @@ def table_exists(cur, table):
         cur ({}): the Postgres cursor
         table (str): the table to validate
     Returns (bool): whether the table was found
-
     """
     # check to make sure that the connection is open and active
     if not check_conn():
@@ -154,7 +154,7 @@ def table_exists(cur, table):
         exists = False
 
     return exists
-
+        
 
 # TODO: error handling
 class InvalidTableException(Exception):
@@ -299,6 +299,25 @@ def write_metadata(metadata):
         pgSqlCur.execute("ROLLBACK")
 
 
+def row_number_exists(cur, row_number, table=primary_table):
+    """
+    Checks whether the row number already exists in a table.
+    Args:
+        cur ({}): the Postgres cursor
+        row_number (int): the row number to validate
+        table (str): the table to validate, default is primary_table
+    Returns (bool): whether the row number already exists
+    """
+    try:
+        cur.execute("SELECT EXISTS(SELECT * FROM " + primary_table + " WHERE row=" + str(row_number) + ")")
+        exists = cur.fetchone()[0]
+
+    except psycopg2.Error:
+        exists = False
+
+    return exists
+
+
 # TODO: implement multi-row insertion
 def insert_row(table, row, checked=False):
     """
@@ -308,14 +327,29 @@ def insert_row(table, row, checked=False):
         row ([]): row of values to insert, default to false,
         checked (bool): flag that connection to DB has already been checked by calling function
     Returns: (bool, dict) a bool indicate whether insertion is successful, a dict of failed row info
-
     """
     # Check flag for multi row insert, if false check to make sure that the connection is open and active
     if not checked:
         if not check_conn():
             return 0, connection_error_msg
 
-    cmd = f"INSERT INTO {table} VALUES (DEFAULT"
+    cmd = f"INSERT INTO {table} VALUES ("
+
+    # Determine whether to insert at a specific row number or use default
+    if row[0] is not None:
+        if row_number_exists(pgSqlCur, int(row[0])):
+            failed_row = {
+                'submission_date': row[1],
+                'entity': row[2],
+                'dba': row[3],
+                'message': f'Row number {row[0]} already taken.'
+            }
+            return 0, failed_row
+        else:
+            cmd += str(row[0])
+    else:
+        cmd += "DEFAULT"
+
     for i in range(1, len(row)):
         cmd += f", {fmt(row[i])}"
     cmd += ")"
@@ -326,9 +360,10 @@ def insert_row(table, row, checked=False):
             return 1, None
         else:
             failed_row = {
-                'submission_date': row[1],
-                'entity': row[2],
-                'dba': row[3]
+                'submission_date': row[RowNames.SUBMISSION_DATE.value],
+                'entity': row[RowNames.ENTITY.value],
+                'dba': row[RowNames.DBA.value],
+                'mrl': row[RowNames.MRL.value]
             }
             return 0, failed_row
 
