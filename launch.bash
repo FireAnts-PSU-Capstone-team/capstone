@@ -164,6 +164,9 @@ elif [[ $1 == "run" ]]; then
     # if the image doesn't exist (or we've just deleted it), build it fresh
     sudo docker image inspect flask-server:v1 >/dev/null 2>&1
     [[ $? != 0 ]] && echo "Image does not exist; building image" && sudo docker build -t flask-server:v1 .
+    sudo chown -R 999:root configs/
+    sudo chmod 777 configs/
+    sudo chmod 600 configs/*
 
     # bring up the container
     sudo docker-compose up
@@ -183,6 +186,9 @@ elif [[ $1 == "rebuild" ]]; then
     sudo rm -r pgdata
     sudo docker image rm -f flask-server:v1
     sudo docker build -t flask-server:v1 .
+    sudo chown -R 999:root configs/
+    sudo chmod 777 configs/
+    sudo chmod 600 configs/*
     sudo docker-compose up
     
 elif [[ $1 == "rebuild-db" ]]; then
