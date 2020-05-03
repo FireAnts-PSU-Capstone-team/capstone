@@ -37,13 +37,13 @@ uniqueReceipts = {}
 seen_mrl_nums = {}
 
 
-def validate_suite_number(x):
-    try:
-        if (x[0] == '#' and x[1:].isdigit()) or (x[0] != '#' and x.isdigit()):
-            return True
-    except TypeError:
-        pass
-    return False
+# def validate_suite_number(x):
+#     try:
+#         if (x[0] == '#' and x[1:].isdigit()) or (x[0] != '#' and x.isdigit()):
+#             return True
+#     except TypeError:
+#         pass
+#     return False
 
 
 # def validateMailingAddress(addr):
@@ -157,8 +157,8 @@ def validate_data_file(df):
         # if re.match(addressRegex, row[RowNames.FACILITY_ADDRESS.value]) is None:
         #     return error_row(RowNames.FACILITY_ADDRESS.value, row)
         # 'Facility Suite #': '#' + digits
-        if validate_suite_number(row[RowNames.FACILITY_SUITE.value]) == np.nan:
-            return error_row(RowNames.FACILITY_SUITE.value, row)
+        # if validate_suite_number(row[RowNames.FACILITY_SUITE.value]) == np.nan:
+        #     return error_row(RowNames.FACILITY_SUITE.value, row)
         # Facility Zip: 5-digit number
         try:
             bad_zip = not 0 <= int(row[RowNames.FACILITY_ZIP.value]) < 100000
