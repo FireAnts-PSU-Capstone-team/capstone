@@ -3,6 +3,7 @@ import numpy as np
 import psycopg2
 
 from db import connection as c
+from models.IntakeRow import RowNames
 import os
 import sys
 import time
@@ -11,6 +12,7 @@ from validation import validate_data_file
 
 test_file = 'resources/sample.xlsx'
 primary_table = 'intake'
+db_tables = ['intake', 'txn_history', 'archive', 'metadata']
 metadata_table = 'metadata'
 connection_error_msg = 'The connection to the database is closed and cannot be opened. Verify DB server is up.'
 
@@ -141,7 +143,6 @@ def table_exists(cur, table):
         cur ({}): the Postgres cursor
         table (str): the table to validate
     Returns (bool): whether the table was found
-
     """
     # check to make sure that the connection is open and active
     if not check_conn():
@@ -154,7 +155,7 @@ def table_exists(cur, table):
         exists = False
 
     return exists
-
+        
 
 # TODO: error handling
 class InvalidTableException(Exception):
@@ -164,11 +165,12 @@ class InvalidTableException(Exception):
     pass
 
 
-def get_table(table_name):
+def get_table(table_name, columns):
     """
     Return a JSON-like format of table data.
     Args:
-        table_name: the table to fetch
+        table_name (str): the table to fetch
+        columns ([str]):
     Returns ([str]): an object-notated dump of the table
     """
     result = []
@@ -179,7 +181,7 @@ def get_table(table_name):
         result.append(connection_error_msg)
         return result
 
-    if not table_exists(pgSqlCur, table_name):
+    if not table_exists(pgSqlCur, table_name) or table_name not in db_tables:
         raise InvalidTableException
 
     try:
@@ -193,9 +195,15 @@ def get_table(table_name):
             a_row = {}
             i = 0
             for col in column_name:
-                a_row[col] = row[i]
+                if columns:
+                    if col in columns:
+                        a_row[col] = row[i]
+                else:
+                    a_row[col] = row[i]
                 i += 1
+
             result.append(a_row)
+            
     except Exception as err:
         # print the exception
         sql_except(err)
@@ -230,17 +238,6 @@ def read_metadata(f):
     data['columns'] = sheet_data.max_column
 
     return data
-
-
-# TODO: validate filename and respond without throwing
-def load_spreadsheet(f):
-    """
-    Read the spreadsheet file into a dataframe object.
-    Args:
-        f (str): the filename of the spreadsheet to consume
-    Returns (dataframe): extracted data
-    """
-    return pd.read_excel(f)
 
 
 def write_info_data(df):
@@ -281,7 +278,6 @@ def write_metadata(metadata):
     cmd = "INSERT INTO {}(filename, creator, size, created_date, last_modified_date, last_modified_by, title, rows, columns) " \
         "VALUES(" + "{} " + ", {}" * 8 + ") ON CONFLICT DO NOTHING"
 
-
     # check to make sure that the connection is open and active
     if not check_conn():
         return connection_error_msg
@@ -299,6 +295,25 @@ def write_metadata(metadata):
         pgSqlCur.execute("ROLLBACK")
 
 
+def row_number_exists(cur, row_number, table=primary_table):
+    """
+    Checks whether the row number already exists in a table.
+    Args:
+        cur ({}): the Postgres cursor
+        row_number (int): the row number to validate
+        table (str): the table to validate, default is primary_table
+    Returns (bool): whether the row number already exists
+    """
+    try:
+        cur.execute("SELECT EXISTS(SELECT * FROM " + table + " WHERE row=" + str(row_number) + ")")
+        exists = cur.fetchone()[0]
+
+    except psycopg2.Error:
+        exists = False
+
+    return exists
+
+
 # TODO: implement multi-row insertion
 def insert_row(table, row, checked=False):
     """
@@ -308,14 +323,29 @@ def insert_row(table, row, checked=False):
         row ([]): row of values to insert, default to false,
         checked (bool): flag that connection to DB has already been checked by calling function
     Returns: (bool, dict) a bool indicate whether insertion is successful, a dict of failed row info
-
     """
     # Check flag for multi row insert, if false check to make sure that the connection is open and active
     if not checked:
         if not check_conn():
             return 0, connection_error_msg
 
-    cmd = f"INSERT INTO {table} VALUES (DEFAULT"
+    cmd = f"INSERT INTO {table} VALUES ("
+
+    # Determine whether to insert at a specific row number or use default
+    if row[0] is not None:
+        if row_number_exists(pgSqlCur, int(row[0])):
+            failed_row = {
+                'submission_date': row[1],
+                'entity': row[2],
+                'dba': row[3],
+                'message': f'Row number {row[0]} already taken.'
+            }
+            return 0, failed_row
+        else:
+            cmd += str(row[0])
+    else:
+        cmd += "DEFAULT"
+
     for i in range(1, len(row)):
         cmd += f", {fmt(row[i])}"
     cmd += ")"
@@ -327,9 +357,10 @@ def insert_row(table, row, checked=False):
             return 1, None
         else:
             failed_row = {
-                'submission_date': row[1],
-                'entity': row[2],
-                'dba': row[3]
+                'submission_date': row[RowNames.SUBMISSION_DATE.value],
+                'entity': row[RowNames.ENTITY.value],
+                'dba': row[RowNames.DBA.value],
+                'mrl': row[RowNames.MRL.value]
             }
             return 0, failed_row
 
@@ -352,7 +383,7 @@ def process_file(f):
         return 0, connection_error_msg
     else:
         # read file content
-        df = load_spreadsheet(f)
+        df = pd.read_excel(f)
         # Validate data frame
         valid, error_msg = validate_data_file(df)
         if not valid:
@@ -403,4 +434,4 @@ def test_driver():
 
 if __name__ == '__main__':
     test_driver()
-    print(get_table({primary_table}))
+    print(get_table({primary_table}, None))

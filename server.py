@@ -1,11 +1,12 @@
 from flask import Flask, request, jsonify, Response, make_response
 from flask_cors import CORS
-import driver
+import driver, sys
 from cors import cors_setup
 from models.IntakeRow import IntakeRow
 
 UPLOAD_FOLDER = 'resources'
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
+context = ('./configs/cert.pem', './configs/key.pem')
 app = Flask(__name__)
 
 # Load the list of accepted origin domains from the "accepted_domains.ini" file.
@@ -39,7 +40,13 @@ def dump_table():
         return make_response(jsonify('Table name not supplied.'), 400)
     try:
         # TODO: once authentication is in place, restrict the tables that can be listed here
-        table_info_obj = driver.get_table(table_name)
+        columns = request.args.get('column', '')
+        if columns == '':
+            columns = None
+        else:
+            columns = str.split(columns.strip(), ' ')
+
+        table_info_obj = driver.get_table(table_name, columns)
         return make_response(jsonify(table_info_obj), 200)
     except driver.InvalidTableException:
         return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
@@ -52,7 +59,7 @@ def load_data():
     Usage:
         PUT: /load?table=<table> -H "Content-Type: application/json" -d [<JSON object> | <filename>]
         POST: /load?file=</path/to/file.xlsx>
-    Returns ({}): HTTP response
+    Returns ({}): HTTPS response
     """
     # TODO: add error handling if JSON schema doesn't match
     if request.method == 'PUT':
@@ -62,7 +69,7 @@ def load_data():
             return make_response(jsonify(result), 400)
         else:
             try:
-                driver.get_table(table_name)
+                driver.get_table(table_name, None)
             except driver.InvalidTableException:
                 return make_response(jsonify(f"Table {table_name} does not exist."), 404)
             row_data = IntakeRow(request.get_json()).value_array()
@@ -88,7 +95,7 @@ def load_data():
                 result = {'message': f'Filename \"{file.filename}\" is not supported.'}
                 return make_response(jsonify(result), 400)
 
-            filename = f'{UPLOAD_FOLDER}/uploaded_' + file.filename
+            filename = f'{UPLOAD_FOLDER}/' + file.filename
             file.save(filename)
             success, result_obj = driver.process_file(filename)
             if success:
@@ -116,7 +123,7 @@ def show_metadata():
     Display the contents of the metadata table.
     Returns ({}): response object containing the contents of the table.
     """
-    response_body = jsonify(driver.get_table('metadata'))
+    response_body = jsonify(driver.get_table('metadata', None))
     return make_response(response_body, 200)
 
 
@@ -126,4 +133,4 @@ def hello_world():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=80, debug=True)
+    app.run(host='0.0.0.0', port=443, ssl_context=context, threaded=True, debug=True)

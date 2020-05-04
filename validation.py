@@ -1,15 +1,13 @@
 import pandas as pd
 import numpy as np
 import re as re
+import json
+
 from models.IntakeRow import RowNames
 
-'''Regular expression translated: Any amount of integers but at least one, a space, a 1-2 letter word (for directions N, SW, etc)
-    Followed by a space, followed by any number of letters/numbers (but at least one) followed by a space. 
-    This is followed by a space, followed by a word (for the St., Ave., etc).
-    This is difficult to maintain though!! Holy cow!'''
-addressRegex = r'^(\d+)\s([a-zA-Z]{1,2})\s([a-zA-Z0-9]+\s)([a-zA-Z]+)'
-addressWithFacilityRegex = r'^(\d+)\s([a-zA-Z]{1,2})\s(([a-zA-Z1-9]+\s)+)([a-zA-Z]+)\s(#\d+)'
-POBoxRegex = r'^([P|p][O|o])\s(Box|box|BOX)\s(\d+)(\,)*(\s)[a-zA-Z1-9]+(\,)*\s[A-Z]{2}(\,)*\s\d{5}'
+# addressRegex = r'^(\d+)\s([a-zA-Z]{1,2})\s([a-zA-Z0-9\-\.]+\s)+([a-zA-Z]+)(\.?)'
+# addressWithFacilityRegex = r'^(\d+)\s([a-zA-Z]{1,2})\s(([a-zA-Z1-9]+\s)+)([a-zA-Z]+)(\.?)(\,?)\s(#\d+)'
+# POBoxRegex = r'^([P|p][O|o])\s(Box|box|BOX)\s(\d)+(\,?)(\s)[a-zA-Z1-9]+(\,)*\s[A-Z]{2}(\,)*\s\d{5}'
 emailRegex = r'(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)'
 repeat_location_values = ['Y', 'N', 'X', 'NAN']
 app_complete_values = ['M', 'N', 'N/A', 'Y', 'NAN']
@@ -17,20 +15,19 @@ valid_compliance_regions = ['N', 'NW', 'NE', 'W', 'SW', 'SE', 'NAN']
 
 validNeighborhoods = ['Alameda', 'Arbor Lodge', 'Ardenwald/Johnson Creek', 'Argay Terrace', 'Arlington Heights',
                       'Arnold Creek', 'Ashcreek', 'Beaumont-Wilshire', 'Boise', 'Brentwood/Darlington', 'Bridgeton',
-                      'Bridlemile', 'Brooklyn', 'Buckman', 'Cathedral Park', 'Centennial',
-                      'Central Northeast Neighbors',
+                      'Bridlemile', 'Brooklyn', 'Buckman', 'Cathedral Park', 'Centennial', 'Central Northeast Neighbors',
                       'Collins View', 'Concordia', 'Creston-Kenilworth', 'Crestwood', 'Cully', 'East Columbia',
                       'East Portland', 'Eastmoreland', 'Eliot', 'Far Southwest', 'Forest Park', 'Foster-Powell',
                       'Glenfair', 'Goosehollow Foothills', 'Grant Park', 'Hayden Island', 'Hayhurst', 'Hazelwood',
                       'Healy Heights', 'Hillsdale', 'Hillside', 'Hollywood', 'Homestead', 'Hosford-Abernethy',
                       'Humboldt', 'Irvington', 'Kenton', 'Kerns', 'King', 'Laurelhurst', 'Lents', 'Linnton',
                       'Lloyd District', 'Madison South', 'Maplewood', 'Markham', 'Marshall Park', 'Mill Park',
-                      'Montavilla', 'Mt Scott-Arleta', 'Mt Tabor', 'Multnomah', 'N/A', 'North Tabor',
+                      'Montavilla', 'Mt. Scott-Arleta', 'Mt Scott-Arleta', 'Mt. Tabor', 'Mt Tabor', 'Multnomah', 'N/A', 'North Tabor',
                       'Northeast Coalition', 'Northwest District', 'Northwest Heights', 'Old Town', 'Overlook',
                       'Parkrose', 'Parkrose Heights', 'Pearl District', 'Piedmont', 'Pleasant Valley',
                       'Portland Downtown', 'Portsmouth', 'Powellhurst-Gilbert', 'Reed', 'Richmond', 'Rose City Park',
                       'Roseway', 'Russell', 'Sabin', 'Sellwood-Moreland', 'South Burlingame', 'South Portland',
-                      'South Tabor', 'Southeast Uplift', 'Southwest Hills', 'Southwest Neighborhood Inc', 'St Johns',
+                      'South Tabor', 'Southeast Uplift', 'Southwest Hills', 'Southwest Neighborhood Inc', 'St. Johns', 'St Johns',
                       "Sullivan's Gulch", 'Sumner', 'Sunderland', 'Sunnyside', 'Sylvan-Highlands', 'University Park',
                       'Vernon', 'West Portland Park', 'Wilkes', 'Woodland Park', 'Woodlawn', 'Woodstock']
 
@@ -40,19 +37,19 @@ uniqueReceipts = {}
 seen_mrl_nums = {}
 
 
-def validate_suite_number(x):
-    try:
-        if (x[0] == '#' and x[1:].isdigit()) or (x[0] != '#' and x.isdigit()):
-            return True
-    except TypeError:
-        pass
-    return False
+# def validate_suite_number(x):
+#     try:
+#         if (x[0] == '#' and x[1:].isdigit()) or (x[0] != '#' and x.isdigit()):
+#             return True
+#     except TypeError:
+#         pass
+#     return False
 
 
-def validateMailingAddress(addr):
-    return re.search(addressRegex, addr) is not None or \
-           re.search(addressWithFacilityRegex, addr) is not None or \
-           re.search(POBoxRegex, addr) is not None
+# def validateMailingAddress(addr):
+#     return re.search(addressRegex, addr) is not None or \
+#            re.search(addressWithFacilityRegex, addr) is not None or \
+#            re.search(POBoxRegex, addr) is not None
 
 
 def validateEndorsement(endorsementList):
@@ -132,7 +129,7 @@ def validate_monetary_amount(amt):
             return True
         if s[0] == '$':
             s = s[1:]
-        a = int(s)
+        a = int(s.replace(',', '').replace('.', ''))
         return a >= 0
     except ValueError:
         return False
@@ -140,10 +137,12 @@ def validate_monetary_amount(amt):
 
 def validate_data_file(df):
     def error_row(field_index, failed_row):
-        msg = f"Invalid {df.columns[field_index]}. \n"
-        msg += f"Failed element: {failed_row[field_index]} \n"
-        msg += f"Failed row: {fmt_failed_row(failed_row)}"
-        return False, msg
+        msg = {
+            'invalid_column_name': df.columns[field_index],
+            'failed_value': failed_row[field_index],
+            'failed_row': fmt_failed_row(failed_row)
+        }
+        return False, json.dumps(msg)
 
     df.rename(columns={'Unnamed: 0': 'row'}, inplace=True)
 
@@ -154,11 +153,12 @@ def validate_data_file(df):
         except ValueError:
             return error_row(RowNames.SUBMISSION_DATE.value, row)
         # Facility Address: matches regex
-        if re.match(addressRegex, row[RowNames.FACILITY_ADDRESS.value]) is None:
-            return error_row(RowNames.FACILITY_ADDRESS.value, row)
+        # Removed; address vary too much to be meaningfully covered by any regex
+        # if re.match(addressRegex, row[RowNames.FACILITY_ADDRESS.value]) is None:
+        #     return error_row(RowNames.FACILITY_ADDRESS.value, row)
         # 'Facility Suite #': '#' + digits
-        if validate_suite_number(row[RowNames.FACILITY_SUITE.value]) == np.nan:
-            return error_row(RowNames.FACILITY_SUITE.value, row)
+        # if validate_suite_number(row[RowNames.FACILITY_SUITE.value]) == np.nan:
+        #     return error_row(RowNames.FACILITY_SUITE.value, row)
         # Facility Zip: 5-digit number
         try:
             bad_zip = not 0 <= int(row[RowNames.FACILITY_ZIP.value]) < 100000
@@ -166,17 +166,20 @@ def validate_data_file(df):
             bad_zip = True
         if bad_zip:
             return error_row(RowNames.FACILITY_ZIP.value, row)
-        # Mailing Address: matches regex
-        if not validateMailingAddress(row[RowNames.MAILING_ADDRESS.value]):
-            return error_row(RowNames.MAILING_ADDRESS.value, row)
+        # Mailing Address: matches regexes
+        # if not validateMailingAddress(row[RowNames.MAILING_ADDRESS.value]):
+        #     return error_row(RowNames.MAILING_ADDRESS.value, row)
         # MRL: matches "MRL<number>"
         mrl = row[RowNames.MRL.value].lstrip()
         if not (mrl[0:3].upper() == 'MRL' and mrl[3:].isdigit()):
             return error_row(RowNames.MRL.value, row)
         # Neighborhood Association: in approved list
         if not row[RowNames.NEIGHBORHOOD_ASSN.value] in validNeighborhoods:
-            return error_row(RowNames.NEIGHBORHOOD_ASSN.value, row)
-        # Compliance Region: cardinal direction
+            _, err_row = error_row(RowNames.NEIGHBORHOOD_ASSN.value, row)
+            e = json.loads(err_row)
+            e['valid_neighborhoods'] = validNeighborhoods
+            return False, json.dumps(e)
+        # Compliance Region
         if not row[RowNames.COMPLIANCE_REGION.value] in valid_compliance_regions:
             return error_row(RowNames.COMPLIANCE_REGION.value, row)
         # Primary Contact Name - no validation
@@ -240,6 +243,3 @@ def validate_data_file(df):
     df['App complete?'] = df['App complete?'].apply(lambda x: str(x).upper())
 
     return True, None
-
-# TODO: add something that leverages the validation to return pass/fail and a summary of errors
-# TODO: add support for single-row input, via PUT (need to convert to dataframe)
