@@ -68,7 +68,8 @@ THEN
 IF (SELECT count(*)
    FROM intake
    WHERE submission_date = new.submission_date
-   AND entity = new.entity) = 0
+   AND entity = new.entity
+   AND mrl = NEW.mrl) = 0
 THEN
    RETURN NEW;
 ELSE
@@ -79,7 +80,8 @@ IF (SELECT count(*)
    FROM intake
    WHERE submission_date = NEW.submission_date
    AND entity = NEW.entity
-   AND dba = NEW.dba) = 0
+   AND dba = NEW.dba
+   AND mrl = NEW.mrl) = 0
 THEN
    RETURN NEW;
 ELSE
