@@ -7,12 +7,13 @@ This SQL file will be executed once the DB is set up.
 -------------------------
 
 --
--- Name: change_trigger(); Type: FUNCTION; Schema: public; Owner: cc
--- Desc: Monitors the intake table for any insert or update commands
+-- Name: intake_change_fnc(); Type: FUNCTION; Schema: public; Owner: cc
+-- Desc: Monitors the intake table for any insert/update/delete commands
 -- 		 It copys the old data and the new data in txn_history table as 
---  	 JSON.
+--  	 JSON. In case of DELETE it copies data into archive table then updates txn_history
+--       with location data for archive table
 --
-CREATE FUNCTION change_fnc() RETURNS trigger
+create function intake_change_fnc() RETURNS trigger
     LANGUAGE plpgsql
     AS $$BEGIN
 IF TG_OP='INSERT'
@@ -26,26 +27,6 @@ INSERT INTO txn_history(tabname,schemaname,operation, new_val, old_val)
 VALUES(TG_RELNAME,TG_TABLE_SCHEMA, TG_OP, row_to_json(NEW), row_to_json(OLD));
 RETURN NEW;
 ELSIF TG_OP = 'DELETE'
-THEN
-INSERT INTO txn_history(tabname,schemaname,operation,old_val)
-VALUES(TG_RELNAME,TG_TABLE_SCHEMA, TG_OP, row_to_json(OLD));
-RETURN OLD;
-END IF;
-END;
-$$;
-
-ALTER FUNCTION change_fnc() OWNER TO cc;
-
---
--- Name: change_trigger(); Type: FUNCTION; Schema: public; Owner: cc
--- Desc: Monitors the intake table for any delete command. It copies the
--- 		 old data into the archive table, before removing it from the 
---		 intake table.
--- 
-CREATE FUNCTION archive_fnc() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$BEGIN
-IF TG_OP='DELETE'
 THEN
 INSERT INTO archive (old_row, old_submission_date, old_entity, old_dba,
 	    old_facility_address, old_facility_suite, old_facility_zip,
@@ -65,27 +46,74 @@ VALUES(OLD.row, OLD.submission_date, OLD.entity, OLD.dba,
 		OLD.app_complete,OLD.fee_schedule,OLD.receipt_num,
 		OLD.cash_amount,OLD.check_amount,OLD.card_amount,
 		OLD.check_num_approval_code,OLD.mrl_num,OLD.notes);
+INSERT INTO txn_history(tabname,schemaname,operation, archive_row)
+VALUES(TG_RELNAME,TG_TABLE_SCHEMA, TG_OP, (SELECT currval('archive_row_seq')));
 RETURN OLD;
 END IF;
-END;$$;
+END;
+$$;
 
-ALTER FUNCTION archive_fnc() OWNER TO cc;
+alter function intake_change_fnc() OWNER TO cc;
+
+--
+-- Name: violations_change_fnc(); Type: FUNCTION; Schema: public; Owner: cc
+-- Desc: Monitors the violations table for any insert or update or delete commands
+-- 		 It copys the old data and the new data in txn_history table as
+--  	 JSON. In case of DELETE it copies data into archive table then updates txn_history
+--       with location data for archive table
+--
+create function violations_change_fnc() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$BEGIN
+IF TG_OP='INSERT'
+THEN
+INSERT INTO txn_history(tabname,schemaname,operation, new_val)
+VALUES(TG_RELNAME, TG_TABLE_SCHEMA, TG_OP, row_to_json(NEW));
+RETURN NEW;
+ELSIF TG_OP = 'UPDATE'
+THEN
+INSERT INTO txn_history(tabname,schemaname,operation, new_val, old_val)
+VALUES(TG_RELNAME,TG_TABLE_SCHEMA, TG_OP, row_to_json(NEW), row_to_json(OLD));
+RETURN NEW;
+ELSIF TG_OP = 'DELETE'
+THEN
+INSERT INTO archive (old_row, old_dba, old_violation_sent_date,
+        old_original_violation_amount, old_admin_rvw_decision_date,
+        old_certified_num, old_certified_receipt_returned, old_date_paid_waived,
+	    old_facility_address, old_mrl, old_license_type, old_receipt_num,
+		old_cash_amount,old_check_amount,old_card_amount,
+		old_check_num_approval_code, old_notes )
+VALUES(OLD.row_id, OLD.dba, OLD.violation_sent_date, OLD.original_violation_amount,
+        OLD.admin_rvw_decision_date, OLD.certified_num, OLD.certified_receipt_returned,
+        OLD.date_paid_waived,
+	    OLD.facility_address, OLD.mrl, OLD.license_type,OLD.receipt_num,
+		OLD.cash_amount,OLD.check_amount,OLD.card_amount,
+		OLD.check_num_approval_code,OLD.notes);
+INSERT INTO txn_history(tabname,schemaname,operation, archive_row)
+VALUES(TG_RELNAME,TG_TABLE_SCHEMA, TG_OP, (SELECT currval('archive_row_seq')));
+RETURN OLD;
+END IF;
+END;
+$$;
+
+alter function violations_change_fnc() OWNER TO cc;
 
 --
 -- A trigger for insert conflict strategy
 -- Name: check_insertion_to_intake_trigger; Type: TRIGGER; Schema: public; Owner: cc
 --
 
-CREATE FUNCTION intake_insertion_fnc()
+create function check_insertion_fnc()
     RETURNS trigger
     LANGUAGE 'plpgsql'
 AS $BODY$BEGIN
-CASE WHEN NEW.dba IS NULL
+CASE when NEW.dba IS NULL
 THEN
 IF (SELECT count(*)
    FROM intake
    WHERE submission_date = new.submission_date
-   AND entity = new.entity) = 0
+   AND entity = new.entity
+   AND mrl = NEW.mrl) = 0
 THEN
    RETURN NEW;
 ELSE
@@ -96,7 +124,8 @@ IF (SELECT count(*)
    FROM intake
    WHERE submission_date = NEW.submission_date
    AND entity = NEW.entity
-   AND dba = NEW.dba) = 0
+   AND dba = NEW.dba
+   AND mrl = NEW.mrl) = 0
 THEN
    RETURN NEW;
 ELSE
@@ -105,7 +134,7 @@ END IF;
 END CASE;
 END;$BODY$;
 
-ALTER FUNCTION intake_insertion_fnc() OWNER TO cc;
+ALTER function check_insertion_fnc() OWNER TO cc;
 
 -------------------------
 -- DB Parameters
@@ -121,7 +150,7 @@ SET default_table_access_method = heap;
 --
 -- Name: metadata; Type: TABLE; Schema: public; Owner: cc
 --
-CREATE TABLE IF NOT EXISTS metadata (
+create TABLE IF NOT EXISTS metadata (
     filename TEXT NOT NULL,
     creator TEXT,
     size INT,
@@ -138,7 +167,7 @@ COMMENT ON TABLE metadata IS 'Table to track the file metadata that is uploaded 
 --
 -- Name: Intake; Type: TABLE; Schema: public; Owner: cc
 --
-CREATE TABLE intake (
+create TABLE intake (
     "row" integer NOT NULL,
     submission_date date,
     entity text,
@@ -175,7 +204,7 @@ ALTER TABLE ONLY intake
 --
 -- Name: txn_history; Type: TABLE; Schema: public; Owner: cc
 --
-CREATE TABLE txn_history (
+create TABLE txn_history (
     id integer NOT NULL,
     tstamp timestamp without time zone DEFAULT now(),
     schemaname text,
@@ -183,7 +212,8 @@ CREATE TABLE txn_history (
     who text DEFAULT CURRENT_USER,
     new_val json,
     old_val json,
-    tabname text
+    tabname text,
+    archive_row integer
 );
 ALTER TABLE txn_history OWNER TO cc;
 COMMENT ON TABLE txn_history IS 'Table tracks the changes made to the intake database table';
@@ -193,11 +223,10 @@ ALTER TABLE ONLY txn_history
 --
 -- Name: archive; Type: TABLE; Schema: public; Owner: CC
 --
-CREATE TABLE archive (
+create TABLE archive (
     row_id integer NOT NULL,
     tstamp timestamp without time zone DEFAULT now(),
     who text DEFAULT CURRENT_USER,
-    tabname text,
     old_row integer,
     old_submission_date date,
     old_entity text,
@@ -233,14 +262,15 @@ CREATE TABLE archive (
     old_date_paid_waived date
 );
 ALTER TABLE archive OWNER TO cc;
-COMMENT ON TABLE archive IS 'Table tracks the rows removed from the tables the database';
+COMMENT ON TABLE archive IS 'Table tracks the rows removed from the intake database table';
 ALTER TABLE ONLY archive
     ADD CONSTRAINT archive_pkey PRIMARY KEY (row_id);
+
 
 --
 -- Name: violations Type: table Schema: public Owner: cc
 --
-CREATE TABLE IF NOT EXISTS violations
+create TABLE IF NOT EXISTS violations
 (
     row_id integer NOT NULL,
     dba text,
@@ -273,7 +303,7 @@ ALTER TABLE ONLY violations
 -- Name: intake_row_seq
 -- Desc: Sequence used as PK for intake table Owner: cc
 --
-CREATE SEQUENCE intake_row_seq
+create SEQUENCE intake_row_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -289,7 +319,7 @@ ALTER TABLE ONLY intake ALTER COLUMN "row" SET DEFAULT nextval('intake_row_seq':
 -- Name: txn_history_id_seq
 -- Desc: Sequence used as PK for txn_history table Owner: cc
 --
-CREATE SEQUENCE txn_history_id_seq
+create SEQUENCE txn_history_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -305,7 +335,7 @@ ALTER TABLE ONLY txn_history ALTER COLUMN id SET DEFAULT nextval('txn_history_id
 -- Name: archive_row_seq
 -- Desc: Sequence used as PK for archive table Owner: cc
 --
-CREATE SEQUENCE archive_row_seq
+create SEQUENCE archive_row_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -321,7 +351,7 @@ ALTER TABLE ONLY archive ALTER COLUMN row_id SET DEFAULT nextval('archive_row_se
 -- Name: violations_row_seq
 -- Desc: Sequence used as PK for violations table Owner: cc
 --
-CREATE SEQUENCE violations_row_seq
+create SEQUENCE violations_row_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -338,67 +368,45 @@ ALTER TABLE ONLY violations ALTER COLUMN row_id SET DEFAULT nextval('violations_
 -------------------------
 
 --
--- Name: transactions
+-- Name: intake_transactions
 -- Desc: Monitor intake table, before any transaction calls function change_trigger
 --
-CREATE TRIGGER intake_transactions
-BEFORE INSERT OR UPDATE OR DELETE ON intake 
-FOR EACH ROW EXECUTE FUNCTION change_fnc();
+create trigger intake_transactions
+before insert or update or delete on intake
+for each row EXECUTE function intake_change_fnc();
 
 --
--- Name: archive
--- Desc: Monitor intake table, before any delete operation calls function archive_trigger
---
-CREATE TRIGGER intake_archive
-BEFORE DELETE ON intake 
-FOR EACH ROW EXECUTE FUNCTION intake_archive_fnc();
-
---
--- Name: check_insertion
+-- Name: intake_check_insertion
 -- Desc: Monitor intake table, before any INSERT calls function check_insertion_to_intake_tri_fnc
 --
-CREATE TRIGGER intake_check_insertion
-BEFORE INSERT ON intake 
-FOR EACH ROW EXECUTE FUNCTION intake_insertion_fnc();
+create trigger intake_check_insertion
+before insert on intake
+for each row EXECUTE function check_insertion_fnc();
 
 --
--- Name: transactions
+-- Name: violations_transactions
 -- Desc: Monitor intake table, before any transaction calls function change_trigger
 --
-CREATE TRIGGER violations_transactions
-BEFORE INSERT OR UPDATE OR DELETE ON violations
-FOR EACH ROW EXECUTE FUNCTION change_trigger();
+create trigger violations_transactions
+before insert or update or delete on violations
+for each row EXECUTE function violations_change_fnc();
 
---
--- Name: archive
--- Desc: Monitor intake table, before any delete operation calls function archive_trigger
---
-CREATE TRIGGER violations_archive
-BEFORE DELETE ON violations
-FOR EACH ROW EXECUTE FUNCTION archive_trigger();
 
---
--- Name: check_insertion
--- Desc: Monitor intake table, before any INSERT calls function check_insertion_to_intake_tri_fnc
---
-CREATE TRIGGER violations_check_insertion
-BEFORE INSERT ON violations
-FOR EACH ROW EXECUTE FUNCTION violations_check_insertion();
 -------------------------
 -- Groups
 -------------------------
 
-CREATE ROLE readaccess;
-CREATE ROLE writeaccess;
-CREATE ROLE adminaccess;
+create ROLE readaccess;
+create ROLE writeaccess;
+create ROLE adminaccess;
 
 -------------------------
 -- Users
 -------------------------
 
-CREATE USER reader WITH PASSWORD 'capstone';
-CREATE USER writer WITH PASSWORD 'capstone';
-CREATE USER administrator WITH PASSWORD 'capstone';
+create USER reader WITH PASSWORD 'capstone';
+create USER writer WITH PASSWORD 'capstone';
+create USER administrator WITH PASSWORD 'capstone';
 
 -------------------------
 -- Access
