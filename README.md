@@ -13,7 +13,7 @@
 ## Startup
 
 There is a launch script that will handle bringing up the containers and performing cleanup on exit. To build and launch 
-the project, type `bash launch.bash rebuild`.\
+the project, type `bash launch.bash build`.\
 If a current image of the project already exists locally, you can instead run the existing image by typing `bash launch.bash run` instead.
 
 ### If you prefer to run the commands manually
