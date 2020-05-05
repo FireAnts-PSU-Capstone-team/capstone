@@ -99,8 +99,45 @@ $$;
 alter function violations_change_fnc() OWNER TO cc;
 
 --
+-- Name: records_change_fnc(); Type: FUNCTION; Schema: public; Owner: cc
+-- Desc: Monitors the records table for any insert/update/delete commands
+-- 		 It copys the old data and the new data in txn_history table as
+--  	 JSON. In case of DELETE it copies data into archive table then updates txn_history
+--       with location data for archive table
+--
+create function records_change_fnc() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$BEGIN
+IF TG_OP='INSERT'
+THEN
+INSERT INTO txn_history(tabname,schemaname,operation, new_val)
+VALUES(TG_RELNAME, TG_TABLE_SCHEMA, TG_OP, row_to_json(NEW));
+RETURN NEW;
+ELSIF TG_OP = 'UPDATE'
+THEN
+INSERT INTO txn_history(tabname,schemaname,operation, new_val, old_val)
+VALUES(TG_RELNAME,TG_TABLE_SCHEMA, TG_OP, row_to_json(NEW), row_to_json(OLD));
+RETURN NEW;
+ELSIF TG_OP = 'DELETE'
+THEN
+INSERT INTO archive (old_row, old_submission_date, old_method, old_intake_person,
+        old_rp_name, old_rp_contact_info, old_concern, old_location_name, old_facility_address,
+        old_mrl_num, old_action_taken, old_status, old_status_date,old_notes)
+VALUES(OLD.row_id, OLD."date", OLD.method, OLD.intake_person,
+        OLD.rp_name, OLD.rp_contact_info, OLD.concern,OLD.location_name,
+	    OLD.address, OLD.mrl_num, OLD.action_taken,OLD.status,
+		OLD.status_date,OLD.additional_notes);
+INSERT INTO txn_history(tabname,schemaname,operation, archive_row)
+VALUES(TG_RELNAME,TG_TABLE_SCHEMA, TG_OP, (SELECT currval('archive_row_seq')));
+RETURN OLD;
+END IF;
+END;
+$$;
+
+alter function records_change_fnc() OWNER TO cc;
+--
 -- A trigger for insert conflict strategy
--- Name: check_insertion_to_intake_trigger; Type: TRIGGER; Schema: public; Owner: cc
+-- Name: check_insertion_fnc; Type: TRIGGER; Schema: public; Owner: cc
 --
 
 create function check_insertion_fnc()
@@ -259,13 +296,21 @@ create TABLE archive (
     old_admin_rvw_decision_date date,
     old_certified_num text,
     old_certified_reciept_returned text,
-    old_date_paid_waived date
+    old_date_paid_waived date,
+    old_method text,
+    old_intake_person text,
+    old_rp_name text,
+    old_rp_contact_info text,
+    old_concern text,
+    old_location_name text,
+    old_action_taken text,
+    old_status text,
+    old_status_date date
 );
 ALTER TABLE archive OWNER TO cc;
 COMMENT ON TABLE archive IS 'Table tracks the rows removed from the intake database table';
 ALTER TABLE ONLY archive
     ADD CONSTRAINT archive_pkey PRIMARY KEY (row_id);
-
 
 --
 -- Name: violations Type: table Schema: public Owner: cc
@@ -434,9 +479,9 @@ for each row EXECUTE function violations_change_fnc();
 -- Name: records_transactions
 -- Desc: Monitor records table, before any transaction calls function change_fnc
 --
-create trigger violations_transactions
+create trigger records_transactions
 before insert or update or delete on violations
-for each row EXECUTE function violations_change_fnc();
+for each row EXECUTE function records_change_fnc();
 -------------------------
 -- Groups
 -------------------------

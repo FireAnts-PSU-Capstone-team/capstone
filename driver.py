@@ -12,7 +12,7 @@ from validation import validate_data_file
 
 test_file = 'resources/sample.xlsx'
 primary_table = 'intake'
-db_tables = ['intake', 'txn_history', 'archive', 'metadata']
+db_tables = ['intake', 'txn_history', 'archive', 'metadata', 'violations', 'records']
 metadata_table = 'metadata'
 connection_error_msg = 'The connection to the database is closed and cannot be opened. Verify DB server is up.'
 
