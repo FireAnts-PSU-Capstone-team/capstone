@@ -295,6 +295,30 @@ COMMENT ON TABLE violations IS 'Table to hold all the information regarding viol
 ALTER TABLE ONLY violations
     ADD CONSTRAINT violations_pkey PRIMARY KEY (row_id);
 
+--
+-- Name: records Type: table Schema: public Owner: cc
+--
+create TABLE IF NOT EXISTS records
+(
+    row_id integer NOT NULL,
+    "date" date,
+    method text,
+    intake_person text,
+    rp_name text,
+    rp_contact_info text,
+    concern text,
+    location_name text,
+    address text,
+    mrl_num text,
+    action_taken text,
+    status text,
+    status_date date,
+    additional_notes text
+);
+ALTER TABLE records OWNER to cc;
+COMMENT ON TABLE records IS 'Table to hold all the information regarding violations.';
+ALTER TABLE ONLY records
+    ADD CONSTRAINT records_pkey PRIMARY KEY (row_id);
 -------------------------
 -- Sequences
 -------------------------
@@ -363,6 +387,21 @@ ALTER TABLE violations_row_seq OWNER TO cc;
 ALTER SEQUENCE violations_row_seq OWNED BY violations.row_id;
 ALTER TABLE ONLY violations ALTER COLUMN row_id SET DEFAULT nextval('violations_row_seq'::regclass);
 
+--
+-- Name: records_row_seq
+-- Desc: Sequence used as PK for records table Owner: cc
+--
+create SEQUENCE records_row_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER TABLE records_row_seq OWNER TO cc;
+ALTER SEQUENCE records_row_seq OWNED BY records.row_id;
+ALTER TABLE ONLY records ALTER COLUMN row_id SET DEFAULT nextval('records_row_seq'::regclass);
 -------------------------
 -- Triggers
 -------------------------
@@ -385,13 +424,19 @@ for each row EXECUTE function check_insertion_fnc();
 
 --
 -- Name: violations_transactions
--- Desc: Monitor intake table, before any transaction calls function change_trigger
+-- Desc: Monitor violations table, before any transaction calls function change_fnc
 --
 create trigger violations_transactions
 before insert or update or delete on violations
 for each row EXECUTE function violations_change_fnc();
 
-
+--
+-- Name: records_transactions
+-- Desc: Monitor records table, before any transaction calls function change_fnc
+--
+create trigger violations_transactions
+before insert or update or delete on violations
+for each row EXECUTE function violations_change_fnc();
 -------------------------
 -- Groups
 -------------------------
