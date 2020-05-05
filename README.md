@@ -64,5 +64,5 @@ You can also query the API from the command line, using `curl`:
 &emsp;Add a single row, as contained in the `sample-row-1.json` file: \
 &emsp;&emsp;`curl -X PUT https://localhost:443/load?table=intake -d @resources/sample-row-1.json -H "Content-Type: application/json"` \
 &emsp;List entries from the `intake` table, but only the submission date and MRL fields: \
-&emsp;&emsp;`curl "https://localhost:443/list?table=intake&column=submission_date+mrl`
+&emsp;&emsp;`curl "https://localhost:443/list?table=intake&column=submission_date+mrl"`
 
