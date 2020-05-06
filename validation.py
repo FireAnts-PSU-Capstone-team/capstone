@@ -96,11 +96,12 @@ def validate_receipt_num(receiptNo):
         return True
 
 
+# TODO: combine these 2 functions once we know how MRL and MRL# are related
 def validate_mrl(mrl):
     """
     Validate that this field matches "MRL<number>" pattern and is unique for this field.
     """
-    m = mrl.upper()
+    m = mrl.upper().split('-')[0]
     if m[0:3] != "MRL" or not m[3:].isdigit() or m in seen_mrls:
         return False
     seen_mrls[m] = 1
@@ -111,7 +112,7 @@ def validate_mrl_num(mrl):
     """
     Validate that this field matches "MRL<number>" pattern and is unique for this field.
     """
-    m = mrl.upper()
+    m = mrl.upper().split('-')[0]
     if m[0:3] != "MRL" or not m[3:].isdigit() or m in seen_mrl_nums:
         return False
     seen_mrl_nums[m] = 1
