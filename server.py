@@ -3,6 +3,7 @@ from flask_cors import CORS
 import driver, sys
 from cors import cors_setup
 from models.IntakeRow import IntakeRow
+from pandas import json_normalize
 
 UPLOAD_FOLDER = 'resources'
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
@@ -72,6 +73,14 @@ def load_data():
                 driver.get_table(table_name, None)
             except driver.InvalidTableException:
                 return make_response(jsonify(f"Table {table_name} does not exist."), 404)
+            
+            df = json_normalize(request.get_json())
+            valid, error_msg = driver.validate_data_file(df)
+            if not valid:
+                result = {
+                    'message': error_msg
+                }
+                return make_response(jsonify(result),404)
             row_data = IntakeRow(request.get_json()).value_array()
             (row_count, fail_row) = driver.insert_row(table_name, row_data)
             if row_count == 1:

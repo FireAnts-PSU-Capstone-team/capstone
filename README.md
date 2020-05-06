@@ -40,8 +40,8 @@ In project folder:
 bash launch.bash clean          delete any existing version of the web server image
 bash launch.bash run            run the program
 bash launch.bash stop           stop the program
-bash launch.bash rebuid         remove all data and rebuild the program
-bash launch.bash rebuid-db      remove only DB data and re-run the program
+bash launch.bash rebuild         remove all data and rebuild the program
+bash launch.bash rebuild-db      remove only DB data and re-run the program
 bash launch.bash test           test the program (for a fresh/new built program)
 ```
 
