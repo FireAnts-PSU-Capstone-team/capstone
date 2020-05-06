@@ -7,13 +7,13 @@ This SQL file will be executed once the DB is set up.
 -------------------------
 
 --
--- Name: intake_change_fnc(); Type: FUNCTION; Schema: public; Owner: cc
--- Desc: Monitors the intake table for any insert/update/delete commands
+-- Name: change_fnc(); Type: FUNCTION; Schema: public; Owner: cc
+-- Desc: Monitors table for any insert/update/delete commands
 -- 		 It copys the old data and the new data in txn_history table as 
 --  	 JSON. In case of DELETE it copies data into archive table then updates txn_history
 --       with location data for archive table
 --
-create function intake_change_fnc() RETURNS trigger
+create function change_fnc() RETURNS trigger
     LANGUAGE plpgsql
     AS $$BEGIN
 IF TG_OP='INSERT'
@@ -28,24 +28,8 @@ VALUES(TG_RELNAME,TG_TABLE_SCHEMA, TG_OP, row_to_json(NEW), row_to_json(OLD));
 RETURN NEW;
 ELSIF TG_OP = 'DELETE'
 THEN
-INSERT INTO archive (old_row, old_submission_date, old_entity, old_dba,
-	    old_facility_address, old_facility_suite, old_facility_zip,
-		old_mailing_address, old_mrl, old_neighborhood_association,
-		old_compliance_region, old_primary_contact_first_name,
-		old_primary_contact_last_name,old_email,old_phone,
-		old_endorse_type,old_license_type,old_repeat_location,
-		old_app_complete,old_fee_schedule,old_receipt_num,
-		old_cash_amount,old_check_amount,old_card_amount,
-		old_check_num_approval_code,old_mrl_num,old_notes )
-VALUES(OLD.row, OLD.submission_date, OLD.entity, OLD.dba,
-	   OLD.facility_address, OLD.facility_suite, OLD.facility_zip,
-		OLD.mailing_address, OLD.mrl, OLD.neighborhood_association,
-		OLD.compliance_region, OLD.primary_contact_first_name,
-		OLD.primary_contact_last_name,OLD.email,OLD.phone,
-		OLD.endorse_type,OLD.license_type,OLD.repeat_location,
-		OLD.app_complete,OLD.fee_schedule,OLD.receipt_num,
-		OLD.cash_amount,OLD.check_amount,OLD.card_amount,
-		OLD.check_num_approval_code,OLD.mrl_num,OLD.notes);
+INSERT INTO archive (old_val )
+VALUES(row_to_json(OLD));
 INSERT INTO txn_history(tabname,schemaname,operation, archive_row)
 VALUES(TG_RELNAME,TG_TABLE_SCHEMA, TG_OP, (SELECT currval('archive_row_seq')));
 RETURN OLD;
@@ -53,88 +37,8 @@ END IF;
 END;
 $$;
 
-alter function intake_change_fnc() OWNER TO cc;
+alter function change_fnc() OWNER TO cc;
 
---
--- Name: violations_change_fnc(); Type: FUNCTION; Schema: public; Owner: cc
--- Desc: Monitors the violations table for any insert or update or delete commands
--- 		 It copys the old data and the new data in txn_history table as
---  	 JSON. In case of DELETE it copies data into archive table then updates txn_history
---       with location data for archive table
---
-create function violations_change_fnc() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$BEGIN
-IF TG_OP='INSERT'
-THEN
-INSERT INTO txn_history(tabname,schemaname,operation, new_val)
-VALUES(TG_RELNAME, TG_TABLE_SCHEMA, TG_OP, row_to_json(NEW));
-RETURN NEW;
-ELSIF TG_OP = 'UPDATE'
-THEN
-INSERT INTO txn_history(tabname,schemaname,operation, new_val, old_val)
-VALUES(TG_RELNAME,TG_TABLE_SCHEMA, TG_OP, row_to_json(NEW), row_to_json(OLD));
-RETURN NEW;
-ELSIF TG_OP = 'DELETE'
-THEN
-INSERT INTO archive (old_row, old_dba, old_violation_sent_date,
-        old_original_violation_amount, old_admin_rvw_decision_date,
-        old_certified_num, old_certified_receipt_returned, old_date_paid_waived,
-	    old_facility_address, old_mrl, old_license_type, old_receipt_num,
-		old_cash_amount,old_check_amount,old_card_amount,
-		old_check_num_approval_code, old_notes )
-VALUES(OLD.row_id, OLD.dba, OLD.violation_sent_date, OLD.original_violation_amount,
-        OLD.admin_rvw_decision_date, OLD.certified_num, OLD.certified_receipt_returned,
-        OLD.date_paid_waived,
-	    OLD.facility_address, OLD.mrl, OLD.license_type,OLD.receipt_num,
-		OLD.cash_amount,OLD.check_amount,OLD.card_amount,
-		OLD.check_num_approval_code,OLD.notes);
-INSERT INTO txn_history(tabname,schemaname,operation, archive_row)
-VALUES(TG_RELNAME,TG_TABLE_SCHEMA, TG_OP, (SELECT currval('archive_row_seq')));
-RETURN OLD;
-END IF;
-END;
-$$;
-
-alter function violations_change_fnc() OWNER TO cc;
-
---
--- Name: records_change_fnc(); Type: FUNCTION; Schema: public; Owner: cc
--- Desc: Monitors the records table for any insert/update/delete commands
--- 		 It copys the old data and the new data in txn_history table as
---  	 JSON. In case of DELETE it copies data into archive table then updates txn_history
---       with location data for archive table
---
-create function records_change_fnc() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$BEGIN
-IF TG_OP='INSERT'
-THEN
-INSERT INTO txn_history(tabname,schemaname,operation, new_val)
-VALUES(TG_RELNAME, TG_TABLE_SCHEMA, TG_OP, row_to_json(NEW));
-RETURN NEW;
-ELSIF TG_OP = 'UPDATE'
-THEN
-INSERT INTO txn_history(tabname,schemaname,operation, new_val, old_val)
-VALUES(TG_RELNAME,TG_TABLE_SCHEMA, TG_OP, row_to_json(NEW), row_to_json(OLD));
-RETURN NEW;
-ELSIF TG_OP = 'DELETE'
-THEN
-INSERT INTO archive (old_row, old_submission_date, old_method, old_intake_person,
-        old_rp_name, old_rp_contact_info, old_concern, old_location_name, old_facility_address,
-        old_mrl_num, old_action_taken, old_status, old_status_date,old_notes)
-VALUES(OLD.row_id, OLD."date", OLD.method, OLD.intake_person,
-        OLD.rp_name, OLD.rp_contact_info, OLD.concern,OLD.location_name,
-	    OLD.address, OLD.mrl_num, OLD.action_taken,OLD.status,
-		OLD.status_date,OLD.additional_notes);
-INSERT INTO txn_history(tabname,schemaname,operation, archive_row)
-VALUES(TG_RELNAME,TG_TABLE_SCHEMA, TG_OP, (SELECT currval('archive_row_seq')));
-RETURN OLD;
-END IF;
-END;
-$$;
-
-alter function records_change_fnc() OWNER TO cc;
 --
 -- A trigger for insert conflict strategy
 -- Name: check_insertion_fnc; Type: TRIGGER; Schema: public; Owner: cc
@@ -264,48 +168,7 @@ create TABLE archive (
     row_id integer NOT NULL,
     tstamp timestamp without time zone DEFAULT now(),
     who text DEFAULT CURRENT_USER,
-    old_row integer,
-    old_submission_date date,
-    old_entity text,
-    old_dba text,
-    old_facility_address text,
-    old_facility_suite text,
-    old_facility_zip text,
-    old_mailing_address text,
-    old_mrl character varying(10),
-    old_neighborhood_association character varying(30),
-    old_compliance_region character varying(2),
-    old_primary_contact_first_name text,
-    old_primary_contact_last_name text,
-    old_email text,
-    old_phone character(12),
-    old_endorse_type character(25),
-    old_license_type character varying(25),
-    old_repeat_location character(1),
-    old_app_complete character varying(3),
-    old_fee_schedule character varying(5),
-    old_receipt_num integer,
-    old_cash_amount text,
-    old_check_amount text,
-    old_card_amount text,
-    old_check_num_approval_code character varying(25),
-    old_mrl_num character varying(10),
-    old_notes text,
-    old_violation_sent_date date,
-    old_original_violation_amount text,
-    old_admin_rvw_decision_date date,
-    old_certified_num text,
-    old_certified_reciept_returned text,
-    old_date_paid_waived date,
-    old_method text,
-    old_intake_person text,
-    old_rp_name text,
-    old_rp_contact_info text,
-    old_concern text,
-    old_location_name text,
-    old_action_taken text,
-    old_status text,
-    old_status_date date
+    old_val json
 );
 ALTER TABLE archive OWNER TO cc;
 COMMENT ON TABLE archive IS 'Table tracks the rows removed from the intake database table';
@@ -325,8 +188,9 @@ create TABLE IF NOT EXISTS violations
     violation_sent_date date,
     original_violation_amount text,
     admin_rvw_decision_date date,
+    admin_rvw_violation_amount text,
     certified_num text,
-    certified_reciept_returned text,
+    certified_receipt_returned text,
     date_paid_waived date,
     receipt_no text,
     cash_amount text,
@@ -447,6 +311,7 @@ create SEQUENCE records_row_seq
 ALTER TABLE records_row_seq OWNER TO cc;
 ALTER SEQUENCE records_row_seq OWNED BY records.row_id;
 ALTER TABLE ONLY records ALTER COLUMN row_id SET DEFAULT nextval('records_row_seq'::regclass);
+
 -------------------------
 -- Triggers
 -------------------------
@@ -457,7 +322,7 @@ ALTER TABLE ONLY records ALTER COLUMN row_id SET DEFAULT nextval('records_row_se
 --
 create trigger intake_transactions
 before insert or update or delete on intake
-for each row EXECUTE function intake_change_fnc();
+for each row EXECUTE function change_fnc();
 
 --
 -- Name: intake_check_insertion
@@ -473,15 +338,15 @@ for each row EXECUTE function check_insertion_fnc();
 --
 create trigger violations_transactions
 before insert or update or delete on violations
-for each row EXECUTE function violations_change_fnc();
+for each row EXECUTE function change_fnc();
 
 --
 -- Name: records_transactions
 -- Desc: Monitor records table, before any transaction calls function change_fnc
 --
 create trigger records_transactions
-before insert or update or delete on violations
-for each row EXECUTE function records_change_fnc();
+before insert or update or delete on records
+for each row EXECUTE function change_fnc();
 -------------------------
 -- Groups
 -------------------------
@@ -521,3 +386,22 @@ GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO adminaccess;
 GRANT readaccess TO reader;
 GRANT writeaccess TO writer;
 GRANT adminaccess TO administrator;
+
+
+----------------------------
+--Dummy Data
+----------------------------
+INSERT INTO violations ( dba, address, mrl_num, license_type, violation_sent_date,
+                        original_violation_amount, admin_rvw_decision_date, admin_rvw_violation_amount,
+                        certified_num, certified_receipt_returned, date_paid_waived,
+                        receipt_no, cash_amount, check_amount, card_amount, check_num_approval_code,
+                        notes)
+VALUES('Christ Smokes', '123 NE REffer Way', 'mrl#3', NULL,'12/12/20','$350', '1/1/19','$450',
+        '12345', 'yes', '4/5/12', '098000', '$100', '$250', '$100', NULL, NULL);
+
+INSERT INTO records("date", method, intake_person, rp_name, rp_contact_info,
+                    concern, location_name, address, mrl_num, action_taken,
+                    status, status_date, additional_notes)
+VALUES('12/4/2020', 'Phone Call', 'Joe Exotic', 'Gene Wilder', '606-999-0980',
+       'Selling drugs to minors', 'Christ Smokes', '123 NE reffer way', 'mrl#3',
+       'Fine levied against business', 'Closed', '1/1/2020', 'Testing');
