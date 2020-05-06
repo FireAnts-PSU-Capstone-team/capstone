@@ -6,10 +6,12 @@ WORKDIR /server
 
 # copy project file to working dir
 COPY . .
+# clear the resources directory, for testing reasons
+RUN cd /server && rm -rf /resources
 
 # go to project dir and install dependencies
 RUN cd /server && pip install -r requirements.txt
 
-EXPOSE 80
+EXPOSE 443
 
-CMD [ "python3" ,"/server/server.py"]
+CMD ["python3" ,"/server/server.py"]
