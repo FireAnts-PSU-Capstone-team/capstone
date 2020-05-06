@@ -412,7 +412,7 @@
 						{
 							"key": "file",
 							"type": "file",
-							"src": "/home/connor/Sample-100entries.xlsx"
+							"src": "./Sample-100entries.xlsx"
 						}
 					],
 					"options": {
