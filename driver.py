@@ -351,7 +351,8 @@ def insert_row(table, row, checked=False):
     cmd += ")"
     try:
         pgSqlCur.execute(cmd)
-
+        if not checked:
+            pgSqlConn.commit()
         if pgSqlCur.rowcount == 1:
             return 1, None
         else:
