@@ -169,10 +169,10 @@ def get_table(table_name, columns, dba, date):
     """
     Return a JSON-like format of table data.
     Args:
-        table_name: the table to fetch
-        columns: list of columns to show
-        dba: only for primary table for filtering
-        date: only for primary table for filtering
+        table_name (str): the table to fetch
+        columns ([str]):dba: only for primary table for filtering
+        dba (str): dba value
+        date (str): only for primary table for filtering
     Returns ([str]): an object-notated dump of the table
     """
     result = []
@@ -239,7 +239,7 @@ def get_table(table_name, columns, dba, date):
                 i += 1
 
             result.append(a_row)
-
+            
     except Exception as err:
         # print the exception
         sql_except(err)
@@ -387,7 +387,8 @@ def insert_row(table, row, checked=False):
     cmd += ")"
     try:
         pgSqlCur.execute(cmd)
-
+        if not checked:
+            pgSqlConn.commit()
         if pgSqlCur.rowcount == 1:
             return 1, None
         else:

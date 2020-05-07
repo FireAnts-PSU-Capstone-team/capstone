@@ -61,6 +61,7 @@ def dump_table():
             date = str.split(date.strip(), '~')
 
         table_info_obj = driver.get_table(table_name, columns, dba, date)
+
         return make_response(jsonify(table_info_obj), 200)
     except driver.InvalidTableException:
         return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
@@ -84,6 +85,7 @@ def load_data():
         else:
             try:
                 driver.get_table(table_name, None, None, None)
+
             except driver.InvalidTableException:
                 return make_response(jsonify(f"Table {table_name} does not exist."), 404)
             row_data = IntakeRow(request.get_json()).value_array()
