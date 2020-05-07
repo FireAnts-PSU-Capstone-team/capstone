@@ -13,7 +13,7 @@ This SQL file will be executed once the DB is set up.
 --  	 JSON. In case of DELETE it copies data into archive table then updates txn_history
 --       with location data for archive table
 --
-CREATE function change_fnc() RETURNS trigger
+CREATE function change_fnc() RETURNS TRIGGER
     LANGUAGE plpgsql
     AS $$BEGIN
 IF TG_OP='INSERT'
@@ -40,12 +40,12 @@ $$;
 alter function change_fnc() OWNER TO cc;
 
 --
--- A trigger for insert conflict strategy
+-- A TRIGGER for insert conflict strategy
 -- Name: check_insertion_fnc; Type: TRIGGER; Schema: public; Owner: cc
 --
 
 CREATE function check_insertion_fnc()
-    RETURNS trigger
+    RETURNS TRIGGER
     LANGUAGE 'plpgsql'
 AS $BODY$BEGIN
 CASE when NEW.dba IS NULL
@@ -313,40 +313,40 @@ ALTER SEQUENCE records_row_seq OWNED BY records.row_id;
 ALTER TABLE ONLY records ALTER COLUMN row_id SET DEFAULT nextval('records_row_seq'::regclass);
 
 -------------------------
--- Triggers
+-- TRIGGERs
 -------------------------
 
 --
 -- Name: intake_transactions
--- Desc: Monitor intake table, before any transaction calls function change_trigger
+-- Desc: Monitor intake table, before any transaction calls function change_TRIGGER
 --
-CREATE trigger intake_transactions
-before insert or update or delete on intake
-for each row EXECUTE function change_fnc();
+CREATE TRIGGER intake_transactions
+BEFORE INSERT OR UPDATE OR DELETE ON intake
+FOR EACH ROW EXECUTE FUNCTION change_fnc();
 
 --
 -- Name: intake_check_insertion
 -- Desc: Monitor intake table, before any INSERT calls function check_insertion_to_intake_tri_fnc
 --
-CREATE trigger intake_check_insertion
-before insert on intake
-for each row EXECUTE function check_insertion_fnc();
+CREATE TRIGGER intake_check_insertion
+BEFORE INSERT on intake
+FOR EACH ROW EXECUTE FUNCTION check_insertion_fnc();
 
 --
 -- Name: violations_transactions
 -- Desc: Monitor violations table, before any transaction calls function change_fnc
 --
-CREATE trigger violations_transactions
-before insert or update or delete on violations
-for each row EXECUTE function change_fnc();
+CREATE TRIGGER violations_transactions
+BEFORE INSERT OR UPDATE OR DELETE ON violations
+FOR EACH ROW EXECUTE FUNCTION change_fnc();
 
 --
 -- Name: records_transactions
 -- Desc: Monitor records table, before any transaction calls function change_fnc
 --
-CREATE trigger records_transactions
-before insert or update or delete on records
-for each row EXECUTE function change_fnc();
+CREATE TRIGGER records_transactions
+BEFORE INSERT OR UPDATE OR DELETE ON records
+FOR EACH ROW EXECUTE FUNCTION change_fnc();
 -------------------------
 -- Groups
 -------------------------
