@@ -13,7 +13,7 @@ This SQL file will be executed once the DB is set up.
 --  	 JSON. In case of DELETE it copies data into archive table then updates txn_history
 --       with location data for archive table
 --
-CREATE function change_fnc() RETURNS TRIGGER
+CREATE FUNCTION change_fnc() RETURNS TRIGGER
     LANGUAGE plpgsql
     AS $$BEGIN
 IF TG_OP='INSERT'
@@ -37,14 +37,14 @@ END IF;
 END;
 $$;
 
-alter function change_fnc() OWNER TO cc;
+ALTER FUNCTION change_fnc() OWNER TO cc;
 
 --
 -- A TRIGGER for insert conflict strategy
 -- Name: check_insertion_fnc; Type: TRIGGER; Schema: public; Owner: cc
 --
 
-CREATE function check_insertion_fnc()
+CREATE FUNCTION check_insertion_fnc()
     RETURNS TRIGGER
     LANGUAGE 'plpgsql'
 AS $BODY$BEGIN
@@ -75,7 +75,7 @@ END IF;
 END CASE;
 END;$BODY$;
 
-ALTER function check_insertion_fnc() OWNER TO cc;
+ALTER FUNCTION check_insertion_fnc() OWNER TO cc;
 
 -------------------------
 -- DB Parameters
