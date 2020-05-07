@@ -46,15 +46,15 @@ function count_rows() {
 function run_test() {
 
     # config variables
-    server_port='800'
+    server_port='443'
     tables=('metadata' 'intake' 'txn_history')
     primary_table='intake'
     record_row=(9 29 38)
     testing_spreadsheet='resources/sample-extension.xlsx'
     test_row='resources/sample-row-1.json'
     db_name=$(cut -f 3 -d ' ' db/database.ini  | sed -n '2p')
-    db_user=$(cut -f 3 -d ' ' db/database.ini  | sed -n '3p')
-    db_pass=$(cut -f 3 -d ' ' db/database.ini  | sed -n '4p')
+    db_user=$(cut -f 3 -d ' ' db/database.ini  | sed -n '4p')
+    db_pass=$(cut -f 3 -d ' ' db/database.ini  | sed -n '5p')
 
 
     # check if can use the default credential to connect to postgres DB
@@ -92,7 +92,7 @@ function run_test() {
     done
 
     # check if server is working
-    out=$(curl -s http://localhost:${server_port})
+    out=$(curl -s -k https://localhost:${server_port})
     if [[ "${out}" == "\"Hello World\"" ]]
     then
         echo "4. Web server is up."
@@ -102,7 +102,7 @@ function run_test() {
     fi
 
     # testing spreadsheet IO
-    out=$(curl -s localhost:${server_port}/list?table=${tables[0]})
+    out=$(curl -s -k https://localhost:${server_port}/list?table=${tables[0]})
     if [[ "${out}" =~ \[.*\] ]]
     then
         echo "5. Testing spreadsheet uploading."
@@ -111,7 +111,7 @@ function run_test() {
         c=0
         for i in "${tables[@]}"
         do
-            out=$(curl -s localhost:${server_port}/list?table=${i})
+            out=$(curl -s -k https://localhost:${server_port}/list?table=${i})
             echo "5. Table \"${i}\" has $(count_rows "$out" ${record_row[${c}]}) rows (first 10 lines):"
             echo "$out" | head -10
             ((c++))
@@ -119,7 +119,7 @@ function run_test() {
 
         echo "5. Loading spreadsheet \"${testing_spreadsheet}\""
         
-        out=$(curl -X POST -s --form "file=@${testing_spreadsheet}" http://localhost:${server_port}/load)
+        out=$(curl -X POST -s --form "file=@${testing_spreadsheet}" -k https://localhost:${server_port}/load)
         if [[ -n "$(echo ${out} | grep "File processed successfully")" ]]
         then
             echo "5. After uploading:"
@@ -127,7 +127,7 @@ function run_test() {
             c=0
             for i in "${tables[@]}"
             do
-                out=$(curl -s localhost:${server_port}/list?table=${i})
+                out=$(curl -s -k https://localhost:${server_port}/list?table=${i})
                 echo "5. Table \"${i}\" has $(count_rows "$out" ${record_row[${c}]}) rows (first 10 lines):"
                 echo "$out" | head -10
                 ((c++))
@@ -142,7 +142,7 @@ function run_test() {
     fi
 
     echo "6. Testing row insertion."
-    out=$(curl -s -X PUT localhost:${server_port}/load?table=${primary_table} -d @${test_row} -H "Content-Type: application/json")
+    out=$(curl -s -X PUT -k https://localhost:${server_port}/load?table=${primary_table} -d @${test_row} -H "Content-Type: application/json")
     if [[ -n "$(echo ${out} | grep 'PUT complete')" ]]
     then
         echo "Row insertion ran successfully."
