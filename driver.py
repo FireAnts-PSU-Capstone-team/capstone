@@ -165,11 +165,14 @@ class InvalidTableException(Exception):
     pass
 
 
-def get_table(table_name, columns):
+def get_table(table_name, columns, dba, date):
     """
     Return a JSON-like format of table data.
     Args:
         table_name: the table to fetch
+        columns: list of columns to show
+        dba: only for primary table for filtering
+        date: only for primary table for filtering
     Returns ([str]): an object-notated dump of the table
     """
     result = []
@@ -184,8 +187,42 @@ def get_table(table_name, columns):
         raise InvalidTableException
 
     try:
-        pgSqlCur.execute(f"select * from {table_name}")
-        rows = pgSqlCur.fetchall()
+        if not dba and not date:
+            pgSqlCur.execute(f"select * from {table_name}")
+            rows = pgSqlCur.fetchall()
+        elif table_name == 'intake':
+            dba_str = ''
+            date_str = ''
+            arg_str = ''
+            exe_arg_str = ''
+            arg_num = 1
+            if dba:
+                dba_len = len(dba)
+                for i in range(dba_len):
+                    dba_str += f' OR dba = ${arg_num}'
+                    arg_str += ',text'
+                    exe_arg_str += f",'{dba[i]}'"
+                    arg_num += 1
+
+                if date:
+                    dba_str = dba_str[4:] + ' AND '
+                else:
+                    dba_str = dba_str[4:]
+
+            if date:
+                date_str = f'submission_date > ${arg_num} AND submission_date < ${arg_num+1}'
+                arg_str += ',date,date'
+                exe_arg_str += f",'{date[0]}','{date[1]}'"
+
+            arg_str = arg_str[1:]
+            exe_arg_str = exe_arg_str[1:]
+
+            pgSqlCur.execute(f"deallocate all;\
+            prepare listing({arg_str}) as \
+            select * from intake \
+            where {dba_str} {date_str};")
+            pgSqlCur.execute(f'execute listing({exe_arg_str})')
+            rows = pgSqlCur.fetchall()
 
         for col in pgSqlCur.description:
             column_name.append(col.name)
@@ -202,7 +239,7 @@ def get_table(table_name, columns):
                 i += 1
 
             result.append(a_row)
-            
+
     except Exception as err:
         # print the exception
         sql_except(err)
