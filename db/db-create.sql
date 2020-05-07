@@ -210,7 +210,7 @@ ALTER TABLE ONLY violations
 create TABLE IF NOT EXISTS records
 (
     row_id integer NOT NULL,
-    "date" date,
+    date date,
     method text,
     intake_person text,
     rp_name text,
