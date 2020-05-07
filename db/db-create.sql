@@ -9,11 +9,11 @@ This SQL file will be executed once the DB is set up.
 --
 -- Name: change_fnc(); Type: FUNCTION; Schema: public; Owner: cc
 -- Desc: Monitors table for any insert/update/delete commands
--- 		 It copys the old data and the new data in txn_history table as 
+-- 		 It copies the old data and the new data in txn_history table as
 --  	 JSON. In case of DELETE it copies data into archive table then updates txn_history
 --       with location data for archive table
 --
-create function change_fnc() RETURNS trigger
+CREATE function change_fnc() RETURNS trigger
     LANGUAGE plpgsql
     AS $$BEGIN
 IF TG_OP='INSERT'
@@ -44,7 +44,7 @@ alter function change_fnc() OWNER TO cc;
 -- Name: check_insertion_fnc; Type: TRIGGER; Schema: public; Owner: cc
 --
 
-create function check_insertion_fnc()
+CREATE function check_insertion_fnc()
     RETURNS trigger
     LANGUAGE 'plpgsql'
 AS $BODY$BEGIN
@@ -91,11 +91,11 @@ SET default_table_access_method = heap;
 --
 -- Name: metadata; Type: TABLE; Schema: public; Owner: cc
 --
-create TABLE IF NOT EXISTS metadata (
+CREATE TABLE IF NOT EXISTS metadata (
     filename TEXT NOT NULL,
     creator TEXT,
     size INT,
-    created_date TIMESTAMP,
+    CREATEd_date TIMESTAMP,
     last_modified_date TIMESTAMP,
     last_modified_by TEXT,
     title TEXT,
@@ -108,7 +108,7 @@ COMMENT ON TABLE metadata IS 'Table to track the file metadata that is uploaded 
 --
 -- Name: Intake; Type: TABLE; Schema: public; Owner: cc
 --
-create TABLE intake (
+CREATE TABLE intake (
     "row" integer NOT NULL,
     submission_date date,
     entity text,
@@ -145,7 +145,7 @@ ALTER TABLE ONLY intake
 --
 -- Name: txn_history; Type: TABLE; Schema: public; Owner: cc
 --
-create TABLE txn_history (
+CREATE TABLE txn_history (
     id integer NOT NULL,
     tstamp timestamp without time zone DEFAULT now(),
     schemaname text,
@@ -164,7 +164,7 @@ ALTER TABLE ONLY txn_history
 --
 -- Name: archive; Type: TABLE; Schema: public; Owner: CC
 --
-create TABLE archive (
+CREATE TABLE archive (
     row_id integer NOT NULL,
     tstamp timestamp without time zone DEFAULT now(),
     who text DEFAULT CURRENT_USER,
@@ -178,7 +178,7 @@ ALTER TABLE ONLY archive
 --
 -- Name: violations Type: table Schema: public Owner: cc
 --
-create TABLE IF NOT EXISTS violations
+CREATE TABLE IF NOT EXISTS violations
 (
     row_id integer NOT NULL,
     dba text,
@@ -207,7 +207,7 @@ ALTER TABLE ONLY violations
 --
 -- Name: records Type: table Schema: public Owner: cc
 --
-create TABLE IF NOT EXISTS records
+CREATE TABLE IF NOT EXISTS records
 (
     row_id integer NOT NULL,
     date date,
@@ -236,7 +236,7 @@ ALTER TABLE ONLY records
 -- Name: intake_row_seq
 -- Desc: Sequence used as PK for intake table Owner: cc
 --
-create SEQUENCE intake_row_seq
+CREATE SEQUENCE intake_row_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -252,7 +252,7 @@ ALTER TABLE ONLY intake ALTER COLUMN "row" SET DEFAULT nextval('intake_row_seq':
 -- Name: txn_history_id_seq
 -- Desc: Sequence used as PK for txn_history table Owner: cc
 --
-create SEQUENCE txn_history_id_seq
+CREATE SEQUENCE txn_history_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -268,7 +268,7 @@ ALTER TABLE ONLY txn_history ALTER COLUMN id SET DEFAULT nextval('txn_history_id
 -- Name: archive_row_seq
 -- Desc: Sequence used as PK for archive table Owner: cc
 --
-create SEQUENCE archive_row_seq
+CREATE SEQUENCE archive_row_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -284,7 +284,7 @@ ALTER TABLE ONLY archive ALTER COLUMN row_id SET DEFAULT nextval('archive_row_se
 -- Name: violations_row_seq
 -- Desc: Sequence used as PK for violations table Owner: cc
 --
-create SEQUENCE violations_row_seq
+CREATE SEQUENCE violations_row_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -300,7 +300,7 @@ ALTER TABLE ONLY violations ALTER COLUMN row_id SET DEFAULT nextval('violations_
 -- Name: records_row_seq
 -- Desc: Sequence used as PK for records table Owner: cc
 --
-create SEQUENCE records_row_seq
+CREATE SEQUENCE records_row_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -320,7 +320,7 @@ ALTER TABLE ONLY records ALTER COLUMN row_id SET DEFAULT nextval('records_row_se
 -- Name: intake_transactions
 -- Desc: Monitor intake table, before any transaction calls function change_trigger
 --
-create trigger intake_transactions
+CREATE trigger intake_transactions
 before insert or update or delete on intake
 for each row EXECUTE function change_fnc();
 
@@ -328,7 +328,7 @@ for each row EXECUTE function change_fnc();
 -- Name: intake_check_insertion
 -- Desc: Monitor intake table, before any INSERT calls function check_insertion_to_intake_tri_fnc
 --
-create trigger intake_check_insertion
+CREATE trigger intake_check_insertion
 before insert on intake
 for each row EXECUTE function check_insertion_fnc();
 
@@ -336,7 +336,7 @@ for each row EXECUTE function check_insertion_fnc();
 -- Name: violations_transactions
 -- Desc: Monitor violations table, before any transaction calls function change_fnc
 --
-create trigger violations_transactions
+CREATE trigger violations_transactions
 before insert or update or delete on violations
 for each row EXECUTE function change_fnc();
 
@@ -344,24 +344,24 @@ for each row EXECUTE function change_fnc();
 -- Name: records_transactions
 -- Desc: Monitor records table, before any transaction calls function change_fnc
 --
-create trigger records_transactions
+CREATE trigger records_transactions
 before insert or update or delete on records
 for each row EXECUTE function change_fnc();
 -------------------------
 -- Groups
 -------------------------
 
-create ROLE readaccess;
-create ROLE writeaccess;
-create ROLE adminaccess;
+CREATE ROLE readaccess;
+CREATE ROLE writeaccess;
+CREATE ROLE adminaccess;
 
 -------------------------
 -- Users
 -------------------------
 
-create USER reader WITH PASSWORD 'capstone';
-create USER writer WITH PASSWORD 'capstone';
-create USER administrator WITH PASSWORD 'capstone';
+CREATE USER reader WITH PASSWORD 'capstone';
+CREATE USER writer WITH PASSWORD 'capstone';
+CREATE USER administrator WITH PASSWORD 'capstone';
 
 -------------------------
 -- Access
