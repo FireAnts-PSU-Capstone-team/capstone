@@ -109,7 +109,7 @@ def load_data():
                 result = {'message': f'Filename \"{file.filename}\" is not supported.'}
                 return make_response(jsonify(result), 400)
 
-            filename = f'{UPLOAD_FOLDER}/uploaded_' + file.filename
+            filename = f'{UPLOAD_FOLDER}/' + file.filename
             file.save(filename)
             success, result_obj = driver.process_file(filename)
             if success:
