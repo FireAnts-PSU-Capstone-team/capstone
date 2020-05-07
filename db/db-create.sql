@@ -391,17 +391,4 @@ GRANT adminaccess TO administrator;
 ----------------------------
 --Dummy Data
 ----------------------------
-INSERT INTO violations ( dba, address, mrl_num, license_type, violation_sent_date,
-                        original_violation_amount, admin_rvw_decision_date, admin_rvw_violation_amount,
-                        certified_num, certified_receipt_returned, date_paid_waived,
-                        receipt_no, cash_amount, check_amount, card_amount, check_num_approval_code,
-                        notes)
-VALUES('Christ Smokes', '123 NE REffer Way', 'mrl#3', NULL,'12/12/20','$350', '1/1/19','$450',
-        '12345', 'yes', '4/5/12', '098000', '$100', '$250', '$100', NULL, NULL);
 
-INSERT INTO records("date", method, intake_person, rp_name, rp_contact_info,
-                    concern, location_name, address, mrl_num, action_taken,
-                    status, status_date, additional_notes)
-VALUES('12/4/2020', 'Phone Call', 'Joe Exotic', 'Gene Wilder', '606-999-0980',
-       'Selling drugs to minors', 'Christ Smokes', '123 NE reffer way', 'mrl#3',
-       'Fine levied against business', 'Closed', '1/1/2020', 'Testing');
