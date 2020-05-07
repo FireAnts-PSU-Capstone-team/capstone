@@ -329,7 +329,7 @@ FOR EACH ROW EXECUTE FUNCTION change_fnc();
 -- Desc: Monitor intake table, before any INSERT calls function check_insertion_to_intake_tri_fnc
 --
 CREATE TRIGGER intake_check_insertion
-BEFORE INSERT on intake
+BEFORE INSERT ON intake
 FOR EACH ROW EXECUTE FUNCTION check_insertion_fnc();
 
 --
