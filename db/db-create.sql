@@ -28,7 +28,7 @@ VALUES(TG_RELNAME,TG_TABLE_SCHEMA, TG_OP, row_to_json(NEW), row_to_json(OLD));
 RETURN NEW;
 ELSIF TG_OP = 'DELETE'
 THEN
-INSERT INTO archive (old_val )
+INSERT INTO archive (old_val)
 VALUES(row_to_json(OLD));
 INSERT INTO txn_history(tabname,schemaname,operation, archive_row)
 VALUES(TG_RELNAME,TG_TABLE_SCHEMA, TG_OP, (SELECT currval('archive_row_seq')));
@@ -313,7 +313,7 @@ ALTER SEQUENCE records_row_seq OWNED BY records.row_id;
 ALTER TABLE ONLY records ALTER COLUMN row_id SET DEFAULT nextval('records_row_seq'::regclass);
 
 -------------------------
--- TRIGGERs
+-- Triggers
 -------------------------
 
 --
