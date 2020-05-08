@@ -166,7 +166,6 @@ class InvalidTableException(Exception):
 
 
 # TODO: bad practice to have query JSON use db col names, while PUT JSON uses spreadsheet col names. Regularize
-# TODO: mismatch between SQL col names and IntakeRow.ColNames col names. Need to fix for proper request validation
 def filter_table(request_body):
     """
     Return a JSON object representing the requested data from the table.

@@ -174,8 +174,8 @@ def validate_data_file(df):
         if not (mrl[0:3].upper() == 'MRL' and mrl[3:].isdigit()):
             return error_row(ColNames.MRL.value, row)
         # Neighborhood Association: in approved list
-        if not row[ColNames.NEIGHBORHOOD_ASSN.value] in validNeighborhoods:
-            _, err_row = error_row(ColNames.NEIGHBORHOOD_ASSN.value, row)
+        if not row[ColNames.NEIGHBORHOOD_ASSOCIATION.value] in validNeighborhoods:
+            _, err_row = error_row(ColNames.NEIGHBORHOOD_ASSOCIATION.value, row)
             e = json.loads(err_row)
             e['valid_neighborhoods'] = validNeighborhoods
             return False, json.dumps(e)
@@ -210,14 +210,14 @@ def validate_data_file(df):
         if not validate_receipt_num(row[ColNames.RECEIPT_NUM.value]):
             return error_row(ColNames.RECEIPT_NUM.value, row)
         # Cash amount: number, possibly preceded by '$'
-        if not validate_monetary_amount(row[ColNames.CASH_AMT.value]):
-            return error_row(ColNames.CASH_AMT.value, row)
+        if not validate_monetary_amount(row[ColNames.CASH_AMOUNT.value]):
+            return error_row(ColNames.CASH_AMOUNT.value, row)
         # Check amount: number, possibly preceded by '$'
-        if not validate_monetary_amount(row[ColNames.CHECK_AMT.value]):
-            return error_row(ColNames.CHECK_AMT.value, row)
+        if not validate_monetary_amount(row[ColNames.CHECK_AMOUNT.value]):
+            return error_row(ColNames.CHECK_AMOUNT.value, row)
         # Card amount: number, possibly preceded by '$'
-        if not validate_monetary_amount(row[ColNames.CARD_AMT.value]):
-            return error_row(ColNames.CARD_AMT.value, row)
+        if not validate_monetary_amount(row[ColNames.CARD_AMOUNT.value]):
+            return error_row(ColNames.CARD_AMOUNT.value, row)
         # Check No./Approval Code
         # No validation here, since it seems that they can be any combination of characters
         # MRL num: matches "MRL<number>" with no repeats
