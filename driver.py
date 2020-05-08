@@ -1,13 +1,14 @@
-import pandas as pd
-import numpy as np
-import psycopg2
-
-from db import connection as c
-from models.IntakeRow import ColNames
 import os
 import sys
 import time
+import pandas as pd
+import numpy as np
+import psycopg2
 from openpyxl import load_workbook
+
+from db import connection as c
+from models.IntakeRow import ColNames
+import query_parser
 from validation import validate_data_file
 
 test_file = 'resources/sample.xlsx'
@@ -157,7 +158,6 @@ def table_exists(cur, table):
     return exists
         
 
-# TODO: error handling
 class InvalidTableException(Exception):
     """
     Thrown when the specified table does not exist.
@@ -165,16 +165,38 @@ class InvalidTableException(Exception):
     pass
 
 
+# TODO: bad practice to have query JSON use db col names, while PUT JSON uses spreadsheet col names. Regularize
+# TODO: mismatch between SQL col names and IntakeRow.ColNames col names. Need to fix for proper request validation
+def filter_table(request_body):
+    """
+    Return a JSON object representing the requested data from the table.
+    Built to take a JSON request, which is parsed in order to construct a SQL query; returns the result of that query.
+    Args:
+        request_body ({}): a JSON object, which must conform to a defined schema and is parsed to build the query
+    Returns ({}): the retrieved data
+    """
+    # TODO: define a schema for reference
+    try:
+        query = query_parser.build_query(request_body)
+    except query_parser.RequestParseException as e:
+        return e.msg, 400
+    try:
+        pgSqlCur.execute(query)
+        return pgSqlCur.fetchall(), 200
+    except psycopg2.Error as e:
+        return str(e), 400
+
+
 def get_table(table_name, columns):
     """
     Return a JSON-like format of table data.
     Args:
         table_name (str): the table to fetch
-        columns ([str]):
+        columns ([str]): a list of columns to include in the results
     Returns ([str]): an object-notated dump of the table
     """
     result = []
-    column_name = []
+    column_names = []
 
     # check to make sure that the connection is open and active
     if not check_conn():
@@ -189,12 +211,12 @@ def get_table(table_name, columns):
         rows = pgSqlCur.fetchall()
 
         for col in pgSqlCur.description:
-            column_name.append(col.name)
+            column_names.append(col.name)
 
         for row in rows:
             a_row = {}
             i = 0
-            for col in column_name:
+            for col in column_names:
                 if columns:
                     if col in columns:
                         a_row[col] = row[i]

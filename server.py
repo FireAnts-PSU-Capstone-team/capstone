@@ -28,28 +28,34 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-@app.route("/list", methods=["GET"])
+# split: GET = entire table, POST = column filtering
+@app.route("/list", methods=["GET", "POST"])
 def dump_table():
     """
     Displays the contents of the table listed in the request.
     Usage: /list?table=<table_name>
     Returns ({}): JSON object of table data
     """
-    table_name = request.args.get('table', '')
-    if table_name == '':
-        return make_response(jsonify('Table name not supplied.'), 400)
-    try:
-        # TODO: once authentication is in place, restrict the tables that can be listed here
-        columns = request.args.get('column', '')
-        if columns == '':
-            columns = None
-        else:
-            columns = str.split(columns.strip(), ' ')
+    if request.method == 'POST':
+        response, status = driver.filter_table(request.json)
+        return make_response(jsonify(response), status)
 
-        table_info_obj = driver.get_table(table_name, columns)
-        return make_response(jsonify(table_info_obj), 200)
-    except driver.InvalidTableException:
-        return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
+    if request.method == 'GET':
+        table_name = request.args.get('table', '')
+        if table_name == '':
+            return make_response(jsonify('Table name not supplied.'), 400)
+        try:
+            # TODO: once authentication is in place, restrict the tables that can be listed here
+            columns = request.args.get('column', '')
+            if columns == '':
+                columns = None
+            else:
+                columns = str.split(columns.strip(), ' ')
+
+            table_info_obj = driver.get_table(table_name, columns)
+            return make_response(jsonify(table_info_obj), 200)
+        except driver.InvalidTableException:
+            return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
 
 
 @app.route("/load", methods=["PUT", "POST"])
@@ -86,7 +92,7 @@ def load_data():
                 }
             return make_response(jsonify(result), 200)
     elif request.method == 'POST':
-        if 'file' not in request.files or request.files.get('file', '') == '':
+        if 'file' not in request.files or request.files.get('file') is None:
             result = {'message': 'No file listed'}
             return make_response(jsonify(result), 400)
         else:
