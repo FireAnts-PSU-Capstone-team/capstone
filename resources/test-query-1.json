@@ -19,7 +19,7 @@
             "operand": "MRL20"
           },
           {
-            "column": "cash_amount",
+            "column": "cash_amt",
             "op": ">",
             "operand": "$900"
           }

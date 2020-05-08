@@ -5,6 +5,10 @@ db_tables = ['intake', 'txn_history', 'archive', 'metadata']
 col_names = [x.name.lower() for x in IntakeRow.ColNames]
 
 
+def invalid_binary_operation(o):
+    return f"Found an AND or OR construct with invalid structure. Construct was:\n {json.dumps(o)}"
+
+
 def invalid_request_msg(e):
     return f"Request has invalid structure. Error: {e}"
 
@@ -26,19 +30,32 @@ class RequestParseException(Exception):
         self.msg = msg
 
 
-def parse_or(or_block):
-    return "or"
+def parse_or(op_block):
+    or_block = op_block.get('or')
+    try:
+        left = or_block[0]
+        right = or_block[1]
+        return f"({parse_op(left)} OR {parse_op(right)})"
+    except IndexError:
+        raise RequestParseException(invalid_binary_operation(op_block))
 
 
-def parse_and(and_block):
-    return "and"
+def parse_and(op_block):
+    and_block = op_block.get('and')
+    try:
+        left = and_block[0]
+        right = and_block[1]
+        return f"({parse_op(left)} AND {parse_op(right)})"
+    except IndexError:
+        raise RequestParseException(invalid_binary_operation(op_block))
 
 
+# TODO: verify nesting behavior
 def parse_op(op_block):
     if op_block.get('and') is not None:
-        return parse_and(op_block.get('and'))
+        return parse_and(op_block)
     if op_block.get('or') is not None:
-        return parse_or(op_block.get('or'))
+        return parse_or(op_block)
     # basic operator
     op = op_block.get('op')
     if op in ['<', '>', '=']:
@@ -47,7 +64,7 @@ def parse_op(op_block):
         operand = op_block.get('operand')
         # TODO: this is going to be a problem since we're quoting everything
         # TODO: need to account for numeric/null values
-        return f" {col} {op} '{operand}'"
+        return f"({col} {op} '{operand}')"
     else:
         raise RequestParseException(unknown_operator_msg(op))
 
@@ -76,11 +93,11 @@ def build_query(q):
             for col in columns:
                 validate_column(col)
 
-        query = f"SELECT {','.join(columns)} FROM {table} "
+        query = f"SELECT {', '.join(columns)} FROM {table} "
         # get extended filtering
         where = q.get('where')
         if where is not None:
-            query += 'WHERE'
+            query += 'WHERE '
             # iterate over operators
             query += parse_op(where)
 
@@ -91,7 +108,7 @@ def build_query(q):
 
 
 if __name__ == '__main__':
-    with open('resources/test-query-equals.json', 'r') as f:
+    with open('resources/test-query-1.json', 'r') as f:
         body = json.load(f)
     q = build_query(body)
     print(q)

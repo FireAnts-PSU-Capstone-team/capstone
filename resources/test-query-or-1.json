@@ -5,14 +5,14 @@
     "mrl"
   ],
   "where": {
-    "and": [
+    "or": [
       {
         "column": "mrl",
         "op": "=",
         "operand": "MRL20"
       },
       {
-        "column": "cash_amt",
+        "column": "cash_amount",
         "op": ">",
         "operand": "$900"
       }
