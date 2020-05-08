@@ -8,7 +8,7 @@ from openpyxl import load_workbook
 
 from db import connection as c
 from models.IntakeRow import ColNames
-import query_parser
+from query_parser import QueryParser, RequestParseException
 from validation import validate_data_file
 
 test_file = 'resources/sample.xlsx'
@@ -176,8 +176,9 @@ def filter_table(request_body):
     """
     # TODO: define a schema for reference
     try:
-        query = query_parser.build_query(request_body)
-    except query_parser.RequestParseException as e:
+        qp = QueryParser()
+        query = qp.build_query(request_body)
+    except RequestParseException as e:
         return None, e.msg, 400
     try:
         pgSqlCur.execute(query)
@@ -238,7 +239,6 @@ def get_table(table_name, columns):
     return result
 
 
-# TODO: error handling
 def read_metadata(f):
     """
     Collects metadata about a spreadsheet to be consumed.
@@ -339,7 +339,6 @@ def row_number_exists(cur, row_number, table=primary_table):
     return exists
 
 
-# TODO: implement multi-row insertion
 def insert_row(table, row, checked=False):
     """
     Insert an array of values into the specified table.
