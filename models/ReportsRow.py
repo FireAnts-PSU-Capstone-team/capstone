@@ -18,10 +18,9 @@ class RowNames(Enum):
     ADDITIONAL_NOTES = 13
 
 
-
-class RecordsRow:
+class ReportsRow:
     """
-    Represents a row of the records table.
+    Represents a row of the reports table.
     """
 
     def __init__(self):
@@ -43,7 +42,6 @@ class RecordsRow:
         self.status_date = ''
         self.additional_notes = ''
 
-
     def __init__(self, input_json):
         """
         Constructor from a JSON object. Any unsupplied data defaults to None
@@ -64,7 +62,6 @@ class RecordsRow:
         self.status = input_json.get('Status')
         self.status_date = input_json.get('Status Date')
         self.additional_notes = input_json.get('Additional Notes')
-
 
     def value_array(self):
         """

@@ -95,7 +95,7 @@ CREATE TABLE IF NOT EXISTS metadata (
     filename TEXT NOT NULL,
     creator TEXT,
     size INT,
-    CREATEd_date TIMESTAMP,
+    created_date TIMESTAMP,
     last_modified_date TIMESTAMP,
     last_modified_by TEXT,
     title TEXT,
@@ -386,9 +386,3 @@ GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO adminaccess;
 GRANT readaccess TO reader;
 GRANT writeaccess TO writer;
 GRANT adminaccess TO administrator;
-
-
-----------------------------
---Dummy Data
-----------------------------
-
