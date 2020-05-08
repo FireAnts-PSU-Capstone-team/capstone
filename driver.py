@@ -3,7 +3,7 @@ import numpy as np
 import psycopg2
 
 from db import connection as c
-from models.IntakeRow import RowNames
+from models.IntakeRow import ColNames
 import os
 import sys
 import time
@@ -357,10 +357,10 @@ def insert_row(table, row, checked=False):
             return 1, None
         else:
             failed_row = {
-                'submission_date': row[RowNames.SUBMISSION_DATE.value],
-                'entity': row[RowNames.ENTITY.value],
-                'dba': row[RowNames.DBA.value],
-                'mrl': row[RowNames.MRL.value]
+                'submission_date': row[ColNames.SUBMISSION_DATE.value],
+                'entity': row[ColNames.ENTITY.value],
+                'dba': row[ColNames.DBA.value],
+                'mrl': row[ColNames.MRL.value]
             }
             return 0, failed_row
 
