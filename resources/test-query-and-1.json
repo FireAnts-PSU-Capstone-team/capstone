@@ -9,10 +9,10 @@
       {
         "column": "mrl",
         "op": "=",
-        "operand": "MRL20"
+        "operand": "MRL48"
       },
       {
-        "column": "cash_amt",
+        "column": "cash_amount",
         "op": ">",
         "operand": "$900"
       }

@@ -37,7 +37,8 @@ def dump_table():
     Returns ({}): JSON object of table data
     """
     if request.method == 'POST':
-        response, status = driver.filter_table(request.json)
+        query, response, status = driver.filter_table(request.json)
+        app.logger.info("Received query: " + query)
         return make_response(jsonify(response), status)
 
     if request.method == 'GET':

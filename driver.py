@@ -178,12 +178,16 @@ def filter_table(request_body):
     try:
         query = query_parser.build_query(request_body)
     except query_parser.RequestParseException as e:
-        return e.msg, 400
+        return None, e.msg, 400
     try:
         pgSqlCur.execute(query)
-        return pgSqlCur.fetchall(), 200
-    except psycopg2.Error as e:
-        return str(e), 400
+        return query, pgSqlCur.fetchall(), 200
+    except psycopg2.Error as err:
+        # print the exception
+        sql_except(err)
+        # roll back the last sql command
+        pgSqlCur.execute("ROLLBACK")
+        return None, str(err), 400
 
 
 def get_table(table_name, columns):

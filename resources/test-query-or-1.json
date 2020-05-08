@@ -1,8 +1,9 @@
 {
   "table": "intake",
   "columns": [
-    "dba",
-    "mrl"
+    "entity",
+    "mrl",
+    "submission_date"
   ],
   "where": {
     "or": [
@@ -12,9 +13,9 @@
         "operand": "MRL20"
       },
       {
-        "column": "cash_amount",
+        "column": "submission_date",
         "op": ">",
-        "operand": "$900"
+        "operand": "1/1/2010"
       }
     ]
   }
