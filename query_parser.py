@@ -1,10 +1,22 @@
 import json
 
 db_tables = ['intake', 'txn_history', 'archive', 'metadata']
-invalid_request_msg = "Request has invalid structure. Error: "
-unknown_operator_msg = "Encountered an unrecognized operator"
-invalid_table_msg = "Table does not match known list"
-invalid_column_msg = "Column not in known list"
+
+
+def invalid_request_msg(e):
+    return f"Request has invalid structure. Error: {e}"
+
+
+def unknown_operator_msg(o):
+    return f"Encountered an unrecognized operator ({o})"
+
+
+def invalid_table_msg(t):
+    return f"Table {t} does not match known list"
+
+
+def invalid_column_msg(c):
+    return f"Column {c} not in known list"
 
 
 class RequestParseException(Exception):
@@ -13,11 +25,11 @@ class RequestParseException(Exception):
 
 
 def parse_or(or_block):
-    pass
+    return "or"
 
 
 def parse_and(and_block):
-    pass
+    return "and"
 
 
 def parse_op(op_block):
@@ -26,7 +38,7 @@ def parse_op(op_block):
     if op_block.get('or') is not None:
         return parse_or(op_block.get('or'))
     # basic operator
-    op = op_block['op']
+    op = op_block.get('op')
     if op == '<':
         pass
     elif op == '>':
@@ -34,15 +46,15 @@ def parse_op(op_block):
     elif op == '=':
         pass
     else:
-        raise RequestParseException(unknown_operator_msg)
+        raise RequestParseException(unknown_operator_msg(op))
 
 
 def build_query(q):
     try:
         # table name required
-        table = q['table']
+        table = q.get('table')
         if table not in db_tables:
-            raise RequestParseException(invalid_table_msg)
+            raise RequestParseException(invalid_table_msg(table))
 
         col_names = []
         if table == 'intake':
@@ -54,7 +66,7 @@ def build_query(q):
         if columns != '*':
             for col in columns:
                 if col.lower() not in col_names:
-                    raise RequestParseException(invalid_column_msg)
+                    raise RequestParseException(invalid_column_msg(col))
 
         query = f"SELECT {','.join(columns)} FROM {table} "
         # get extended filtering
@@ -67,11 +79,11 @@ def build_query(q):
         return query + ';'
 
     except RequestParseException as e:
-        return invalid_request_msg + e.msg
+        return invalid_request_msg(e.msg)
 
 
 if __name__ == '__main__':
-    with open('resources/test-query-2.json', 'r') as f:
+    with open('resources/test-query-fail-1.json', 'r') as f:
         body = json.load(f)
     q = build_query(body)
     print(q)
