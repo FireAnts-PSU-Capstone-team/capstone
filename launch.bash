@@ -169,10 +169,18 @@ function run() {
     [[ $? != 0 ]] && echo "Image does not exist; building image" && sudo docker build -t flask-server:v1 .
 
     # launch and check for 'port in use' error
-    sudo docker-compose up | tee /tmp/out 2>&1
-    if [[ -n $(cat /tmp/out | grep "address already in use") ]]; then
-        sudo service postgresql stop
-        run
+    echo "Launching container"
+    sudo docker-compose up
+    if [[ $? == 1 ]]; then
+        if [[ $1 == "retry" ]]; then
+            echo "Attempted to re-run program, but postgresql service could not be stopped. Stop the service and try again."
+            exit 1
+        else
+            echo "Stopping postgresql service."
+            sudo service postgresql stop
+            echo "Retrying."
+            run "retry"
+        fi
     fi
 }
 
