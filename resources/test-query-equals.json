@@ -1,0 +1,12 @@
+{
+  "table": "intake",
+  "columns": [
+    "dba",
+    "mrl"
+  ],
+  "where": {
+    "column": "mrl",
+    "op": "=",
+    "operand": "MRL20"
+  }
+}

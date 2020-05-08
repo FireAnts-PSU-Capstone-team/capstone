@@ -1,0 +1,21 @@
+{
+  "table": "intake",
+  "columns": [
+    "dba",
+    "mrl"
+  ],
+  "where": {
+    "and": [
+      {
+        "column": "mrl",
+        "op": "=",
+        "operand": "MRL20"
+      },
+      {
+        "column": "cash_amount",
+        "op": ">",
+        "operand": "$900"
+      }
+    ]
+  }
+}

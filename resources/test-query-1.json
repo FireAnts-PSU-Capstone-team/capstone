@@ -9,20 +9,19 @@
       {
         "column": "submission_date",
         "op": "<",
-        "left": "1/1/2015",
-        "right": "1/1/2018"
+        "operand": "1/1/2015"
       },
       {
         "and": [
           {
             "column": "mrl",
             "op": "=",
-            "left": "MRL20"
+            "operand": "MRL20"
           },
           {
             "column": "cash_amount",
-            "op": "=",
-            "left": "$900"
+            "op": ">",
+            "operand": "$900"
           }
         ]
       }
