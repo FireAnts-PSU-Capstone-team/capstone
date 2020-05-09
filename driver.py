@@ -174,6 +174,7 @@ def filter_table(request_body):
         request_body ({}): a JSON object, which must conform to a defined schema and is parsed to build the query
     Returns ({}): the retrieved data
     """
+    # TODO: fix docstring (returns)
     # TODO: define a schema for reference
     try:
         qp = QueryParser()

@@ -42,17 +42,14 @@ def dump_table():
         return make_response(jsonify(response), status)
 
     if request.method == 'GET':
-        table_name = request.args.get('table', '')
-        if table_name == '':
+        table_name = request.args.get('table')
+        if table_name is None:
             return make_response(jsonify('Table name not supplied.'), 400)
         try:
             # TODO: once authentication is in place, restrict the tables that can be listed here
-            columns = request.args.get('column', '')
-            if columns == '':
-                columns = None
-            else:
+            columns = request.args.get('column')
+            if columns is not None:
                 columns = str.split(columns.strip(), ' ')
-
             table_info_obj = driver.get_table(table_name, columns)
             return make_response(jsonify(table_info_obj), 200)
         except driver.InvalidTableException:
