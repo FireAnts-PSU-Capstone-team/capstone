@@ -4,6 +4,8 @@ import driver, sys
 from cors import cors_setup
 from models.IntakeRow import IntakeRow
 from pandas import json_normalize
+import json
+import collections
 
 UPLOAD_FOLDER = 'resources'
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
@@ -74,14 +76,31 @@ def load_data():
             except driver.InvalidTableException:
                 return make_response(jsonify(f"Table {table_name} does not exist."), 404)
             
-            df = json_normalize(request.get_json())
+            json_item = request.get_json(force=True)
+            result = {'message':json_item}
+            
+            #If the incoming json object doesn't have a row associated with it, we add a temporary one for validation
+            if 'row' not in json_item:
+                json_item = collections.OrderedDict(json_item)
+                json_item.update({'row':999})
+                json_item.move_to_end('row', last=False)
+
+            df = json_normalize(json_item)
             valid, error_msg = driver.validate_data_file(df)
             if not valid:
                 result = {
                     'message': error_msg
                 }
                 return make_response(jsonify(result),404)
-            row_data = IntakeRow(request.get_json()).value_array()
+
+            try:
+                row_data = IntakeRow(request.get_json(force=True)).value_array()
+            except ValueError as err:
+                message = {
+                    'message': err
+                }
+                return make_response(jsonify(message),404)
+
             (row_count, fail_row) = driver.insert_row(table_name, row_data)
             if row_count == 1:
                 result = {

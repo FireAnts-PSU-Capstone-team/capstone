@@ -124,6 +124,8 @@ def validatePhoneNumber(phone):
 
 def validate_monetary_amount(amt):
     try:
+        if len(amt) == 0:
+            return True
         s = str(amt)
         if s.upper() == 'NAN':
             return True
