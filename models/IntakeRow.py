@@ -80,7 +80,7 @@ class IntakeRow:
             if field in json:
                 return json.get(field)
             else:
-                raise Exception("Missing field: {field}")
+                raise KeyError(f"Missing field: {field}")
         
         self.row = input_json.get('row')
         self.submission_date = check_to_exist(input_json,'Submission date')
