@@ -3,6 +3,7 @@
 # This script is used to build, test, and run the container.
 
 CURRENT_FILE_FOLDER_NAME=$(basename $(dirname $(realpath $0)))
+USER_CURRENT_PATH=$(pwd)
 
 if [[ $(dirname $0) != '.' ]]
 then
@@ -11,13 +12,14 @@ fi
 
 function usage() {
     echo "Usage: "
-    echo "  bash $0 clean          delete any existing version of the web server image"
-    echo "  bash $0 run            run the program"
-    echo "  bash $0 stop           stop the program"
-    echo "  bash $0 build          remove all data and rebuild the program"
-    echo "  bash $0 rebuild-db     remove only DB data and re-run the program"
-    echo "  bash $0 test           test the program (for a fresh/new built program)"
-
+    echo "  bash $0 clean                   delete any existing version of the web server image"
+    echo "  bash $0 run                     run the program"
+    echo "  bash $0 stop                    stop the program"
+    echo "  bash $0 rebuild                 remove all data and rebuild the program"
+    echo "  bash $0 rebuild-db              remove only DB data and re-run the program"
+    echo "  bash $0 test                    test the program (for a fresh/new built program)"
+    echo "  bash $0 backup <path/to/save>   backup current DB to an external file"
+    echo "  bash $0 restore <file/to/load>  restore current DB from an external file"
 }
 
 # ctrl-c is used to abort a running container session. To keep the session self-contained by this script,
@@ -189,6 +191,72 @@ function clean() {
     sudo docker image rm flask-server:v1 >/dev/null 2>&1
 }
 
+function backup() {
+    # read from database.ini
+    source <(grep = "db/database.ini")
+    db_name=$dbname
+    db_port=$port
+    db_user=$user
+    db_pass=$password
+    db_container="${CURRENT_FILE_FOLDER_NAME}_db_1"
+    out_file_path=''
+
+    if [[ -z $1 ]]
+    then
+        out_file_path="${USER_CURRENT_PATH}/backup.sql"
+    else
+        if [[ ${1:0:1} == '/' ]]
+        then
+            out_file_path="${1}"
+        else
+            out_file_path="${USER_CURRENT_PATH}/${1}"
+        fi
+    fi
+
+    sudo docker exec -it ${db_container} pg_dump -d postgresql://${db_user}:${db_pass}@localhost:${port}/${db_name} > $out_file_path
+    echo "Backup successfully to file: ${out_file_path}"
+}
+
+function restore() {
+    # read from database.ini
+    source <(grep = "db/database.ini")
+    db_name=$dbname
+    db_port=$port
+    db_user=$user
+    db_pass=$password
+    in_file_path=''
+
+    if [[ -z $1 ]]
+    then
+        echo "Error: please supply an external sql file."
+        exit
+    else
+        if [[ ${1:0:1} == '/' ]]
+        then
+            in_file_path=$1
+        else
+            in_file_path="${USER_CURRENT_PATH}/${1}"
+        fi
+
+        ls $in_file_path > /dev/null 2> /dev/null
+        if [[ $? != 0 ]]
+        then
+            echo "File ${in_file_path} is not exist."
+            exit
+        fi
+    fi
+
+    echo "Restoring DB form file (${in_file_path})..."
+
+    # remove current DB stuffs
+    psql postgresql://${db_user}:${db_pass}@localhost:${port}/${db_name} < db/db-remove.sql
+    
+    # execute backup .sql file
+    psql postgresql://${db_user}:${db_pass}@localhost:${port}/${db_name} < ${in_file_path}
+    
+    echo "Restored successfully."
+}
+
 # accept an argument to perform action, print usage if nothing given
 
 if [[ $1 == "clean" ]]; then
@@ -227,6 +295,13 @@ elif [[ $1 == "rebuild-db" ]]; then
 
 elif [[ $1 == "test" ]]; then
     run_test
+
+elif [[ $1 == "backup" ]]; then
+    backup $2
+
+elif [[ $1 == "restore" ]]; then
+    restore $2
+
 else
     usage
     exit 0

@@ -17,12 +17,12 @@ CREATE FUNCTION change_trigger() RETURNS trigger
     AS $$BEGIN
 IF TG_OP='INSERT'
 THEN
-INSERT INTO txn_history(tabname,schemaname,operation, new_val)
+INSERT INTO public.txn_history(tabname,schemaname,operation, new_val)
 VALUES(TG_RELNAME, TG_TABLE_SCHEMA, TG_OP, row_to_json(NEW));
 RETURN NEW;
 ELSIF TG_OP = 'UPDATE'
 THEN
-INSERT INTO txn_history(tabname,schemaname,operation, new_val, old_val)
+INSERT INTO public.txn_history(tabname,schemaname,operation, new_val, old_val)
 VALUES(TG_RELNAME,TG_TABLE_SCHEMA, TG_OP, row_to_json(NEW), row_to_json(OLD));
 RETURN NEW;
 ELSIF TG_OP = 'DELETE'
@@ -45,7 +45,7 @@ VALUES(OLD.row, OLD.submission_date, OLD.entity, OLD.dba,
 		OLD.app_complete,OLD.fee_schedule,OLD.receipt_num,
 		OLD.cash_amount,OLD.check_amount,OLD.card_amount,
 		OLD.check_num_approval_code,OLD.mrl_num,OLD.notes);
-INSERT INTO txn_history(tabname,schemaname,operation, archive_row)
+INSERT INTO public.txn_history(tabname,schemaname,operation, archive_row)
 VALUES(TG_RELNAME,TG_TABLE_SCHEMA, TG_OP, (SELECT currval('archive_row_seq')));
 RETURN OLD;
 END IF;
@@ -58,7 +58,6 @@ ALTER FUNCTION change_trigger() OWNER TO cc;
 -- A trigger for insert conflict strategy
 -- Name: check_insertion_to_intake_trigger; Type: TRIGGER; Schema: public; Owner: cc
 --
-
 CREATE FUNCTION check_insertion_to_intake_tri_fnc()
     RETURNS trigger
     LANGUAGE 'plpgsql'
@@ -66,7 +65,7 @@ AS $BODY$BEGIN
 CASE WHEN NEW.dba IS NULL
 THEN
 IF (SELECT count(*)
-   FROM intake
+   FROM public.intake
    WHERE submission_date = new.submission_date
    AND entity = new.entity
    AND mrl = NEW.mrl) = 0
@@ -77,7 +76,7 @@ ELSE
 END IF;
 ELSE
 IF (SELECT count(*)
-   FROM intake
+   FROM public.intake
    WHERE submission_date = NEW.submission_date
    AND entity = NEW.entity
    AND dba = NEW.dba
@@ -106,7 +105,7 @@ SET default_table_access_method = heap;
 --
 -- Name: metadata; Type: TABLE; Schema: public; Owner: cc
 --
-CREATE TABLE IF NOT EXISTS metadata (
+CREATE TABLE metadata (
     filename TEXT NOT NULL,
     creator TEXT,
     size INT,
