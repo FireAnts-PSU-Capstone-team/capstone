@@ -138,7 +138,7 @@ def validatePhoneNumber(phone):
 def validate_monetary_amount(amt):
     try:
         s = str(amt)
-        if s.upper() == 'NAN':
+        if len(s) == 0 or s.upper() == 'NAN':
             return True
         if s[0] == '$':
             s = s[1:]
@@ -148,7 +148,7 @@ def validate_monetary_amount(amt):
         return False
 
 
-def validate_data_file(df):
+def validate_dataframe(df):
     def error_row(field_index, failed_row):
         msg = {
             'invalid_column_name': df.columns[field_index],

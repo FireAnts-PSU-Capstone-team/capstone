@@ -3,6 +3,8 @@ from flask_cors import CORS
 import driver, sys
 from cors import cors_setup
 from models.IntakeRow import IntakeRow
+from pandas import json_normalize
+import collections
 
 UPLOAD_FOLDER = 'resources'
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
@@ -52,6 +54,23 @@ def dump_table():
         return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
 
 
+def validate_row(json_item):
+    """
+    Preps a JSON input row and passes it to the data validator. Returns the validator's response.
+    Args:
+        json_item ({}): input JSON
+    Returns ((bool, str)): <whether row is valid>, <error message>
+
+    """
+    # If the incoming json object doesn't have a row associated with it, we add a temporary one for validation
+    if 'row' not in json_item:
+        json_item = collections.OrderedDict(json_item)
+        json_item.update({'row': 999})
+        json_item.move_to_end('row', last=False)
+    df = json_normalize(json_item)
+    return driver.validate_dataframe(df)
+
+
 @app.route("/load", methods=["PUT", "POST"])
 def load_data():
     """
@@ -72,7 +91,17 @@ def load_data():
                 driver.get_table(table_name, None)
             except driver.InvalidTableException:
                 return make_response(jsonify(f"Table {table_name} does not exist."), 404)
-            row_data = IntakeRow(request.get_json()).value_array()
+
+            valid, error_msg = validate_row(request.get_json(force=True))
+            if not valid:
+                result = {'message': error_msg}
+                return make_response(jsonify(result),404)
+            try:
+                row_data = IntakeRow(request.get_json(force=True)).value_array()
+            except (KeyError, ValueError) as err:
+                message = {'message': err}
+                return make_response(jsonify(message), 404)
+
             (row_count, fail_row) = driver.insert_row(table_name, row_data)
             if row_count == 1:
                 result = {
@@ -85,8 +114,9 @@ def load_data():
                     'fail_row': fail_row
                 }
             return make_response(jsonify(result), 200)
+
     elif request.method == 'POST':
-        if 'file' not in request.files or request.files.get('file', '') == '':
+        if 'file' not in request.files or request.files.get('file') is None:
             result = {'message': 'No file listed'}
             return make_response(jsonify(result), 400)
         else:
