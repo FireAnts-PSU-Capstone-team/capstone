@@ -34,6 +34,7 @@ validNeighborhoods = ['Alameda', 'Arbor Lodge', 'Ardenwald/Johnson Creek', 'Arga
 valid_endorsements = ["CT", "ED", "EX", "TO"]
 license_types = ['MD', 'MR', 'MC', 'MW', 'MP', 'MU']
 uniqueReceipts = {}
+seen_mrls = {}
 seen_mrl_nums = {}
 
 
@@ -95,11 +96,23 @@ def validate_receipt_num(receiptNo):
         return True
 
 
+# TODO: combine these 2 functions once we know how MRL and MRL# are related
+def validate_mrl(mrl):
+    """
+    Validate that this field matches "MRL<number>" pattern and is unique for this field.
+    """
+    m = mrl.upper().split('-')[0]
+    if m[0:3] != "MRL" or not m[3:].isdigit() or m in seen_mrls:
+        return False
+    seen_mrls[m] = 1
+    return True
+
+
 def validate_mrl_num(mrl):
     """
-    Validate that this field matches "MRL<number>" pattern.
+    Validate that this field matches "MRL<number>" pattern and is unique for this field.
     """
-    m = mrl.upper()
+    m = mrl.upper().split('-')[0]
     if m[0:3] != "MRL" or not m[3:].isdigit() or m in seen_mrl_nums:
         return False
     seen_mrl_nums[m] = 1
@@ -152,26 +165,21 @@ def validate_dataframe(df):
             pd.to_datetime(row[RowNames.SUBMISSION_DATE.value], format='%m/%d/%y', errors="raise")
         except ValueError:
             return error_row(RowNames.SUBMISSION_DATE.value, row)
-        # Facility Address: matches regex
-        # Removed; address vary too much to be meaningfully covered by any regex
-        # if re.match(addressRegex, row[RowNames.FACILITY_ADDRESS.value]) is None:
-        #     return error_row(RowNames.FACILITY_ADDRESS.value, row)
-        # 'Facility Suite #': '#' + digits
-        # if validate_suite_number(row[RowNames.FACILITY_SUITE.value]) == np.nan:
-        #     return error_row(RowNames.FACILITY_SUITE.value, row)
+        # Fields that shouldn't be null but aren't subject to other validation
+        non_nulls = [RowNames.ENTITY, RowNames.FACILITY_ADDRESS, RowNames.MAILING_ADDRESS,
+                     RowNames.FIRST_NAME, RowNames.LAST_NAME]
+        for field in non_nulls:
+            if row[field.value] == np.nan:
+                return error_row(field.value, row)
         # Facility Zip: 5-digit number
         try:
-            bad_zip = not 0 <= int(row[RowNames.FACILITY_ZIP.value]) < 100000
+            valid_zip = 0 <= int(row[RowNames.FACILITY_ZIP.value]) < 100000
         except ValueError:
-            bad_zip = True
-        if bad_zip:
+            valid_zip = False
+        if not valid_zip:
             return error_row(RowNames.FACILITY_ZIP.value, row)
-        # Mailing Address: matches regexes
-        # if not validateMailingAddress(row[RowNames.MAILING_ADDRESS.value]):
-        #     return error_row(RowNames.MAILING_ADDRESS.value, row)
-        # MRL: matches "MRL<number>"
-        mrl = row[RowNames.MRL.value].lstrip()
-        if not (mrl[0:3].upper() == 'MRL' and mrl[3:].isdigit()):
+        # MRL
+        if not validate_mrl(row[RowNames.MRL.value]):
             return error_row(RowNames.MRL.value, row)
         # Neighborhood Association: in approved list
         if not row[RowNames.NEIGHBORHOOD_ASSN.value] in validNeighborhoods:
@@ -182,7 +190,6 @@ def validate_dataframe(df):
         # Compliance Region
         if not row[RowNames.COMPLIANCE_REGION.value] in valid_compliance_regions:
             return error_row(RowNames.COMPLIANCE_REGION.value, row)
-        # Primary Contact Name - no validation
         # Email - matches regex
         if not re.match(emailRegex, row[RowNames.EMAIL.value]):
             return error_row(RowNames.EMAIL.value, row)
@@ -218,25 +225,22 @@ def validate_dataframe(df):
         # Card amount: number, possibly preceded by '$'
         if not validate_monetary_amount(row[RowNames.CARD_AMT.value]):
             return error_row(RowNames.CARD_AMT.value, row)
-        # Check No./Approval Code
-        # No validation here, since it seems that they can be any combination of characters
-        # MRL num: matches "MRL<number>" with no repeats
+        # Check No./Approval Code: no validation
+        # MRL num
         if not validate_mrl_num(row[RowNames.MRL_NUM.value]):
             return error_row(RowNames.MRL_NUM.value, row)
 
     # Regularize the following values:
-    # DBA
-    df['DBA'] = df['DBA'].str.title()
-    # Entity
-    df['Entity'] = df['Entity'].str.title()
     # Facility Address
     df['Facility Address'] = df['Facility Address'].str.title()
-    # Suite number
-    df['Facility Suite #'] = df['Facility Suite #'].str.strip()
+    # Mailing Address
+    df['Mailing Address'] = df['Mailing Address'].str.title()
     # MRL
-    df['MRL'] = df['MRL'].str.lstrip()
+    df['MRL'] = df['MRL'].str.strip()
     # Phone numbers
     df['Phone'] = df['Phone'].apply(replacePhoneNumber)
+    # Endorsement types
+    df['Endorse Type'] = df['Endorse Type'].apply(lambda x: str(x).strip())
     # Repeat location
     df['Repeat location?'] = df['Repeat location?'].apply(lambda x: str(x).upper())
     # App complete
