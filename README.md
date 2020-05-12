@@ -37,13 +37,20 @@ sudo docker stop <server-container> <db-container>
 In project folder:
 
 ``` sh
-bash launch.bash clean          delete any existing version of the web server image
-bash launch.bash run            run the program
-bash launch.bash stop           stop the program
-bash launch.bash rebuid         remove all data and rebuild the program
-bash launch.bash rebuid-db      remove only DB data and re-run the program
-bash launch.bash test           test the program (for a fresh/new built program)
+bash launch.bash clean                  delete any existing version of the web server image
+bash launch.bash run                    build and run the program
+bash launch.bash stop                   stop the program
+bash launch.bash rebuid                 remove all data and rebuild the program
+bash launch.bash rebuid-db              remove only DB data and re-run the program
+bash launch.bash test                   test the program (for a fresh/new built program)
+bash launch.bash backup <path/to/save>  backup current DB to an external file
+bash launch.bash restore <file/to/load> restore current DB from an external file
+bash launch.bash backup-schedule <opt> <path/to/save>  schedule to perform backup in specific time interval
 ```
+
+<opt> value are: month, week, day
+<path/to/save> is optional, default is storing at current path as file backup.sql
+<file/to/load> is reuqired
 
 ## Troubleshooting
 If you get an error when running `sudo docker-compose up` indicating that port 5432 (Postgres) is already in use, you need to stop postgresql and try again:\

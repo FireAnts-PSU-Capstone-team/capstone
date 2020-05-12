@@ -2,7 +2,8 @@
 
 # This script is used to build, test, and run the container.
 
-CURRENT_FILE_FOLDER_NAME=$(basename $(dirname $(realpath $0)))
+CURRENT_FILE_FOLDER_PATH=$(dirname $(realpath $0))
+CURRENT_FILE_FOLDER_NAME=$(basename ${CURRENT_FILE_FOLDER_PATH})
 USER_CURRENT_PATH=$(pwd)
 
 if [[ $(dirname $0) != '.' ]]
@@ -13,13 +14,14 @@ fi
 function usage() {
     echo "Usage: "
     echo "  bash $0 clean                   delete any existing version of the web server image"
-    echo "  bash $0 run                     run the program"
+    echo "  bash $0 run                     build and run the program"
     echo "  bash $0 stop                    stop the program"
     echo "  bash $0 rebuild                 remove all data and rebuild the program"
     echo "  bash $0 rebuild-db              remove only DB data and re-run the program"
     echo "  bash $0 test                    test the program (for a fresh/new built program)"
     echo "  bash $0 backup <path/to/save>   backup current DB to an external file"
     echo "  bash $0 restore <file/to/load>  restore current DB from an external file"
+    echo "  bash $0 backup-schedule <opt> <path/to/save>  schedule to perform backup in specific time interval"
 }
 
 # ctrl-c is used to abort a running container session. To keep the session self-contained by this script,
@@ -257,6 +259,28 @@ function restore() {
     echo "Restored successfully."
 }
 
+function backup-schedule() {
+    cmd="bash ${CURRENT_FILE_FOLDER_PATH}/launch.bash backup ${2}"
+    comment=''
+
+    if [[ $1 == 'week' ]]
+    then
+        cmd="0 0 * * 0 ${cmd}"
+        comment="Scheduled to backup every week Sunday at 00:00 AM."
+    elif [[ $1 == 'month' ]]
+    then
+        cmd="0 0 1 * * ${cmd}"
+        comment="Scheduled to backup every Month first day at 00:00 AM."
+    else
+        # every day 
+        cmd="0 0 * * * ${cmd}"
+        comment="Scheduled to backup every day at 00:00 AM."
+    fi
+
+    echo $comment
+    crontab -l | sed '/\/launch.bash backup/d' | { cat; echo "${cmd} # ${comment}"; } | crontab - > /dev/null
+}
+
 # accept an argument to perform action, print usage if nothing given
 
 if [[ $1 == "clean" ]]; then
@@ -301,6 +325,9 @@ elif [[ $1 == "backup" ]]; then
 
 elif [[ $1 == "restore" ]]; then
     restore $2
+
+elif [[ $1 == "backup-schedule" ]]; then
+    backup-schedule $2 $3
 
 else
     usage
