@@ -234,7 +234,7 @@ def read_metadata(f):
     data['modified'] = fmt(file_data.get('modified').strftime('%Y-%m-%d %H:%M:%S+08'))
     data['lastModifiedBy'] = fmt(file_data.get('lastModifiedBy'))
     data['title'] = fmt(file_data.get('title'))
-    data['rows'] = sheet_data.max_row
+    data['rows'] = sheet_data.max_row - 1 #to remove inclusion of header row in count
     data['columns'] = sheet_data.max_column
 
     return data
