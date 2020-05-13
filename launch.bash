@@ -205,8 +205,6 @@ elif [[ $1 == "run" ]]; then
 
     # bring up the container
     sudo docker-compose up
-    # TODO: refactor duplicated code
-    # TODO: automatically catch error requiring 'postgresql stop'; execute that and retry
 
 elif [[ $1 == "stop" ]]; then
 

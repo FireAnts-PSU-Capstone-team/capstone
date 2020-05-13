@@ -9,11 +9,11 @@ from openpyxl import load_workbook
 from db import connection as c
 from models.IntakeRow import ColNames
 from query_parser import QueryParser, RequestParseException
-from validation import validate_data_file
+from validation import validate_dataframe
 
 test_file = 'resources/sample.xlsx'
 primary_table = 'intake'
-db_tables = ['intake', 'txn_history', 'archive', 'metadata']
+db_tables = ['intake', 'txn_history', 'archive', 'metadata', 'violations', 'records']
 metadata_table = 'metadata'
 connection_error_msg = 'The connection to the database is closed and cannot be opened. Verify DB server is up.'
 
@@ -432,7 +432,7 @@ def process_file(f):
         # read file content
         df = pd.read_excel(f)
         # Validate data frame
-        valid, error_msg = validate_data_file(df)
+        valid, error_msg = validate_dataframe(df)
         if not valid:
             return False, {'status': 'invalid', 'error_msg': error_msg}
         # Write the data to the DB
