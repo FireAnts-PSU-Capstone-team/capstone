@@ -34,7 +34,7 @@ validNeighborhoods = ['Alameda', 'Arbor Lodge', 'Ardenwald/Johnson Creek', 'Arga
 valid_endorsements = ["CT", "ED", "EX", "TO"]
 license_types = ['MD', 'MR', 'MC', 'MW', 'MP', 'MU']
 seen_mrls = {}
-seen_mrl_nums = {}
+
 
 
 # def validate_suite_number(x):
@@ -104,18 +104,6 @@ def validate_mrl(mrl):
         return False
     seen_mrls[m] = 1
     return True
-
-
-def validate_mrl_num(mrl):
-    """
-    Validate that this field matches "MRL<number>" pattern and is unique for this field.
-    """
-    m = mrl.upper().split('-')[0]
-    if m[0:3] != "MRL" or not m[3:].isdigit() or m in seen_mrl_nums:
-        return False
-    seen_mrl_nums[m] = 1
-    return True
-
 
 def fmt_failed_row(row):
     msg = "Failed row: "
@@ -224,9 +212,8 @@ def validate_dataframe(df):
         if not validate_monetary_amount(row[RowNames.CARD_AMT.value]):
             return error_row(RowNames.CARD_AMT.value, row)
         # Check No./Approval Code: no validation
-        # MRL num
-        if not validate_mrl_num(row[RowNames.MRL_NUM.value]):
-            return error_row(RowNames.MRL_NUM.value, row)
+        # MRL num: no validation needed
+        
 
     # Regularize the following values:
     # Facility Address
