@@ -33,7 +33,6 @@ validNeighborhoods = ['Alameda', 'Arbor Lodge', 'Ardenwald/Johnson Creek', 'Arga
 
 valid_endorsements = ["CT", "ED", "EX", "TO"]
 license_types = ['MD', 'MR', 'MC', 'MW', 'MP', 'MU']
-uniqueReceipts = {}
 seen_mrls = {}
 seen_mrl_nums = {}
 
@@ -88,11 +87,10 @@ def validate_license_type(lic):
 
 def validate_receipt_num(receiptNo):
     # validates parseable integer with no repeated values
-    if receiptNo in uniqueReceipts or not str(receiptNo).isdigit():
+    if not str(receiptNo).isdigit():
         return False
     else:
         # Must be converted to string upon return! Otherwise casts to a float and refuses to be cast back
-        uniqueReceipts[receiptNo] = 1
         return True
 
 
