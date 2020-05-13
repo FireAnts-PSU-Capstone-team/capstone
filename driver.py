@@ -234,8 +234,15 @@ def read_metadata(f):
     data['modified'] = fmt(file_data.get('modified').strftime('%Y-%m-%d %H:%M:%S+08'))
     data['lastModifiedBy'] = fmt(file_data.get('lastModifiedBy'))
     data['title'] = fmt(file_data.get('title'))
-    data['rows'] = sheet_data.max_row - 1 #to remove inclusion of header row in count
+    #data['rows'] = sheet_data.max_row
     data['columns'] = sheet_data.max_column
+
+    #if the first row is a header, it will contain header info
+    if sheet_data.cell(row=1, column=2) == 'Submission Date':
+        data['columns'] = sheet_data.max_column - 1
+    else:
+        data['columns'] = sheet_data.max_column
+
 
     return data
 
