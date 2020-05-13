@@ -65,7 +65,6 @@ def load_data():
         POST: /load?file=</path/to/file.xlsx>
     Returns ({}): HTTPS response
     """
-    # TODO: add error handling if JSON schema doesn't match
     if request.method == 'PUT':
         table_name = request.args.get('table')
         if table_name is None:
@@ -77,11 +76,16 @@ def load_data():
             except driver.InvalidTableException:
                 return make_response(jsonify(f"Table {table_name} does not exist."), 404)
             row_data = IntakeRow(request.get_json()).value_array()
-            (row_count, fail_row) = driver.insert_row(table_name, row_data)
+            row_count, fail_row = driver.insert_row(table_name, row_data)
             if row_count == 1:
                 result = {
                     'message': 'PUT completed',
                     'rows_affected': row_count
+                }
+            elif row_count == -1:
+                result = {
+                    'message': 'PUT failed',
+                    'cause': 'duplicate row number'
                 }
             else:
                 result = {
@@ -89,6 +93,7 @@ def load_data():
                     'fail_row': fail_row
                 }
             return make_response(jsonify(result), 200)
+
     elif request.method == 'POST':
         if 'file' not in request.files or request.files.get('file') is None:
             result = {'message': 'No file listed'}

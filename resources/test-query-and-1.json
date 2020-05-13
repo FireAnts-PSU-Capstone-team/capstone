@@ -12,9 +12,9 @@
         "operand": "MRL48"
       },
       {
-        "column": "cash_amount",
-        "op": ">",
-        "operand": "$900"
+        "column": "row",
+        "op": "<",
+        "operand": 5
       }
     ]
   }

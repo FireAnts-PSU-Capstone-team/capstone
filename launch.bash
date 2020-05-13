@@ -171,17 +171,17 @@ function run() {
     # launch and check for 'port in use' error
     echo "Launching container"
     sudo docker-compose up
-    if [[ $? == 1 ]]; then
-        if [[ $1 == "retry" ]]; then
-            echo "Attempted to re-run program, but postgresql service could not be stopped. Stop the service and try again."
-            exit 1
-        else
-            echo "Stopping postgresql service."
-            sudo service postgresql stop
-            echo "Retrying."
-            run "retry"
-        fi
-    fi
+#    if [[ $? == 1 ]]; then
+#        if [[ $2 == "retry" ]]; then
+#            echo "Attempted to re-run program, but postgresql service could not be stopped. Stop the service and try again."
+#            exit 1
+#        else
+#            echo "Stopping postgresql service."
+#            sudo service postgresql stop
+#            echo "Retrying."
+#            run "retry"
+#        fi
+#    fi
 }
 
 function clean() {

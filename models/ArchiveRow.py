@@ -2,40 +2,6 @@ class ArchiveRow:
     """
     Represents a row of the Archive table.
     """
-
-    def __init__(self):
-        """
-        Default constructor.
-        """
-        self.row = None
-        self.old_row = None
-        self.old_submission_date = ''
-        self.old_entity = ''
-        self.old_dba = ''
-        self.old_facility_address = ''
-        self.old_facility_suite = ''
-        self.old_facility_zip = ''
-        self.old_mailing_address = ''
-        self.old_mrl = ''
-        self.old_neighborhood_association = ''
-        self.old_compliance_region = ''
-        self.old_primary_contact_first_name = ''
-        self.old_primary_contact_last_name = ''
-        self.old_email = ''
-        self.old_phone = ''
-        self.old_endorse_type = ''
-        self.old_license_type = ''
-        self.old_repeat_license = ''
-        self.old_app_complete = ''
-        self.old_fee_schedule = ''
-        self.old_receipt_num = ''
-        self.old_cash_amount = ''
-        self.old_check_amount = ''
-        self.old_card_amount = ''
-        self.old_check_num = ''
-        self.old_mrl_num = ''
-        self.old_notes = ''
-
     def __init__(self, input_json):
         """
         Constructor from a JSON object. Any unsupplied data defaults to None

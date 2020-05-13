@@ -2,35 +2,44 @@ import json
 
 
 class RequestParseException(Exception):
-    def __init__(self, msg):
+    def __init__(self, msg: str):
         self.msg = msg
 
 
-def invalid_column_msg(c):
+def invalid_column_msg(c: str) -> str:
     return f"Column {c} not in known list"
 
 
-def invalid_table_msg(t):
+def invalid_table_msg(t: str) -> str:
     return f"Table {t} does not match known list"
 
 
-def unknown_operator_msg(o):
+def unknown_operator_msg(o: str) -> str:
     return f"Encountered an unrecognized operator ({o})"
 
 
-def invalid_request_msg(e):
+def invalid_request_msg(e: str) -> str:
     return f"Request has invalid structure. Error: {e}"
 
 
-def invalid_binary_operation(o):
+def invalid_binary_operation(o: str) -> str:
     return f"Found an AND or OR construct with invalid structure. Construct was: {json.dumps(o)}"
 
 
 class QueryParser:
-    # TODO: get this from elsewhere, bad practice to maintain separate lists
-    db_tables = ['intake', 'txn_history', 'archive', 'metadata']
 
-    def parse_or(self, op_block):
+    def __init__(self, tables: [str]):
+        self.db_tables = tables
+        self.col_names = []
+
+    def parse_or(self, op_block: json) -> str:
+        """
+        Parses an OR-block in a request.
+        Args:
+            op_block ({}): JSON block containing an OR operation
+        Returns (str): the SQL query string corresponding to the JSON request
+        Raises: RequestParseException if op cannot be parsed
+        """
         or_block = op_block.get('or')
         try:
             if len(or_block) != 2:
@@ -41,7 +50,14 @@ class QueryParser:
         except IndexError:
             raise RequestParseException(invalid_binary_operation(op_block))
 
-    def parse_and(self, op_block):
+    def parse_and(self, op_block: json) -> str:
+        """
+        Parses an AND-block in a request.
+        Args:
+            op_block ({}): JSON block containing an AND operation
+        Returns (str): the SQL query string corresponding to the JSON request
+        Raises: RequestParseException if op cannot be parsed
+        """
         and_block = op_block.get('and')
         try:
             if len(and_block) != 2:
@@ -52,29 +68,48 @@ class QueryParser:
         except IndexError:
             raise RequestParseException(invalid_binary_operation(op_block))
 
-    def parse_op(self, op_block):
+    def parse_op(self, op_block: json) -> str:
+        """
+        Parses an operation in a request.
+        Args:
+            op_block ({}): JSON block containing the operation
+        Returns (str): the SQL query string corresponding to the JSON request
+        Raises: RequestParseException if op cannot be parsed
+        """
+        if op_block.get('and') is not None and op_block.get('or') is not None:
+            raise RequestParseException(invalid_request_msg(op_block))
         if op_block.get('and') is not None:
             return self.parse_and(op_block)
         if op_block.get('or') is not None:
             return self.parse_or(op_block)
         # basic operator
         op = op_block.get('op')
-        if op in ['<', '>', '=']:
+        if op in ['<', '<=', '>', '>=', '=']:
             col = op_block.get('column')
             self.validate_column(col)
             operand = op_block.get('operand')
-            # TODO: this is a breaking problem since we're quoting everything
-            #       need to account for numeric/null values, and
-            #       refactor to  construct a prepared statement instead of building this way
             return f"({col} {op} '{operand}')"
         else:
             raise RequestParseException(unknown_operator_msg(op))
 
-    def validate_column(self, col):
+    def validate_column(self, col: str) -> None:
+        """
+        Raises an exception if the given column is not in the approved list.
+        Args:
+            col (str): column name
+        Returns: None
+        Raises: RequestParseException if col is not a valid column name
+        """
         if col.lower() not in self.col_names:
             raise RequestParseException(invalid_column_msg(col))
 
-    def build_query(self, q: json):
+    def build_query(self, q: json) -> str:
+        """
+        Constructs a SQL query from a JSON input.
+        Args:
+            q ({}): JSON query input
+        Returns (str): the SQL query string
+        """
         try:
             # table name required
             table = q.get('table')
@@ -84,14 +119,16 @@ class QueryParser:
             if table == 'intake':
                 from models import IntakeRow
                 self.col_names = [x.name.lower() for x in IntakeRow.ColNames]
-            # TODO: add support for other tables here
+            # TODO: uncomment once other tables have ColNames classes
             # elif table == 'archive':
             #     from models import ArchiveRow
             #     self.col_names = [x.name.lower() for x in ArchiveRow.ColNames]
             # elif table == 'metadata':
-            #     pass
+            #     from models import MetadataRow
+            #     self.col_names = [x.name.lower() for x in MetadataRow.ColNames]
             # elif table == 'txn_history':
-            #     pass
+            #     from models import TxnHistoryRow
+            #     self.col_names = [x.name.lower() for x in TxnHistoryRow.ColNames]
 
             # if columns not listed, assume all
             columns = q.get('columns', '*')
@@ -111,11 +148,3 @@ class QueryParser:
 
         except RequestParseException as e:
             return invalid_request_msg(e.msg)
-
-
-if __name__ == '__main__':
-    with open('resources/test-query-or-1.json', 'r') as f:
-        body = json.load(f)
-    qp = QueryParser()
-    q = qp.build_query(body)
-    print(q)

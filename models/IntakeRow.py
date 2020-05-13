@@ -35,39 +35,6 @@ class IntakeRow:
     """
     Represents a row of the intake table.
     """
-
-    def __init__(self):
-        """
-        Default constructor.
-        """
-        self.row = None
-        self.submission_date = ''
-        self.entity = ''
-        self.dba = ''
-        self.facility_address = ''
-        self.facility_suite = ''
-        self.facility_zip = ''
-        self.mailing_address = ''
-        self.mrl = ''
-        self.neighborhood_association = ''
-        self.compliance_region = ''
-        self.primary_contact_first_name = ''
-        self.primary_contact_last_name = ''
-        self.email = ''
-        self.phone = ''
-        self.endorse_type = ''
-        self.license_type = ''
-        self.repeat_license = ''
-        self.app_complete = ''
-        self.fee_schedule = ''
-        self.receipt_num = ''
-        self.cash_amount = ''
-        self.check_amount = ''
-        self.card_amount = ''
-        self.check_num = ''
-        self.mrl_num = ''
-        self.notes = ''
-
     def __init__(self, input_json):
         """
         Constructor from a JSON object. Any unsupplied data defaults to None

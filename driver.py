@@ -165,19 +165,21 @@ class InvalidTableException(Exception):
     pass
 
 
-# TODO: bad practice to have query JSON use db col names, while PUT JSON uses spreadsheet col names. Regularize
 def filter_table(request_body):
     """
     Return a JSON object representing the requested data from the table.
     Built to take a JSON request, which is parsed in order to construct a SQL query; returns the result of that query.
     Args:
         request_body ({}): a JSON object, which must conform to a defined schema and is parsed to build the query
-    Returns ({}): the retrieved data
+    Returns:
+         query (str): the query string passed to the database
+         response ({}): the retrieved data
+         status (int): the HTTP status code of the response
     """
-    # TODO: fix docstring (returns)
     # TODO: define a schema for reference
     try:
-        qp = QueryParser()
+        table_names = get_table_list()
+        qp = QueryParser(table_names)
         query = qp.build_query(request_body)
     except RequestParseException as e:
         return None, e.msg, 400
@@ -340,6 +342,25 @@ def row_number_exists(cur, row_number, table=primary_table):
     return exists
 
 
+def get_table_list():
+    """
+    Gets the database's active tables.
+    Returns [str]: list of table names
+    """
+    try:
+        pgSqlCur.execute("""
+        SELECT table_name 
+        FROM information_schema.tables
+        WHERE table_name 
+        NOT LIKE 'pg_%'
+            AND table_schema='public'; 
+        """)
+        return str([x[0] for x in pgSqlCur.fetchall()])
+    except psycopg2.Error as err:
+        sql_except(err)
+        pgSqlCur.execute("ROLLBACK")
+
+
 def insert_row(table, row, checked=False):
     """
     Insert an array of values into the specified table.
@@ -394,6 +415,7 @@ def insert_row(table, row, checked=False):
         sql_except(err)
         # roll back the last sql command
         pgSqlCur.execute("ROLLBACK")
+        return -1, None
 
 
 def process_file(f):
