@@ -48,31 +48,14 @@ CREATE FUNCTION check_insertion_fnc()
     RETURNS TRIGGER
     LANGUAGE 'plpgsql'
 AS $BODY$BEGIN
-CASE when NEW.dba IS NULL
-THEN
 IF (SELECT count(*)
    FROM intake
-   WHERE submission_date = new.submission_date
-   AND entity = new.entity
-   AND mrl = NEW.mrl) = 0
+   WHERE mrl = NEW.mrl) = 0
 THEN
    RETURN NEW;
 ELSE
    RETURN NULL;
 END IF;
-ELSE
-IF (SELECT count(*)
-   FROM intake
-   WHERE submission_date = NEW.submission_date
-   AND entity = NEW.entity
-   AND dba = NEW.dba
-   AND mrl = NEW.mrl) = 0
-THEN
-   RETURN NEW;
-ELSE
-   RETURN NULL;
-END IF;
-END CASE;
 END;$BODY$;
 
 ALTER FUNCTION check_insertion_fnc() OWNER TO cc;
