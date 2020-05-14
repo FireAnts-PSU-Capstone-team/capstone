@@ -1,3 +1,16 @@
+from enum import Enum
+
+class ColumnNames(Enum):
+    FILENAME = 0
+    CREATOR = 1
+    SIZE =2
+    CREATED_DATE = 3
+    LAST_MODIFIED_DATE = 4
+    LAST_MODIFIED_BY = 5
+    TITLE = 6
+    ROWS = 7
+    COLUMNS = 8
+
 class MetadataRow:
     """
     Represents a row of the Metadata table.

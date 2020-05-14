@@ -1,3 +1,11 @@
+from enum import Enum
+
+class ColumnNames(Enum):
+    ROW = 0
+    TSTAMP = 1
+    WHO = 2
+    OLD_VAL = 3
+
 class ArchiveRow:
     """
     Represents a row of the Archive table.
