@@ -170,15 +170,11 @@ def delete_row():
     try:
         # TODO: once authentication is in place, restrict the tables that can be listed here
         row_num = str.split(row_num.strip(), ' ')
-        print(table_name)
-        print(row_num)
-        #table_info_obj = driver.get_table(table_name, columns)
-        #return make_response(jsonify(table_info_obj), 200)
-        return make_response(jsonify('Pass.'),200)
+        table_info_obj = driver.delete_row(table_name, row_num)
+        return make_response(jsonify(table_info_obj), 200)
+
     except driver.InvalidTableException:
-        #return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
-        print("Fail")
-        return make_response(jsonify('Fail'),404)
+        return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
 
 
 @app.route('/')
