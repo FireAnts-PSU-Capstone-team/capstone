@@ -180,7 +180,7 @@ ALTER TABLE ONLY archive
 --
 CREATE TABLE IF NOT EXISTS violations
 (
-    row_id integer NOT NULL,
+    "row" integer NOT NULL,
     dba text,
     address text,
     mrl_num text,
@@ -202,14 +202,14 @@ CREATE TABLE IF NOT EXISTS violations
 ALTER TABLE violations OWNER to cc;
 COMMENT ON TABLE violations IS 'Table to hold all the information regarding violations.';
 ALTER TABLE ONLY violations
-    ADD CONSTRAINT violations_pkey PRIMARY KEY (row_id);
+    ADD CONSTRAINT violations_pkey PRIMARY KEY ("row");
 
 --
 -- Name: records Type: table Schema: public Owner: cc
 --
 CREATE TABLE IF NOT EXISTS records
 (
-    row_id integer NOT NULL,
+    "row" integer NOT NULL,
     date date,
     method text,
     intake_person text,
@@ -227,7 +227,7 @@ CREATE TABLE IF NOT EXISTS records
 ALTER TABLE records OWNER to cc;
 COMMENT ON TABLE records IS 'Table to hold all the information regarding violations.';
 ALTER TABLE ONLY records
-    ADD CONSTRAINT records_pkey PRIMARY KEY (row_id);
+    ADD CONSTRAINT records_pkey PRIMARY KEY ("row");
 -------------------------
 -- Sequences
 -------------------------
@@ -294,7 +294,7 @@ CREATE SEQUENCE violations_row_seq
 
 ALTER TABLE violations_row_seq OWNER TO cc;
 ALTER SEQUENCE violations_row_seq OWNED BY violations.row_id;
-ALTER TABLE ONLY violations ALTER COLUMN row_id SET DEFAULT nextval('violations_row_seq'::regclass);
+ALTER TABLE ONLY violations ALTER COLUMN "row" SET DEFAULT nextval('violations_row_seq'::regclass);
 
 --
 -- Name: records_row_seq
@@ -310,7 +310,7 @@ CREATE SEQUENCE records_row_seq
 
 ALTER TABLE records_row_seq OWNER TO cc;
 ALTER SEQUENCE records_row_seq OWNED BY records.row_id;
-ALTER TABLE ONLY records ALTER COLUMN row_id SET DEFAULT nextval('records_row_seq'::regclass);
+ALTER TABLE ONLY records ALTER COLUMN "row" SET DEFAULT nextval('records_row_seq'::regclass);
 
 -------------------------
 -- Triggers
