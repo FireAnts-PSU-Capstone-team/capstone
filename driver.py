@@ -238,7 +238,7 @@ def read_metadata(f):
     data['columns'] = sheet_data.max_column
 
     #if the first row is a header, it will contain header info
-    if sheet_data.cell(row=1, column=2) == 'Submission Date':
+    if sheet_data.cell(row=1, column=2).str.title() == 'Submission Date':
         data['columns'] = sheet_data.max_column - 1
     else:
         data['columns'] = sheet_data.max_column
