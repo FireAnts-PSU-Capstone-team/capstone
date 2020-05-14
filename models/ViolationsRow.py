@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class RowNames(Enum):
+class ColumnNames(Enum):
     ROW = 0
     DBA = 1
     ADDRESS = 2
