@@ -60,9 +60,11 @@ You can also query the API from the command line, using `curl`:
 &emsp;List the contents of the `intake` table: \
 &emsp;&emsp;`curl -k https://localhost:443/list?table=intake` \
 &emsp;Post the `sample.xlsx` file to the `/load` endpoint: \
-&emsp;&emsp;`curl -k -X POST "file=@resources/sample.xlsx" https://localhost:443/load` \
+&emsp;&emsp;`curl -k -X --form POST "file=@resources/sample.xlsx" https://localhost:443/load` \
 &emsp;Add a single row, as contained in the `sample-row-1.json` file: \
 &emsp;&emsp;`curl -k -X PUT https://localhost:443/load?table=intake -d @resources/sample-row-1.json -H "Content-Type: application/json"` \
 &emsp;List entries from the `intake` table, but only the submission date and MRL fields: \
-&emsp;&emsp;`curl -k "https://localhost:443/list?table=intake&column=submission_date+mrl"`
+&emsp;&emsp;`curl -k "https://localhost:443/list?table=intake&column=submission_date+mrl"` \
+&emsp;List entries from the database where results are filtered based on a JSON-structured query file: \
+&emsp;&emsp;`curl -k -X POST https://localhost:443/list -d @resources/test-query-and-1.json -H "Content-Type: application/json"` 
 
