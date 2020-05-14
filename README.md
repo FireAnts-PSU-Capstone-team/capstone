@@ -48,9 +48,12 @@ bash launch.bash restore <file/to/load> restore current DB from an external file
 bash launch.bash backup-schedule <opt> <path/to/save>  schedule to perform backup in specific time interval
 ```
 
-<opt> value are: month, week, day
-<path/to/save> is optional, default is storing at current path as file backup.sql
-<file/to/load> is reuqired
+opt: value are: month, week, day
+
+path/to/save: is optional, default is storing at current path as file <current_date>.sql
+
+file/to/load: is reuqired
+
 
 ## Troubleshooting
 If you get an error when running `sudo docker-compose up` indicating that port 5432 (Postgres) is already in use, you need to stop postgresql and try again:\

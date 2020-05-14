@@ -205,7 +205,8 @@ function backup() {
 
     if [[ -z $1 ]]
     then
-        out_file_path="${USER_CURRENT_PATH}/backup.sql"
+        da=$(date +%Y%m%d%H%M%S)
+        out_file_path="${USER_CURRENT_PATH}/${da}.sql"
     else
         if [[ ${1:0:1} == '/' ]]
         then
@@ -308,7 +309,7 @@ elif [[ $1 == "stop" ]]; then
     # stop the containers
     sudo docker stop ${server_container} ${db_container}
 
-elif [[ $1 == "build" ]]; then
+elif [[ $1 == "rebuild" ]]; then
     clean
     run
     
