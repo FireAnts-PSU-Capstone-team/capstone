@@ -156,11 +156,12 @@ def show_metadata():
     response_body = jsonify(driver.get_table('metadata', None))
     return make_response(response_body, 200)
 
+
 @app.route("/delete", methods=["GET"])
 def delete_row():
     """
     Delete a row of data of the intake .
-    Usage: /delete?tabel=<table_name>&row=<row_num>
+    Usage: /delete?table=<table_name>&row=<row_num>
     Returns (str):Success or failure message
     """
     table_name = request.args.get('table', '')
@@ -168,7 +169,6 @@ def delete_row():
     if table_name == '' or row_num == '':
         return make_response(jsonify('Table name or row number not supplied.'), 400)
     try:
-        # TODO: once authentication is in place, restrict the tables that can be listed here
         row_num = str.split(row_num.strip(), ' ')
         table_info_obj = driver.delete_row(table_name, row_num)
         return make_response(jsonify(table_info_obj), 200)

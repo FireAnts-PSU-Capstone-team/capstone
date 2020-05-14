@@ -3,7 +3,7 @@ import numpy as np
 import psycopg2
 
 from db import connection as c
-from models.IntakeRow import RowNames
+from models.IntakeRow import ColNames
 import os
 import sys
 import time

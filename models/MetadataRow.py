@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class ColumnNames(Enum):
+class ColNames(Enum):
     FILENAME = 0
     CREATOR = 1
     SIZE =2
