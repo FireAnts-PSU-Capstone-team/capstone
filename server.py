@@ -156,6 +156,30 @@ def show_metadata():
     response_body = jsonify(driver.get_table('metadata', None))
     return make_response(response_body, 200)
 
+@app.route("/delete", methods=["GET"])
+def delete_row():
+    """
+    Delete a row of data of the intake .
+    Usage: /delete?tabel=<table_name>&row=<row_num>
+    Returns (str):Success or failure message
+    """
+    table_name = request.args.get('table', '')
+    row_num = request.args.get('row','')
+    if table_name == '' or row_num == '':
+        return make_response(jsonify('Table name or row number not supplied.'), 400)
+    try:
+        # TODO: once authentication is in place, restrict the tables that can be listed here
+        row_num = str.split(row_num.strip(), ' ')
+        print(table_name)
+        print(row_num)
+        #table_info_obj = driver.get_table(table_name, columns)
+        #return make_response(jsonify(table_info_obj), 200)
+        return make_response(jsonify('Pass.'),200)
+    except driver.InvalidTableException:
+        #return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
+        print("Fail")
+        return make_response(jsonify('Fail'),404)
+
 
 @app.route('/')
 def hello_world():
