@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class ColumnNames(Enum):
     ROW = 0
     TSTAMP = 1

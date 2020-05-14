@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class RowNames(Enum):
+class ColumnNames(Enum):
     ROW = 0
     SUBMISSION_DATE = 1
     ENTITY = 2

@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class ColumnNames(Enum):
     FILENAME = 0
     CREATOR = 1
