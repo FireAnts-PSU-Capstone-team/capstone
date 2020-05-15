@@ -171,17 +171,6 @@ function run() {
     # launch and check for 'port in use' error
     echo "Launching container"
     sudo docker-compose up
-    if [[ $? == 1 ]]; then
-        if [[ $1 == "retry" ]]; then
-            echo "Attempted to re-run program, but postgresql service could not be stopped. Stop the service and try again."
-            exit 1
-        else
-            echo "Stopping postgresql service."
-            sudo service postgresql stop
-            echo "Retrying."
-            run "retry"
-        fi
-    fi
 }
 
 function clean() {
@@ -195,18 +184,7 @@ if [[ $1 == "clean" ]]; then
     clean
 
 elif [[ $1 == "run" ]]; then
-
-    # if the image doesn't exist (or we've just deleted it), build it fresh
-    sudo docker image inspect flask-server:v1 >/dev/null 2>&1
-    [[ $? != 0 ]] && echo "Image does not exist; building image" && sudo docker build -t flask-server:v1 .
-    sudo chown -R 999:root configs/
-    sudo chmod 777 configs/
-    sudo chmod 600 configs/*
-
-    # bring up the container
-    sudo docker-compose up
-    # TODO: refactor duplicated code
-    # TODO: automatically catch error requiring 'postgresql stop'; execute that and retry
+    run
 
 elif [[ $1 == "stop" ]]; then
 
