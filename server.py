@@ -31,10 +31,12 @@ def allowed_file(filename):
 
 
 @app.route("/list", methods=["GET", "POST"])
-def dump_table():
+def fetch_data():
     """
     Displays the contents of the table listed in the request.
-    Usage: /list?table=<table_name>
+    Usage:
+        GET /list?table=<table_name> to retrieve entire table
+        POST /list to process specific query
     Returns ({}): JSON object of table data
     """
     if request.method == 'POST':

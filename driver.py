@@ -77,6 +77,8 @@ def sql_except(err):
         err - the error message generated
     Returns None
     """
+    # roll back the last sql command
+    pgSqlCur.execute("ROLLBACK")
     # get the details for exception
     err_type, err_obj, traceback = sys.exc_info()
 
@@ -119,10 +121,7 @@ def dump_tables():
         for row in rows:
             print(row)
     except Exception as err:
-        # print the exception
         sql_except(err)
-        # roll back the last sql command
-        pgSqlCur.execute("ROLLBACK")
 
     print("\nMetadata:\n-------------------------------")
     try:
@@ -131,10 +130,7 @@ def dump_tables():
         for row in rows:
             print(row)
     except Exception as err:
-        # print the exception
         sql_except(err)
-        # roll back the last sql command
-        pgSqlCur.execute("ROLLBACK")
 
 
 def table_exists(cur, table):
@@ -182,15 +178,12 @@ def filter_table(request_body):
         qp = QueryParser(table_names)
         query = qp.build_query(request_body)
     except RequestParseException as e:
-        return None, e.msg, 400
+        return 'JSON could not be parsed', e.msg, 400
     try:
         pgSqlCur.execute(query)
         return query, pgSqlCur.fetchall(), 200
     except psycopg2.Error as err:
-        # print the exception
         sql_except(err)
-        # roll back the last sql command
-        pgSqlCur.execute("ROLLBACK")
         return None, str(err), 400
 
 
@@ -234,10 +227,7 @@ def get_table(table_name, columns):
             result.append(a_row)
             
     except Exception as err:
-        # print the exception
         sql_except(err)
-        # roll back the last sql command
-        pgSqlCur.execute("ROLLBACK")
 
     return result
 
@@ -317,10 +307,7 @@ def write_metadata(metadata):
         pgSqlConn.commit()
 
     except Exception as err:
-        # print the exception
         sql_except(err)
-        # roll back the last sql command
-        pgSqlCur.execute("ROLLBACK")
 
 
 def row_number_exists(cur, row_number, table=primary_table):
@@ -358,7 +345,6 @@ def get_table_list():
         return str([x[0] for x in pgSqlCur.fetchall()])
     except psycopg2.Error as err:
         sql_except(err)
-        pgSqlCur.execute("ROLLBACK")
 
 
 def insert_row(table, row, checked=False):
@@ -411,10 +397,7 @@ def insert_row(table, row, checked=False):
             return 0, failed_row
 
     except Exception as err:
-        # print the exception
         sql_except(err)
-        # roll back the last sql command
-        pgSqlCur.execute("ROLLBACK")
         return -1, None
 
 

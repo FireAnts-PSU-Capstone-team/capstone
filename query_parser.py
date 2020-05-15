@@ -84,6 +84,8 @@ class QueryParser:
             return self.parse_or(op_block)
         # basic operator
         op = op_block.get('op')
+        if op is None:
+            raise RequestParseException("No operation requested in block: " + json.dumps(op_block))
         if op in ['<', '<=', '>', '>=', '=']:
             col = op_block.get('column')
             self.validate_column(col)
@@ -113,7 +115,9 @@ class QueryParser:
         try:
             # table name required
             table = q.get('table')
-            if table not in self.db_tables:
+            if table is None:
+                raise RequestParseException("No table named in request")
+            elif table not in self.db_tables:
                 raise RequestParseException(invalid_table_msg(table))
 
             if table == 'intake':
@@ -129,9 +133,13 @@ class QueryParser:
             # elif table == 'txn_history':
             #     from models import TxnHistoryRow
             #     self.col_names = [x.name.lower() for x in TxnHistoryRow.ColNames]
+            else:
+                raise RequestParseException("Requested table not found")
 
             # if columns not listed, assume all
             columns = q.get('columns', '*')
+            if not isinstance(columns, list):
+                raise RequestParseException("Columns must be present as list in request body")
             if columns != '*':
                 for col in columns:
                     self.validate_column(col)
@@ -147,4 +155,5 @@ class QueryParser:
             return query + ';'
 
         except RequestParseException as e:
-            return invalid_request_msg(e.msg)
+            e.msg = invalid_request_msg(e.msg)
+            raise e
