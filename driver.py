@@ -10,7 +10,7 @@ import time
 from openpyxl import load_workbook
 from validation import validate_dataframe
 
-test_file = 'resources/sample.xlsx'
+test_file='resources/sample.xlsx'
 primary_table = 'intake'
 db_tables = ['intake', 'txn_history', 'archive', 'metadata', 'violations', 'records']
 metadata_table = 'metadata'
@@ -357,10 +357,10 @@ def insert_row(table, row, checked=False):
             return 1, None
         else:
             failed_row = {
-                'submission_date': row[RowNames.SUBMISSION_DATE.value],
-                'entity': row[RowNames.ENTITY.value],
-                'dba': row[RowNames.DBA.value],
-                'mrl': row[RowNames.MRL.value]
+                'submission_date': row[ColNames.SUBMISSION_DATE.value],
+                'entity': row[ColNames.ENTITY.value],
+                'dba': row[ColNames.DBA.value],
+                'mrl': row[ColNames.MRL.value]
             }
             return 0, failed_row
 
@@ -410,7 +410,6 @@ def test_driver():
 
     print('\nInsert data -------------------------------------------------')
     process_file(test_file)
-
     # three options for collisions:
     # 1. do nothing (discard new row; probably want to return an error to the user in this case)
     # 2. update existing record with new metadata
@@ -440,7 +439,7 @@ def delete_row(table, row_num):
     Returns: (bool, dict) - Boolean is successful or not, dict contains processed info
     """
     success = False
-    failed_rows={}
+    delete_info={}
     if not check_conn():
         return 0, connection_error_msg
     else:
@@ -453,21 +452,29 @@ def delete_row(table, row_num):
         except ValueError:
             return(False,{'Invalid Row' : row_num})
         for rows in row_num:
+            if rows<=0:
+                delete_info[f'Row {str(rows)}'] = 'Invalid row number'
+                continue
             cmd = f'DELETE FROM {table} WHERE "row" = {rows};'
             try:
                 pgSqlCur.execute(cmd)
                 pgSqlConn.commit()
                 if pgSqlCur.rowcount == 1:
                     success = True
+                    delete_info[f'Row {str(rows)}'] = 'Successfully Deleted'
                 else:
-                    failed_rows[str(rows)] = 'Failure'
+                    delete_info[f'Row {str(rows)}'] = 'Failure to delete'
 
             except Exception as err:
                 # print the exception
                 sql_except(err)
                 # roll back the last sql command
                 pgSqlCur.execute("ROLLBACK")
-        return (success,failed_rows)
+        if success:
+            return('Deletion Successful', delete_info)
+        else:
+            return('Some/All deletions failed', delete_info)
+
 
 if __name__ == '__main__':
     test_driver()

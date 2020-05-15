@@ -293,7 +293,7 @@ CREATE SEQUENCE violations_row_seq
     CACHE 1;
 
 ALTER TABLE violations_row_seq OWNER TO cc;
-ALTER SEQUENCE violations_row_seq OWNED BY violations.row_id;
+ALTER SEQUENCE violations_row_seq OWNED BY violations."row";
 ALTER TABLE ONLY violations ALTER COLUMN "row" SET DEFAULT nextval('violations_row_seq'::regclass);
 
 --
@@ -309,7 +309,7 @@ CREATE SEQUENCE records_row_seq
     CACHE 1;
 
 ALTER TABLE records_row_seq OWNER TO cc;
-ALTER SEQUENCE records_row_seq OWNED BY records.row_id;
+ALTER SEQUENCE records_row_seq OWNED BY records."row";
 ALTER TABLE ONLY records ALTER COLUMN "row" SET DEFAULT nextval('records_row_seq'::regclass);
 
 -------------------------
