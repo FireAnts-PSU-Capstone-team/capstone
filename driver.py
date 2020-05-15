@@ -16,6 +16,10 @@ primary_table = 'intake'
 db_tables = ['intake', 'txn_history', 'archive', 'metadata', 'violations', 'records']
 metadata_table = 'metadata'
 connection_error_msg = 'The connection to the database is closed and cannot be opened. Verify DB server is up.'
+headers = ['Submission date', 'Entity', 'DBA', 'Facility Address', 'Facility Suite #', 'Facility Zip', 'Mailing Address',
+            'MRL', 'Neighborhood Association', 'Compliance Region', 'Contact Name (first)', 'Contact Name (last)',
+            'Email', 'Phone', 'Endorse Type', 'License Type', 'Repeat location?', 'App complete?', 'Fee Schedule',
+            'Receipt No.', 'Cash Amount', 'Check Amount', 'Card Amount', 'Check No. / Approval Code', 'MRL#', 'Notes', 'row']
 
 # TODO: refactor to remove duplicated code
 is_connected = False
@@ -239,6 +243,7 @@ def read_metadata(f):
         f (str): the filename of the spreadsheet
     Returns (dict): the metadata collection
     """
+    headerMatches = 0
     data = {}
     workbook = load_workbook(f)
     file_data = workbook.properties.__dict__
@@ -252,8 +257,20 @@ def read_metadata(f):
     data['modified'] = fmt(file_data.get('modified').strftime('%Y-%m-%d %H:%M:%S+08'))
     data['lastModifiedBy'] = fmt(file_data.get('lastModifiedBy'))
     data['title'] = fmt(file_data.get('title'))
-    data['rows'] = sheet_data.max_row
     data['columns'] = sheet_data.max_column
+
+    
+    for cell in sheet_data[1]:
+        if cell.value in headers:
+            headerMatches += 1
+
+
+    #subtract one from len of headers since 'row' might not be there
+    if headerMatches >= len(headers):
+        data['rows'] = sheet_data.max_row - 1
+    else:
+        data['rows'] = sheet_data.max_row
+
 
     return data
 
