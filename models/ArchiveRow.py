@@ -3,15 +3,6 @@ class ArchiveRow:
     Represents a row of the Archive table.
     """
 
-    def __init__(self):
-        """
-        Default constructor.
-        """
-        self.row = None
-        self.tstamp = ''
-        self.who =''
-        self.old_val=''
-
     def __init__(self, input_json):
         """
         Constructor from a JSON object. Any unsupplied data defaults to None
