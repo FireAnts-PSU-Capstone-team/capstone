@@ -7,7 +7,7 @@ import psycopg2
 from openpyxl import load_workbook
 
 from db import connection as c
-from models.IntakeRow import ColNames
+from models.IntakeRow import ColNames, intake_headers
 from query_parser import QueryParser, RequestParseException
 from validation import validate_dataframe
 
@@ -16,10 +16,7 @@ primary_table = 'intake'
 db_tables = ['intake', 'txn_history', 'archive', 'metadata', 'violations', 'records']
 metadata_table = 'metadata'
 connection_error_msg = 'The connection to the database is closed and cannot be opened. Verify DB server is up.'
-headers = ['Submission date', 'Entity', 'DBA', 'Facility Address', 'Facility Suite #', 'Facility Zip', 'Mailing Address',
-            'MRL', 'Neighborhood Association', 'Compliance Region', 'Contact Name (first)', 'Contact Name (last)',
-            'Email', 'Phone', 'Endorse Type', 'License Type', 'Repeat location?', 'App complete?', 'Fee Schedule',
-            'Receipt No.', 'Cash Amount', 'Check Amount', 'Card Amount', 'Check No. / Approval Code', 'MRL#', 'Notes', 'row']
+
 
 # TODO: refactor to remove duplicated code
 is_connected = False
@@ -259,18 +256,15 @@ def read_metadata(f):
     data['title'] = fmt(file_data.get('title'))
     data['columns'] = sheet_data.max_column
 
-    
+    # adjust row count to account for header row, if necessary
+    headerMatches = 0
     for cell in sheet_data[1]:
-        if cell.value in headers:
+        if cell.value in intake_headers:
             headerMatches += 1
-
-
-    #subtract one from len of headers since 'row' might not be there
-    if headerMatches >= len(headers):
+    if headerMatches == len(intake_headers):
         data['rows'] = sheet_data.max_row - 1
     else:
         data['rows'] = sheet_data.max_row
-
 
     return data
 
