@@ -16,10 +16,6 @@ primary_table = 'intake'
 db_tables = ['intake', 'txn_history', 'archive', 'metadata', 'violations', 'records']
 metadata_table = 'metadata'
 connection_error_msg = 'The connection to the database is closed and cannot be opened. Verify DB server is up.'
-headers = ['Submission date', 'Entity', 'DBA', 'Facility Address', 'Facility Suite #', 'Facility Zip', 'Mailing Address',
-            'MRL', 'Neighborhood Association', 'Compliance Region', 'Contact Name (first)', 'Contact Name (last)',
-            'Email', 'Phone', 'Endorse Type', 'License Type', 'Repeat location?', 'App complete?', 'Fee Schedule',
-            'Receipt No.', 'Cash Amount', 'Check Amount', 'Card Amount', 'Check No. / Approval Code', 'MRL#', 'Notes', 'row']
 
 
 # TODO: refactor to remove duplicated code
