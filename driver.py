@@ -255,6 +255,7 @@ def write_info_data(df):
     row_array = np.ndenumerate(df.values).iter.base
     total_count = len(row_array)
     for row in row_array:
+        print(row)
         (re, failed_row) = insert_row(primary_table, row, True)
         if re == 1:
             success_count += 1
@@ -386,8 +387,7 @@ def process_file(f):
         df = pd.read_excel(f)
         # Validate data frame
         valid, error_msg = validate_dataframe(df)
-        if not valid:
-            return False, {'status': 'invalid', 'error_msg': error_msg}
+        
         # Write the data to the DB
         result_obj = write_info_data(df)
         # insert metadata into metadata table
@@ -398,7 +398,8 @@ def process_file(f):
 
         # commit execution
         pgSqlConn.commit()
-
+        if not valid:
+            result_obj['failed_rows'] = error_msg
         failed_insertions = result_obj['insertions_attempted'] - result_obj['insertions_successful']
         return failed_insertions == 0, result_obj
 

@@ -29,6 +29,7 @@ class RowNames(Enum):
     CHECK_NUM = 24
     MRL_NUM = 25
     NOTES = 26
+    VALIDATION_ERRORS = 27
 
 
 class IntakeRow:

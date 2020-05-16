@@ -101,30 +101,28 @@ def validate_mrl(mrl):
     """
     Validate that this field matches "MRL<number>" pattern and is unique for this field.
     """
-    m = mrl.upper().split('-')[0]
-    if m[0:3] != "MRL" or not m[3:].isdigit() or m in seen_mrls:
+    try:
+        m = mrl.upper().split('-')[0])
+        if m[0:3] != "MRL" or not m[3:].isdigit() or m in seen_mrls:
+            return False
+        seen_mrls[m] = 1
+        return True
+    except ValueError:
         return False
-    seen_mrls[m] = 1
-    return True
 
 
 def validate_mrl_num(mrl):
     """
     Validate that this field matches "MRL<number>" pattern and is unique for this field.
     """
-    m = mrl.upper().split('-')[0]
-    if m[0:3] != "MRL" or not m[3:].isdigit() or m in seen_mrl_nums:
+    try:
+        m = mrl.upper().split('-')[0]
+        if m[0:3] != "MRL" or not m[3:].isdigit() or m in seen_mrl_nums:
+            return False
+        seen_mrl_nums[m] = 1
+        return True
+    except ValueError:
         return False
-    seen_mrl_nums[m] = 1
-    return True
-
-
-def fmt_failed_row(row):
-    msg = "Failed row: "
-    for item in row:
-        msg += f"{item}, "
-    msg = msg[0:len(msg) - 2]
-    return msg
 
 
 def replacePhoneNumber(phone):
@@ -149,14 +147,10 @@ def validate_monetary_amount(amt):
 
 
 def validate_dataframe(df):
-    def error_row(field_index, failed_row):
-        msg = {
-            'invalid_column_name': df.columns[field_index],
-            'failed_value': failed_row[field_index],
-            'failed_row': fmt_failed_row(failed_row)
-        }
-        return False, json.dumps(msg)
-
+     
+    i = 1
+    msg = {}
+    df["validation_errors"] = df.apply(lambda x: 'Entry', axis=1)
     df.rename(columns={'Unnamed: 0': 'row'}, inplace=True)
 
     for row in df.itertuples(index=False):
@@ -164,71 +158,71 @@ def validate_dataframe(df):
         try:
             pd.to_datetime(row[RowNames.SUBMISSION_DATE.value], format='%m/%d/%y', errors="raise")
         except ValueError:
-            return error_row(RowNames.SUBMISSION_DATE.value, row)
+            df.at[i, "validation_errors"] += str(row[RowNames.SUBMISSION_DATE.value])
         # Fields that shouldn't be null but aren't subject to other validation
         non_nulls = [RowNames.ENTITY, RowNames.FACILITY_ADDRESS, RowNames.MAILING_ADDRESS,
                      RowNames.FIRST_NAME, RowNames.LAST_NAME]
         for field in non_nulls:
             if row[field.value] == np.nan:
-                return error_row(field.value, row)
+                df.at[i, "validation_errors"] += row[field.value]
         # Facility Zip: 5-digit number
         try:
             valid_zip = 0 <= int(row[RowNames.FACILITY_ZIP.value]) < 100000
         except ValueError:
             valid_zip = False
         if not valid_zip:
-            return error_row(RowNames.FACILITY_ZIP.value, row)
+            df.at[i, "validation_errors"] += str(row[RowNames.FACILITY_ZIP.value])
         # MRL
         if not validate_mrl(row[RowNames.MRL.value]):
-            return error_row(RowNames.MRL.value, row)
+            df.at[i, "validation_errors"] += row[RowNames.MRL.value]
         # Neighborhood Association: in approved list
         if not row[RowNames.NEIGHBORHOOD_ASSN.value] in validNeighborhoods:
-            _, err_row = error_row(RowNames.NEIGHBORHOOD_ASSN.value, row)
-            e = json.loads(err_row)
-            e['valid_neighborhoods'] = validNeighborhoods
-            return False, json.dumps(e)
+            df.at[i, "validation_errors"] += row[RowNames.NEIGHBORHOOD_ASSN.value]
         # Compliance Region
         if not row[RowNames.COMPLIANCE_REGION.value] in valid_compliance_regions:
-            return error_row(RowNames.COMPLIANCE_REGION.value, row)
+             df.at[i, "validation_errors"] += row[RowNames.COMPLIANCE_REGION.value]
         # Email - matches regex
         if not re.match(emailRegex, row[RowNames.EMAIL.value]):
-            return error_row(RowNames.EMAIL.value, row)
+             df.at[i, "validation_errors"] += row[RowNames.EMAIL.value]
         # Phone: coerceable into a 10-digit number
         if not validatePhoneNumber(row[RowNames.PHONE.value]):
-            return error_row(RowNames.PHONE.value, row)
+             df.at[i, "validation_errors"] += row[RowNames.PHONE.value]
         # Endorsement: combination from approved list
         if not validateEndorsement(row[RowNames.ENDORSE_TYPE.value]):
-            return error_row(RowNames.ENDORSE_TYPE.value, row)
+             df.at[i, "validation_errors"] += row[RowNames.ENDORSE_TYPE.value]
         # License Type: matches expected values
         if not validate_license_type(row[RowNames.LICENSE_TYPE.value]):
-            return error_row(RowNames.LICENSE_TYPE.value, row)
+             df.at[i, "validation_errors"] += row[RowNames.LICENSE_TYPE.value]
         # Repeat location: unique and in approved list
         if not str(row[RowNames.REPEAT_LOCATION.value]).upper() in repeat_location_values:
-            return error_row(RowNames.REPEAT_LOCATION.value, row)
+             df.at[i, "validation_errors"] += row[RowNames.REPEAT_LOCATION.value]
         # App complete: in approved list
         if not str(row[RowNames.APP_COMPLETE.value]).upper() in app_complete_values:
-            return error_row(RowNames.APP_COMPLETE.value, row)
+             df.at[i, "validation_errors"] += row[RowNames.APP_COMPLETE.value]
         # Fee schedule: parseable date
         try:
             pd.to_datetime(row[RowNames.FEE_SCHEDULE.value], errors="raise")
         except:
-            return error_row(RowNames.FEE_SCHEDULE.value, row)
+             df.at[i, "validation_errors"] += str(row[RowNames.FEE_SCHEDULE.value])
         # Receipt num: numeric value with no repeats
         if not validate_receipt_num(row[RowNames.RECEIPT_NUM.value]):
-            return error_row(RowNames.RECEIPT_NUM.value, row)
+             df.at[i, "validation_errors"] += str(row[RowNames.RECEIPT_NUM.value])
         # Cash amount: number, possibly preceded by '$'
         if not validate_monetary_amount(row[RowNames.CASH_AMT.value]):
-            return error_row(RowNames.CASH_AMT.value, row)
+             df.at[i, "validation_errors"] += str(row[RowNames.CASH_AMT.value])
         # Check amount: number, possibly preceded by '$'
         if not validate_monetary_amount(row[RowNames.CHECK_AMT.value]):
-            return error_row(RowNames.CHECK_AMT.value, row)
+             df.at[i, "validation_errors"] += str(row[RowNames.CHECK_AMT.value])
         # Card amount: number, possibly preceded by '$'
         if not validate_monetary_amount(row[RowNames.CARD_AMT.value]):
-            return error_row(RowNames.CARD_AMT.value, row)
+             df.at[i, "validation_errors"] += str(row[RowNames.CARD_AMT.value])
         # Check No./Approval Code: no validation
         # MRL num
         if not validate_mrl_num(row[RowNames.MRL_NUM.value]):
-            return error_row(RowNames.MRL_NUM.value, row)
+             df.at[i, "validation_errors"] += row[RowNames.MRL_NUM.value]
+        if len(row[RowNames.VALIDATION_ERRORS.value]) != 0:
+            msg[i] = row[RowNames.VALIDATION_ERRORS.value]
+        i += 1
 
     # Regularize the following values:
     # Facility Address
@@ -246,4 +240,8 @@ def validate_dataframe(df):
     # App complete
     df['App complete?'] = df['App complete?'].apply(lambda x: str(x).upper())
 
-    return True, None
+    #If dictionary is empty
+    if not msg:
+        return True, None
+   
+    return False, json.dumps(msg)
