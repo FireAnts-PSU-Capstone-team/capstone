@@ -1,3 +1,4 @@
+import collections
 import os
 import sys
 import time
@@ -5,6 +6,7 @@ import pandas as pd
 import numpy as np
 import psycopg2
 from openpyxl import load_workbook
+from pandas.io.json import json_normalize
 
 from db import connection as c
 from models.IntakeRow import ColNames, intake_headers
@@ -85,7 +87,6 @@ def sql_except(err):
 
     # print the connect() error
     sys.stderr.write(f"\npsycopg2 ERROR: {err}")
-    return "psycopg2 ERROR:", err
 
 
 def fmt(s):
@@ -166,6 +167,7 @@ def filter_table(request_body):
     """
     Return a JSON object representing the requested data from the table.
     Built to take a JSON request, which is parsed in order to construct a SQL query; returns the result of that query.
+    The query must comply to a schema outlined in the Swagger file.
     Args:
         request_body ({}): a JSON object, which must conform to a defined schema and is parsed to build the query
     Returns:
@@ -173,7 +175,6 @@ def filter_table(request_body):
          response ({}): the retrieved data
          status (int): the HTTP status code of the response
     """
-    # TODO: define a schema for reference
     try:
         table_names = get_table_list()
         qp = QueryParser(table_names)
@@ -356,6 +357,23 @@ def get_table_list():
         return str([x[0] for x in pgSqlCur.fetchall()])
     except psycopg2.Error as err:
         sql_except(err)
+
+
+def validate_row(json_item):
+    """
+    Preps a JSON input row and passes it to the data validator. Returns the validator's response.
+    Args:
+        json_item ({}): input JSON
+    Returns ((bool, str)): <whether row is valid>, <error message>
+    """
+    # If the incoming json object doesn't have a row associated with it, we add a temporary one for validation
+    if 'row' not in json_item:
+        json_item = collections.OrderedDict(json_item)
+        json_item.update({'row': 999})
+        json_item.move_to_end('row', last=False)
+    df = json_normalize(json_item)
+    return validate_dataframe(df)
+
 
 
 def insert_row(table, row, checked=False):
