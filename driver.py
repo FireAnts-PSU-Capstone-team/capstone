@@ -449,6 +449,50 @@ def process_file(f):
         failed_insertions = result_obj['insertions_attempted'] - result_obj['insertions_successful']
         return failed_insertions == 0, result_obj
 
+def delete_row(table, row_num):
+    """
+    Args:
+        table - string of the table name to delete row from
+        row_num - int representing the rowId to delete
+    Returns: (bool, dict) - Boolean is successful or not, dict contains processed info
+    """
+    success = False
+    delete_info={}
+    if not check_conn():
+        return 0, connection_error_msg
+    else:
+        # verify table is within the db
+        if table not in db_tables:
+            raise InvalidTableException
+        # convert each row_num to digit;
+        try:
+            row_num = list(map(int,row_num))
+        except ValueError:
+            return(False,{'Invalid Row' : row_num})
+        for rows in row_num:
+            if rows<=0:
+                delete_info[f'Row {str(rows)}'] = 'Invalid row number'
+                continue
+            cmd = f'DELETE FROM {table} WHERE "row" = {rows};'
+            try:
+                pgSqlCur.execute(cmd)
+                pgSqlConn.commit()
+                if pgSqlCur.rowcount == 1:
+                    success = True
+                    delete_info[f'Row {str(rows)}'] = 'Successfully Deleted'
+                else:
+                    delete_info[f'Row {str(rows)}'] = 'Failure to delete'
+
+            except Exception as err:
+                # print the exception
+                sql_except(err)
+                # roll back the last sql command
+                pgSqlCur.execute("ROLLBACK")
+        if success:
+            return('Deletion Successful', delete_info)
+        else:
+            return('Some/All deletions failed', delete_info)
+
 
 def test_driver():
     # Pre-insert query
