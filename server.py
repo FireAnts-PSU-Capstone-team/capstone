@@ -30,28 +30,33 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-@app.route("/list", methods=["GET"])
-def dump_table():
+@app.route("/list", methods=["GET", "POST"])
+def fetch_data():
     """
     Displays the contents of the table listed in the request.
-    Usage: /list?table=<table_name>
+    Usage:
+        GET /list?table=<table_name> to retrieve entire table
+        POST /list to process specific query
     Returns ({}): JSON object of table data
     """
-    table_name = request.args.get('table', '')
-    if table_name == '':
-        return make_response(jsonify('Table name not supplied.'), 400)
-    try:
-        # TODO: once authentication is in place, restrict the tables that can be listed here
-        columns = request.args.get('column', '')
-        if columns == '':
-            columns = None
-        else:
-            columns = str.split(columns.strip(), ' ')
+    if request.method == 'POST':
+        query, response, status = driver.filter_table(request.json)
+        app.logger.info("Received query: " + query)
+        return make_response(jsonify(response), status)
 
-        table_info_obj = driver.get_table(table_name, columns)
-        return make_response(jsonify(table_info_obj), 200)
-    except driver.InvalidTableException:
-        return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
+    if request.method == 'GET':
+        table_name = request.args.get('table')
+        if table_name is None:
+            return make_response(jsonify('Table name not supplied.'), 400)
+        try:
+            # TODO: once authentication is in place, restrict the tables that can be listed here
+            columns = request.args.get('column')
+            if columns is not None:
+                columns = str.split(columns.strip(), ' ')
+            table_info_obj = driver.get_table(table_name, columns)
+            return make_response(jsonify(table_info_obj), 200)
+        except driver.InvalidTableException:
+            return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
 
 
 def validate_row(json_item):
@@ -60,7 +65,6 @@ def validate_row(json_item):
     Args:
         json_item ({}): input JSON
     Returns ((bool, str)): <whether row is valid>, <error message>
-
     """
     # If the incoming json object doesn't have a row associated with it, we add a temporary one for validation
     if 'row' not in json_item:
@@ -80,7 +84,6 @@ def load_data():
         POST: /load?file=</path/to/file.xlsx>
     Returns ({}): HTTPS response
     """
-    # TODO: add error handling if JSON schema doesn't match
     if request.method == 'PUT':
         table_name = request.args.get('table')
         if table_name is None:
@@ -95,18 +98,23 @@ def load_data():
             valid, error_msg = validate_row(request.get_json(force=True))
             if not valid:
                 result = {'message': error_msg}
-                return make_response(jsonify(result),404)
+                return make_response(jsonify(result), 404)
             try:
                 row_data = IntakeRow(request.get_json(force=True)).value_array()
             except (KeyError, ValueError) as err:
                 message = {'message': err}
                 return make_response(jsonify(message), 404)
 
-            (row_count, fail_row) = driver.insert_row(table_name, row_data)
+            row_count, fail_row = driver.insert_row(table_name, row_data)
             if row_count == 1:
                 result = {
                     'message': 'PUT completed',
                     'rows_affected': row_count
+                }
+            elif row_count == -1:
+                result = {
+                    'message': 'PUT failed',
+                    'cause': 'duplicate row number'
                 }
             else:
                 result = {
