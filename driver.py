@@ -256,11 +256,14 @@ def write_info_data(df):
     total_count = len(row_array)
     for row in row_array:
         print(row)
-        (re, failed_row) = insert_row(primary_table, row, True)
-        if re == 1:
-            success_count += 1
-        else:
-            failed_rows.append(failed_row)
+        try:
+            (re, failed_row) = insert_row(primary_table, row, True)
+            if re == 1:
+                success_count += 1
+            else:
+                failed_rows.append(failed_row)
+        except:
+            failed_rows.append(row)
 
     return {
         'insertions_attempted': total_count,
@@ -399,7 +402,7 @@ def process_file(f):
         # commit execution
         pgSqlConn.commit()
         if not valid:
-            result_obj['failed_rows'] = error_msg
+           result_obj['failed_rows'] = error_msg
         failed_insertions = result_obj['insertions_attempted'] - result_obj['insertions_successful']
         return failed_insertions == 0, result_obj
 

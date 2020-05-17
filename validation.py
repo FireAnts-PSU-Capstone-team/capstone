@@ -102,12 +102,12 @@ def validate_mrl(mrl):
     Validate that this field matches "MRL<number>" pattern and is unique for this field.
     """
     try:
-        m = mrl.upper().split('-')[0])
+        m = mrl.upper().split('-')[0]
         if m[0:3] != "MRL" or not m[3:].isdigit() or m in seen_mrls:
             return False
         seen_mrls[m] = 1
         return True
-    except ValueError:
+    except (ValueError, AttributeError) as e:
         return False
 
 
@@ -121,16 +121,24 @@ def validate_mrl_num(mrl):
             return False
         seen_mrl_nums[m] = 1
         return True
-    except ValueError:
+    except (ValueError, AttributeError):
         return False
 
 
 def replacePhoneNumber(phone):
-    return ''.join([d for d in phone if d.isdigit()])
-
+    try:
+        return ''.join([d for d in phone if d.isdigit()])
+    except TypeError: #Not a string/an integer
+        return phone
 
 def validatePhoneNumber(phone):
-    return len(''.join([d for d in phone if d.isdigit()])) == 10
+    try:
+        return len(''.join([d for d in phone if d.isdigit()])) == 10
+    except (TypeError,AttributeError):
+        if len(str(phone)) == 10: #If no formatting/phone is passed in as an int
+            return True
+        else:
+            return False
 
 
 def validate_monetary_amount(amt):
@@ -150,77 +158,82 @@ def validate_dataframe(df):
      
     i = 1
     msg = {}
-    df["validation_errors"] = df.apply(lambda x: 'Entry', axis=1)
+    df["validation_errors"] = df.apply(lambda x: 'Entry: ', axis=1)
     df.rename(columns={'Unnamed: 0': 'row'}, inplace=True)
 
     for row in df.itertuples(index=False):
+        errorString = []
         # Submission Date: parseable into a datetime
         try:
             pd.to_datetime(row[RowNames.SUBMISSION_DATE.value], format='%m/%d/%y', errors="raise")
         except ValueError:
-            df.at[i, "validation_errors"] += str(row[RowNames.SUBMISSION_DATE.value])
+            errorString.append(row[RowNames.SUBMISSION_DATE.value])
         # Fields that shouldn't be null but aren't subject to other validation
         non_nulls = [RowNames.ENTITY, RowNames.FACILITY_ADDRESS, RowNames.MAILING_ADDRESS,
                      RowNames.FIRST_NAME, RowNames.LAST_NAME]
         for field in non_nulls:
             if row[field.value] == np.nan:
-                df.at[i, "validation_errors"] += row[field.value]
+                errorString.append(row[field.value])
         # Facility Zip: 5-digit number
         try:
             valid_zip = 0 <= int(row[RowNames.FACILITY_ZIP.value]) < 100000
         except ValueError:
             valid_zip = False
         if not valid_zip:
-            df.at[i, "validation_errors"] += str(row[RowNames.FACILITY_ZIP.value])
+            errorString.append(row[RowNames.FACILITY_ZIP.value])
         # MRL
         if not validate_mrl(row[RowNames.MRL.value]):
-            df.at[i, "validation_errors"] += row[RowNames.MRL.value]
+            errorString.append(row[RowNames.MRL.value])
         # Neighborhood Association: in approved list
         if not row[RowNames.NEIGHBORHOOD_ASSN.value] in validNeighborhoods:
-            df.at[i, "validation_errors"] += row[RowNames.NEIGHBORHOOD_ASSN.value]
+            errorString.append(row[RowNames.NEIGHBORHOOD_ASSN.value])
         # Compliance Region
         if not row[RowNames.COMPLIANCE_REGION.value] in valid_compliance_regions:
-             df.at[i, "validation_errors"] += row[RowNames.COMPLIANCE_REGION.value]
+             errorString.append(row[RowNames.COMPLIANCE_REGION.value])
         # Email - matches regex
-        if not re.match(emailRegex, row[RowNames.EMAIL.value]):
-             df.at[i, "validation_errors"] += row[RowNames.EMAIL.value]
+        try:
+            if not re.match(emailRegex, row[RowNames.EMAIL.value]):
+                errorString.append(row[RowNames.EMAIL.value])
+        except: #any error, honestly
+            errorString.append(row[RowNames.EMAIL.value])
         # Phone: coerceable into a 10-digit number
         if not validatePhoneNumber(row[RowNames.PHONE.value]):
-             df.at[i, "validation_errors"] += row[RowNames.PHONE.value]
+             errorString.append(row[RowNames.PHONE.value])
         # Endorsement: combination from approved list
         if not validateEndorsement(row[RowNames.ENDORSE_TYPE.value]):
-             df.at[i, "validation_errors"] += row[RowNames.ENDORSE_TYPE.value]
+             errorString.append(row[RowNames.ENDORSE_TYPE.value])
         # License Type: matches expected values
         if not validate_license_type(row[RowNames.LICENSE_TYPE.value]):
-             df.at[i, "validation_errors"] += row[RowNames.LICENSE_TYPE.value]
+             errorString.append(row[RowNames.LICENSE_TYPE.value])
         # Repeat location: unique and in approved list
         if not str(row[RowNames.REPEAT_LOCATION.value]).upper() in repeat_location_values:
-             df.at[i, "validation_errors"] += row[RowNames.REPEAT_LOCATION.value]
+            errorString.append(row[RowNames.REPEAT_LOCATION.value])
         # App complete: in approved list
         if not str(row[RowNames.APP_COMPLETE.value]).upper() in app_complete_values:
-             df.at[i, "validation_errors"] += row[RowNames.APP_COMPLETE.value]
+            errorString.append(row[RowNames.APP_COMPLETE.value])
         # Fee schedule: parseable date
         try:
             pd.to_datetime(row[RowNames.FEE_SCHEDULE.value], errors="raise")
         except:
-             df.at[i, "validation_errors"] += str(row[RowNames.FEE_SCHEDULE.value])
+            errorString.append(row[RowNames.FEE_SCHEDULE.value])
         # Receipt num: numeric value with no repeats
         if not validate_receipt_num(row[RowNames.RECEIPT_NUM.value]):
-             df.at[i, "validation_errors"] += str(row[RowNames.RECEIPT_NUM.value])
+            errorString.append(row[RowNames.RECEIPT_NUM.value])
         # Cash amount: number, possibly preceded by '$'
         if not validate_monetary_amount(row[RowNames.CASH_AMT.value]):
-             df.at[i, "validation_errors"] += str(row[RowNames.CASH_AMT.value])
+            errorString.append(row[RowNames.CASH_AMT.value])
         # Check amount: number, possibly preceded by '$'
         if not validate_monetary_amount(row[RowNames.CHECK_AMT.value]):
-             df.at[i, "validation_errors"] += str(row[RowNames.CHECK_AMT.value])
+            errorString.append(row[RowNames.CHECK_AMT.value])
         # Card amount: number, possibly preceded by '$'
         if not validate_monetary_amount(row[RowNames.CARD_AMT.value]):
-             df.at[i, "validation_errors"] += str(row[RowNames.CARD_AMT.value])
+            errorString.append(row[RowNames.CARD_AMT.value])
         # Check No./Approval Code: no validation
         # MRL num
         if not validate_mrl_num(row[RowNames.MRL_NUM.value]):
-             df.at[i, "validation_errors"] += row[RowNames.MRL_NUM.value]
-        if len(row[RowNames.VALIDATION_ERRORS.value]) != 0:
+            errorString.append(row[RowNames.MRL_NUM.value])
+        if len(errorString) != 0:      
+            df.at[i, row[RowNames.VALIDATION_ERRORS.value]] = ','.join(str(x) for x in errorString)  
             msg[i] = row[RowNames.VALIDATION_ERRORS.value]
         i += 1
 
@@ -242,6 +255,6 @@ def validate_dataframe(df):
 
     #If dictionary is empty
     if not msg:
-        return True, None
-   
-    return False, json.dumps(msg)
+       return True, None
+      
+    return False, msg
