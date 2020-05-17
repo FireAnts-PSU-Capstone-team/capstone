@@ -3,7 +3,7 @@ import numpy as np
 import re as re
 import json
 
-from models.IntakeRow import RowNames
+from models.IntakeRow import ColNames
 
 # addressRegex = r'^(\d+)\s([a-zA-Z]{1,2})\s([a-zA-Z0-9\-\.]+\s)+([a-zA-Z]+)(\.?)'
 # addressWithFacilityRegex = r'^(\d+)\s([a-zA-Z]{1,2})\s(([a-zA-Z1-9]+\s)+)([a-zA-Z]+)(\.?)(\,?)\s(#\d+)'
@@ -96,7 +96,6 @@ def validate_receipt_num(receiptNo):
         return True
 
 
-# TODO: combine these 2 functions once we know how MRL and MRL# are related
 def validate_mrl(mrl):
     """
     Validate that this field matches "MRL<number>" pattern and is unique for this field.
@@ -107,20 +106,6 @@ def validate_mrl(mrl):
             return False
         seen_mrls[m] = 1
         return True
-    except (ValueError, AttributeError) as e:
-        return False
-
-
-def validate_mrl_num(mrl):
-    """
-    Validate that this field matches "MRL<number>" pattern and is unique for this field.
-    """
-    try:
-        m = mrl.upper().split('-')[0]
-        if m[0:3] != "MRL" or not m[3:].isdigit() or m in seen_mrl_nums:
-            return False
-        seen_mrl_nums[m] = 1
-        return True
     except (ValueError, AttributeError):
         return False
 
@@ -128,14 +113,14 @@ def validate_mrl_num(mrl):
 def replacePhoneNumber(phone):
     try:
         return ''.join([d for d in phone if d.isdigit()])
-    except TypeError: #Not a string/an integer
+    except TypeError:
         return phone
 
 def validatePhoneNumber(phone):
     try:
         return len(''.join([d for d in phone if d.isdigit()])) == 10
-    except (TypeError,AttributeError):
-        if len(str(phone)) == 10: #If no formatting/phone is passed in as an int
+    except (TypeError, AttributeError):
+        if len(str(phone)) == 10:  # If no formatting/phone is passed in as an int
             return True
         else:
             return False
@@ -155,28 +140,28 @@ def validate_monetary_amount(amt):
 
 
 def validate_dataframe(df):
-     
+
     i = 1
     msg = {}
-    df["validation_errors"] = df.apply(lambda x: 'Entry: ', axis=1)
+    # df["validation_errors"] = df.apply(lambda x: 'Entry: ', axis=1)
     df.rename(columns={'Unnamed: 0': 'row'}, inplace=True)
 
     for row in df.itertuples(index=False):
         errorString = []
         # Submission Date: parseable into a datetime
         try:
-            pd.to_datetime(row[RowNames.SUBMISSION_DATE.value], format='%m/%d/%y', errors="raise")
+            pd.to_datetime(row[ColNames.SUBMISSION_DATE.value], format='%m/%d/%y', errors="raise")
         except ValueError:
-            errorString.append(row[RowNames.SUBMISSION_DATE.value])
+            errorString.append(row[ColNames.SUBMISSION_DATE.value])
         # Fields that shouldn't be null but aren't subject to other validation
-        non_nulls = [RowNames.ENTITY, RowNames.FACILITY_ADDRESS, RowNames.MAILING_ADDRESS,
-                     RowNames.FIRST_NAME, RowNames.LAST_NAME]
+        non_nulls = [ColNames.ENTITY, ColNames.FACILITY_ADDRESS, ColNames.MAILING_ADDRESS,
+                     ColNames.PRIMARY_CONTACT_FIRST_NAME, ColNames.PRIMARY_CONTACT_LAST_NAME]
         for field in non_nulls:
             if row[field.value] == np.nan:
                 errorString.append(row[field.value])
         # Facility Zip: 5-digit number
         try:
-            valid_zip = 0 <= int(row[RowNames.FACILITY_ZIP.value]) < 100000
+            valid_zip = 0 <= int(row[ColNames.FACILITY_ZIP.value]) < 100000
         except ValueError:
             valid_zip = False
         if not valid_zip:
@@ -230,31 +215,27 @@ def validate_dataframe(df):
             errorString.append(row[RowNames.CARD_AMT.value])
         # Check No./Approval Code: no validation
         # MRL num
-        if not validate_mrl_num(row[RowNames.MRL_NUM.value]):
+        if not validate_mrl(row[RowNames.MRL_NUM.value]):
             errorString.append(row[RowNames.MRL_NUM.value])
-        if len(errorString) != 0:      
-            df.at[i, row[RowNames.VALIDATION_ERRORS.value]] = ','.join(str(x) for x in errorString)  
+        if len(errorString) != 0:
+            df.at[i, row[RowNames.VALIDATION_ERRORS.value]] = ','.join(str(x) for x in errorString)
             msg[i] = row[RowNames.VALIDATION_ERRORS.value]
         i += 1
 
     # Regularize the following values:
     # Facility Address
     df['Facility Address'] = df['Facility Address'].str.title()
-    # Mailing Address
-    df['Mailing Address'] = df['Mailing Address'].str.title()
+    # Suite number
+    df['Facility Suite #'] = df['Facility Suite #'].str.strip()
     # MRL
     df['MRL'] = df['MRL'].str.strip()
     # Phone numbers
     df['Phone'] = df['Phone'].apply(replacePhoneNumber)
     # Endorsement types
     df['Endorse Type'] = df['Endorse Type'].apply(lambda x: str(x).strip())
-    # Repeat location
-    df['Repeat location?'] = df['Repeat location?'].apply(lambda x: str(x).upper())
-    # App complete
-    df['App complete?'] = df['App complete?'].apply(lambda x: str(x).upper())
 
     #If dictionary is empty
     if not msg:
        return True, None
-      
+
     return False, msg

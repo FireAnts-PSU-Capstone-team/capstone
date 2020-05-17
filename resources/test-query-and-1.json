@@ -1,0 +1,21 @@
+{
+  "table": "intake",
+  "columns": [
+    "dba",
+    "mrl"
+  ],
+  "where": {
+    "and": [
+      {
+        "column": "mrl",
+        "op": "=",
+        "operand": "MRL48"
+      },
+      {
+        "column": "row",
+        "op": "<",
+        "operand": 5
+      }
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "table": "intake",
+  "columns": [
+    "dba",
+    "mrl"
+  ],
+  "where": {
+    "or": [
+      {
+        "column": "submission_date",
+        "op": "<",
+        "operand": "1/1/2020"
+      },
+      {
+        "and": [
+          {
+            "column": "mrl",
+            "op": "=",
+            "operand": "MRL48"
+          },
+          {
+            "column": "cash_amount",
+            "op": ">",
+            "operand": "$900"
+          }
+        ]
+      }
+    ]
+  }
+}
