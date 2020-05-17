@@ -1,7 +1,8 @@
+from datetime import datetime
+
 import pandas as pd
 import numpy as np
 import re as re
-import json
 
 from models.IntakeRow import ColNames
 
@@ -9,8 +10,6 @@ from models.IntakeRow import ColNames
 # addressWithFacilityRegex = r'^(\d+)\s([a-zA-Z]{1,2})\s(([a-zA-Z1-9]+\s)+)([a-zA-Z]+)(\.?)(\,?)\s(#\d+)'
 # POBoxRegex = r'^([P|p][O|o])\s(Box|box|BOX)\s(\d)+(\,?)(\s)[a-zA-Z1-9]+(\,)*\s[A-Z]{2}(\,)*\s\d{5}'
 emailRegex = r'(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)'
-repeat_location_values = ['Y', 'N', 'X', 'NAN']
-app_complete_values = ['M', 'N', 'N/A', 'Y', 'NAN']
 valid_compliance_regions = ['N', 'NW', 'NE', 'W', 'SW', 'SE', 'NAN']
 
 validNeighborhoods = ['Alameda', 'Arbor Lodge', 'Ardenwald/Johnson Creek', 'Argay Terrace', 'Arlington Heights',
@@ -35,7 +34,6 @@ valid_endorsements = ["CT", "ED", "EX", "TO"]
 license_types = ['MD', 'MR', 'MC', 'MW', 'MP', 'MU']
 uniqueReceipts = {}
 seen_mrls = {}
-seen_mrl_nums = {}
 
 
 # def validate_suite_number(x):
@@ -116,6 +114,7 @@ def replacePhoneNumber(phone):
     except TypeError:
         return phone
 
+
 def validatePhoneNumber(phone):
     try:
         return len(''.join([d for d in phone if d.isdigit()])) == 10
@@ -141,9 +140,9 @@ def validate_monetary_amount(amt):
 
 def validate_dataframe(df):
 
-    i = 1
+    i = 0
     msg = {}
-    # df["validation_errors"] = df.apply(lambda x: 'Entry: ', axis=1)
+    df[ColNames.VALIDATION_ERRORS.name] = df.apply(lambda x: '', axis=1)
     df.rename(columns={'Unnamed: 0': 'row'}, inplace=True)
 
     for row in df.itertuples(index=False):
@@ -152,77 +151,71 @@ def validate_dataframe(df):
         try:
             pd.to_datetime(row[ColNames.SUBMISSION_DATE.value], format='%m/%d/%y', errors="raise")
         except ValueError:
-            errorString.append(row[ColNames.SUBMISSION_DATE.value])
+            errorString.append(ColNames.SUBMISSION_DATE.name)
         # Fields that shouldn't be null but aren't subject to other validation
         non_nulls = [ColNames.ENTITY, ColNames.FACILITY_ADDRESS, ColNames.MAILING_ADDRESS,
                      ColNames.PRIMARY_CONTACT_FIRST_NAME, ColNames.PRIMARY_CONTACT_LAST_NAME]
         for field in non_nulls:
             if row[field.value] == np.nan:
-                errorString.append(row[field.value])
+                errorString.append(field.name)
         # Facility Zip: 5-digit number
         try:
             valid_zip = 0 <= int(row[ColNames.FACILITY_ZIP.value]) < 100000
         except ValueError:
             valid_zip = False
         if not valid_zip:
-            errorString.append(row[RowNames.FACILITY_ZIP.value])
+            errorString.append(ColNames.FACILITY_ZIP.name)
         # MRL
-        if not validate_mrl(row[RowNames.MRL.value]):
-            errorString.append(row[RowNames.MRL.value])
+        if not validate_mrl(row[ColNames.MRL.value]):
+            errorString.append(ColNames.MRL.name)
         # Neighborhood Association: in approved list
-        if not row[RowNames.NEIGHBORHOOD_ASSN.value] in validNeighborhoods:
-            errorString.append(row[RowNames.NEIGHBORHOOD_ASSN.value])
+        if not row[ColNames.NEIGHBORHOOD_ASSOCIATION.value] in validNeighborhoods:
+            errorString.append(ColNames.NEIGHBORHOOD_ASSOCIATION.name)
         # Compliance Region
-        if not row[RowNames.COMPLIANCE_REGION.value] in valid_compliance_regions:
-             errorString.append(row[RowNames.COMPLIANCE_REGION.value])
+        if not row[ColNames.COMPLIANCE_REGION.value] in valid_compliance_regions:
+            errorString.append(ColNames.COMPLIANCE_REGION.name)
         # Email - matches regex
         try:
-            if not re.match(emailRegex, row[RowNames.EMAIL.value]):
-                errorString.append(row[RowNames.EMAIL.value])
-        except: #any error, honestly
-            errorString.append(row[RowNames.EMAIL.value])
+            if not re.match(emailRegex, row[ColNames.EMAIL.value]):
+                errorString.append(ColNames.EMAIL.name)
+        except:  # any error, honestly
+            errorString.append(ColNames.EMAIL.name)
         # Phone: coerceable into a 10-digit number
-        if not validatePhoneNumber(row[RowNames.PHONE.value]):
-             errorString.append(row[RowNames.PHONE.value])
+        if not validatePhoneNumber(row[ColNames.PHONE.value]):
+            errorString.append(ColNames.PHONE.name)
         # Endorsement: combination from approved list
-        if not validateEndorsement(row[RowNames.ENDORSE_TYPE.value]):
-             errorString.append(row[RowNames.ENDORSE_TYPE.value])
+        if not validateEndorsement(row[ColNames.ENDORSE_TYPE.value]):
+            errorString.append(ColNames.ENDORSE_TYPE.name)
         # License Type: matches expected values
-        if not validate_license_type(row[RowNames.LICENSE_TYPE.value]):
-             errorString.append(row[RowNames.LICENSE_TYPE.value])
-        # Repeat location: unique and in approved list
-        if not str(row[RowNames.REPEAT_LOCATION.value]).upper() in repeat_location_values:
-            errorString.append(row[RowNames.REPEAT_LOCATION.value])
-        # App complete: in approved list
-        if not str(row[RowNames.APP_COMPLETE.value]).upper() in app_complete_values:
-            errorString.append(row[RowNames.APP_COMPLETE.value])
-        # Fee schedule: parseable date
-        try:
-            pd.to_datetime(row[RowNames.FEE_SCHEDULE.value], errors="raise")
-        except:
-            errorString.append(row[RowNames.FEE_SCHEDULE.value])
+        if not validate_license_type(row[ColNames.LICENSE_TYPE.value]):
+            errorString.append(ColNames.LICENSE_TYPE.name)
+        # Repeat location: not checked
+        # App complete: not checked
+        # Fee schedule: not checked
         # Receipt num: numeric value with no repeats
-        if not validate_receipt_num(row[RowNames.RECEIPT_NUM.value]):
-            errorString.append(row[RowNames.RECEIPT_NUM.value])
+        if not validate_receipt_num(row[ColNames.RECEIPT_NUM.value]):
+            errorString.append(ColNames.RECEIPT_NUM.name)
         # Cash amount: number, possibly preceded by '$'
-        if not validate_monetary_amount(row[RowNames.CASH_AMT.value]):
-            errorString.append(row[RowNames.CASH_AMT.value])
+        if not validate_monetary_amount(row[ColNames.CASH_AMOUNT.value]):
+            errorString.append(ColNames.CASH_AMOUNT.name)
         # Check amount: number, possibly preceded by '$'
-        if not validate_monetary_amount(row[RowNames.CHECK_AMT.value]):
-            errorString.append(row[RowNames.CHECK_AMT.value])
+        if not validate_monetary_amount(row[ColNames.CHECK_AMOUNT.value]):
+            errorString.append(ColNames.CHECK_AMOUNT.name)
         # Card amount: number, possibly preceded by '$'
-        if not validate_monetary_amount(row[RowNames.CARD_AMT.value]):
-            errorString.append(row[RowNames.CARD_AMT.value])
+        if not validate_monetary_amount(row[ColNames.CARD_AMOUNT.value]):
+            errorString.append(ColNames.CARD_AMOUNT.name)
         # Check No./Approval Code: no validation
-        # MRL num
-        if not validate_mrl(row[RowNames.MRL_NUM.value]):
-            errorString.append(row[RowNames.MRL_NUM.value])
+        # MRL num: not checked
         if len(errorString) != 0:
-            df.at[i, row[RowNames.VALIDATION_ERRORS.value]] = ','.join(str(x) for x in errorString)
-            msg[i] = row[RowNames.VALIDATION_ERRORS.value]
+            error_cols = ','.join(str(x) for x in errorString)
+            df.at[i, ColNames.VALIDATION_ERRORS.name] = error_cols
+            msg[i] = error_cols
         i += 1
 
     # Regularize the following values:
+    df['Submission date'] = df['Submission date'].apply(
+        lambda x: x.strftime('%m/%d/%y') if isinstance(x, datetime) else x
+    )
     # Facility Address
     df['Facility Address'] = df['Facility Address'].str.title()
     # Suite number
@@ -234,8 +227,8 @@ def validate_dataframe(df):
     # Endorsement types
     df['Endorse Type'] = df['Endorse Type'].apply(lambda x: str(x).strip())
 
-    #If dictionary is empty
+    # If dictionary is empty
     if not msg:
-       return True, None
+        return True, None
 
     return False, msg
