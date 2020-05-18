@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "72fe7164-c425-46bc-b65a-738e6335b39f",
+		"_postman_id": "46a56aa9-8575-4cb2-9b93-857f92caecd8",
 		"name": "API-Tests",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
@@ -11,7 +11,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "c63e7548-ab9f-4973-9486-3f48e1527d28",
+						"id": "c47f1891-a9e1-4994-acb9-bcdb64d325d5",
 						"exec": [
 							"pm.test(\"Too Many Records Status Code\", function () {",
 							"    pm.response.to.have.status(400);",
@@ -67,7 +67,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "d2bc42ab-3ec1-4814-8dc2-8da1ee0a1c46",
+						"id": "8ae1576e-ee89-46c7-b0f9-38e0ef21e1bd",
 						"exec": [
 							"pm.test(\"Tncomplete Intake Status Code\", function () {",
 							"    pm.response.to.have.status(400);",
@@ -120,7 +120,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "c51c74c8-3ddc-4a7e-a2b3-bf522db27cdd",
+						"id": "551db415-8b39-48c3-a066-098d2d70ae9d",
 						"exec": [
 							"pm.test(\"Incomplete Intake Request\", function () {",
 							"    pm.response.to.have.status(500);",
@@ -169,7 +169,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "2cb63e00-d7ca-437b-9fbc-78fe45267642",
+						"id": "54451bfc-1ecf-4e1e-896a-c845e1def2f8",
 						"exec": [
 							"pm.test(\"Single Intake Request\", function () {",
 							"    pm.expect(pm.response.text()).to.include(\"PUT completed\");",
@@ -226,10 +226,10 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "f8f7a730-0b40-4187-b04a-77a95dac8bc4",
+						"id": "81e60d2b-5d13-4697-bbf5-f8b782418d16",
 						"exec": [
-							"pm.test(\"Duplicate Intake Request\", function (){",
-							"    pm.expect(pm.response.text()).to.include(\"PUT failed\");",
+							"pm.test(\"Duplicate Intake Request\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"Failed row: \");",
 							"}",
 							");"
 						],
@@ -283,7 +283,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "5bf3f762-6c30-4c07-ad68-5f982244aeac",
+						"id": "43be885c-0283-404a-b8c5-e1719f945723",
 						"exec": [
 							"var value = pm.environment.get(\"inc\");",
 							"",
@@ -300,7 +300,7 @@
 				{
 					"listen": "prerequest",
 					"script": {
-						"id": "ced4b6b8-5fa6-4748-90d1-bee5e86102f0",
+						"id": "6edcac04-b42e-4098-a09a-d915b33cfabd",
 						"exec": [
 							"var inc = pm.environment.get(\"inc\");",
 							"",
@@ -325,7 +325,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"row\": {{inc}},\n  \"Submission date\": \"01/01/20\",\n  \"Entity\": \"The Greenhouse Gases{{inc}}\",\n  \"DBA\": \"Boss{{inc}}\",\n  \"Facility Address\": \"{{inc}} N Electric Ave\",\n  \"Facility Suite #\": \"\",\n  \"Facility Zip\": \"97{{inc}}\",\n  \"Mailing Address\": \"{{inc}} NE Tabor Dr\",\n  \"MRL\": \"MRL{{inc}}\",\n  \"Neighborhood Association\": \"Arbor Lodge\",\n  \"Compliance Region\": \"SE\",\n  \"Primary Contact Name (first)\": \"Ashley{{inc}}\",\n  \"Primary Contact Name (last)\": \"Clark{{inc}}\",\n  \"Email\": \"ac@example{{inc}}.com\",\n  \"Phone\": \"971-245-{{inc}}\",\n  \"Endorse Type\": \"EX,CT\",\n  \"License Type\": \"MR\",\n  \"Repeat location?\": \"N\",\n  \"App complete?\": \"Y\",\n  \"Fee Schedule\": \"2020\",\n  \"Receipt No.\": \"{{inc}}\",\n  \"Cash Amount\": \"$1500\",\n  \"Check Amount\": \"0\",\n  \"Card Amount\": \"\",\n  \"Check No. / Approval Code\": \"{{inc}}\",\n  \"MRL#\": \"MRL{{inc}}\",\n  \"Notes\": \"\"\n}",
+					"raw": "{\n  \"row\": {{inc}},\n  \"Submission date\": \"01/01/20\",\n  \"Entity\": \"The Greenhouse Gases{{inc}}\",\n  \"DBA\": \"Boss{{inc}}\",\n  \"Facility Address\": \"{{inc}} N Electric Ave\",\n  \"Facility Suite #\": \"\",\n  \"Facility Zip\": \"97{{inc}}\",\n  \"Mailing Address\": \"{{inc}} NE Tabor Dr\",\n  \"MRL\": \"MRL{{inc}}\",\n  \"Neighborhood Association\": \"Arbor Lodge\",\n  \"Compliance Region\": \"SE\",\n  \"Primary Contact Name (first)\": \"Ashley{{inc}}\",\n  \"Primary Contact Name (last)\": \"Clark{{inc}}\",\n  \"Email\": \"ac@example{{inc}}.com\",\n  \"Phone\": \"971-245-345{{inc}}\",\n  \"Endorse Type\": \"EX,CT\",\n  \"License Type\": \"MR\",\n  \"Repeat location?\": \"N\",\n  \"App complete?\": \"Y\",\n  \"Fee Schedule\": \"2020\",\n  \"Receipt No.\": \"{{inc}}\",\n  \"Cash Amount\": \"$1500\",\n  \"Check Amount\": \"0\",\n  \"Card Amount\": \"\",\n  \"Check No. / Approval Code\": \"{{inc}}\",\n  \"MRL#\": \"MRL{{inc}}\",\n  \"Notes\": \"\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -358,7 +358,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "8b25e816-ce7c-4615-bdb8-7f261006158c",
+						"id": "c7ccf9c9-f25b-4d74-8d65-a6b16a975991",
 						"exec": [
 							"pm.test(\"Invalid URL Status Code\", function () {",
 							"    pm.response.to.have.status(404);",
@@ -396,16 +396,22 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "178dfbf5-62c3-422f-9777-8a8de3eb84cb",
+						"id": "4f430db7-f799-4f97-a62d-027e87d600ca",
 						"exec": [
-							"pm.test(\"File Intake Status Code\", function () {",
-							"    pm.response.to.have.status(500);",
-							"}",
-							")",
-							"pm.test(\"File Intake Response\", function () {",
-							"    pm.expect(pm.response.text()).to.include(\"File processed successfully\");",
-							"}",
-							")",
+							"// This test requires POSTing the sample.xlsx file found in the source code repository's resources directory.",
+							"// The link to this file does not ship across export/import instances, and so will need to be",
+							"// set by the test client. In the Body tab, set the file argument to the sample.xlsx file in the repository,",
+							"// then uncomment the following tests.",
+							"",
+							"// pm.test(\"File Intake Status Code\", function () {",
+							"//     pm.response.to.have.status(200);",
+							"// }",
+							"// )",
+							"",
+							"// pm.test(\"File Intake Response\", function () {",
+							"//     pm.expect(pm.response.text()).to.include(\"File processed successfully\");",
+							"// }",
+							"// )",
 							""
 						],
 						"type": "text/javascript"
@@ -458,7 +464,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "4aa8a526-0348-48f4-86f9-e761c08a0581",
+						"id": "3f06f0a6-633c-4bf6-a013-0239d118f325",
 						"exec": [
 							"pm.test(\"Invalid URL Status Code\", function () {",
 							"    pm.response.to.have.status(404);",
@@ -496,7 +502,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "c6c70235-b8ac-43f6-8985-367abc176a33",
+						"id": "1d83d17a-21db-4afb-b1c2-3490245da4e4",
 						"exec": [
 							"pm.test(\"No File Status Code\", function () {",
 							"    pm.response.to.have.status(400);",
@@ -539,7 +545,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "b4f71df3-84b9-462f-adfe-facc17b26014",
+						"id": "831ed407-f534-4b8f-a3b3-fdb406c0c6de",
 						"exec": [
 							"pm.test(\"Test Query and 1\", function () {",
 							"    pm.response.to.have.status(200);",
@@ -588,7 +594,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "43abf7ad-4167-4cd9-9baf-f0278d377954",
+						"id": "01bed1a8-db97-4582-94b6-51d0939aedf0",
 						"exec": [
 							"pm.test(\"Test Query Equals\", function () {",
 							"    pm.response.to.have.status(200);",
@@ -637,12 +643,16 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "00af3740-8e89-4611-9355-326c5b9056b4",
+						"id": "b15b9ea6-4f81-48b8-802d-684be70f9198",
 						"exec": [
 							"pm.test(\"Test Query Fail Columns Not Array\", function () {",
-							"    pm.response.to.have.status(500);",
+							"    pm.response.to.have.status(400);",
 							"}",
-							")"
+							")",
+							"",
+							"pm.test(\"Test Query Fail Columns Not Array Response\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"Error: Columns must be present as list in request body\");",
+							"})"
 						],
 						"type": "text/javascript"
 					}
@@ -686,12 +696,16 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "945c1e15-e935-4f8a-8445-9202062e5b39",
+						"id": "33f8a26f-36fb-4381-af9e-c7ea9fffc6c4",
 						"exec": [
-							"pm.test(\"Test Query Fail Invalid and 1\", function () {",
-							"    pm.response.to.have.status(500);",
+							"pm.test(\"Test Query Fail Invalid And 1\", function () {",
+							"    pm.response.to.have.status(400);",
 							"}",
-							")"
+							")",
+							"",
+							"pm.test(\"Test Query Fail Invalid And 1 Response\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"Error: Found an AND or OR construct with invalid structure.\");",
+							"})"
 						],
 						"type": "text/javascript"
 					}
@@ -735,12 +749,16 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "e52347da-14d2-4b3c-a4c2-f6850260d4fd",
+						"id": "fbffb702-588a-4fe8-b233-df770611ad73",
 						"exec": [
 							"pm.test(\"Test Query Fail Invalid Table\", function () {",
-							"    pm.response.to.have.status(500);",
+							"    pm.response.to.have.status(400);",
 							"}",
-							")"
+							")",
+							"",
+							"pm.test(\"Test Query Fail Invalid Table Response\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"Error: Requested table not found\");",
+							"})"
 						],
 						"type": "text/javascript"
 					}
@@ -784,12 +802,16 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "2a42af46-cba0-4bb5-ac76-cd62190ac8ea",
+						"id": "0f5a411e-e517-48c3-b7a4-551a70509f7d",
 						"exec": [
 							"pm.test(\"Test Query Fail Invalid Where\", function () {",
-							"    pm.response.to.have.status(500);",
+							"    pm.response.to.have.status(400);",
 							"}",
-							")"
+							")",
+							"",
+							"pm.test(\"Test Query Fail Invalid Where Response\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"Error: No operation requested in block\");",
+							"})"
 						],
 						"type": "text/javascript"
 					}
@@ -833,12 +855,16 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "228ffbbc-0776-40e4-a95a-fc995a3886b3",
+						"id": "e00bca83-f25f-43f9-b9a8-da5e208a1b8b",
 						"exec": [
 							"pm.test(\"Test Query Fail No Table\", function () {",
-							"    pm.response.to.have.status(500);",
+							"    pm.response.to.have.status(400);",
 							"}",
-							")"
+							")",
+							"",
+							"pm.test(\"Test Query Fail No Table Response\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"Error: No table named in request\");",
+							"})"
 						],
 						"type": "text/javascript"
 					}
@@ -882,12 +908,16 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "b206b369-42c5-4297-933f-ab5d511f9d2a",
+						"id": "f1fdfb0c-b102-43cf-b9e0-a3720b80aca4",
 						"exec": [
 							"pm.test(\"Test Query Invalid Column\", function () {",
-							"    pm.response.to.have.status(500);",
+							"    pm.response.to.have.status(400);",
 							"}",
-							")"
+							")",
+							"",
+							"pm.test(\"Test Query Fail Invalid Column Response\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"Error: Column x not in known list\");",
+							"})"
 						],
 						"type": "text/javascript"
 					}
@@ -931,7 +961,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "ba35db3f-0edd-40e1-b904-7f467a912397",
+						"id": "7ed8c858-9047-4795-9dfc-072f86e3d629",
 						"exec": [
 							"pm.test(\"Test Query Only Table\", function () {",
 							"    pm.response.to.have.status(200);",
@@ -980,7 +1010,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "07d2ca48-6b2a-435c-a96f-5c88eba7257e",
+						"id": "1b03c9bb-be00-4380-93dc-bceaa0779599",
 						"exec": [
 							"pm.test(\"Test Query or 1\", function () {",
 							"    pm.response.to.have.status(200);",
@@ -1029,7 +1059,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "5e456ad2-181d-4a58-857e-2c85ad334914",
+						"id": "d12c6b9f-03c9-46d1-977a-b4e310eeb67b",
 						"exec": [
 							"pm.test(\"Test Query Table and Columns\", function () {",
 							"    pm.response.to.have.status(200);",
@@ -1078,7 +1108,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "8be423e1-a6bd-41be-bb45-6e0f15101eec",
+						"id": "9e656cd7-251f-4a3f-9984-ad196b63f73d",
 						"exec": [
 							"pm.test(\"Invalid URL Status Code\", function () {",
 							"    pm.response.to.have.status(404);",
@@ -1116,7 +1146,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "f549478e-0937-4e7e-a058-0a2a29403c2c",
+						"id": "4f30c48a-7a11-4d24-b437-d33471ee8c86",
 						"exec": [
 							"pm.test(\"Bad Table Status Code\", function () {",
 							"    pm.response.to.have.status(404);",
@@ -1159,7 +1189,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "70717010-e695-450f-a48c-5bb71df3a6e1",
+						"id": "f2e256bf-5a32-4da8-9e51-01cb1f9bd8cb",
 						"exec": [
 							"pm.test(\"Get Metadata\", function () {",
 							"    pm.response.to.have.status(200);",
@@ -1198,7 +1228,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "74446b2f-2491-4c9d-aa7e-c5b50b06b2b8",
+						"id": "dae53a54-f7b8-4a13-b560-3ebdb254a8fc",
 						"exec": [
 							"pm.test(\"Get Intake\", function () {",
 							"    pm.response.to.have.status(200);",
@@ -1257,7 +1287,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "b3a4f061-ea69-4172-ad1a-824e1fefb34d",
+						"id": "f27872ed-8747-41b7-b096-4135e2ee3a7b",
 						"exec": [
 							"pm.test(\"Get Metadata Endpont\", function () {",
 							"    pm.response.to.have.status(200);",
@@ -1290,7 +1320,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "fba2d32c-e393-45dd-aa62-35457bd98b9e",
+						"id": "6de4f3e5-2993-43f6-b8f7-faa9c8d987bd",
 						"exec": [
 							"pm.test(\"Base Endpont\", function () {",
 							"    pm.response.to.have.status(200);",
