@@ -3,20 +3,6 @@ class TxnHistoryRow:
     Represents a row of the Txn_History table.
     """
 
-    def __init__(self):
-        """
-        Default constructor.
-        """
-        self.id = None
-        self.tstamp = ''
-        self.schemaname = ''
-        self.operation = ''
-        self.who = ''
-        self.new_val = ''
-        self.old_val = ''
-        self.tabname = ''
-        
-
     def __init__(self, input_json):
         """
         Constructor from a JSON object. Any unsupplied data defaults to None

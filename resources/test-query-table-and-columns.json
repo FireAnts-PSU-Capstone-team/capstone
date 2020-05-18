@@ -1,0 +1,7 @@
+{
+  "table": "intake",
+  "columns": [
+    "submission_date",
+    "row"
+  ]
+}

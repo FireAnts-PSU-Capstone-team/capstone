@@ -7,12 +7,13 @@ This SQL file will be executed once the DB is set up.
 -------------------------
 
 --
--- Name: change_trigger(); Type: FUNCTION; Schema: public; Owner: cc
--- Desc: Monitors the intake table for any insert or update commands
--- 		 It copys the old data and the new data in txn_history table as 
---  	 JSON.
+-- Name: change_fnc(); Type: FUNCTION; Schema: public; Owner: cc
+-- Desc: Monitors table for any insert/update/delete commands
+-- 		 It copies the old data and the new data in txn_history table as
+--  	 JSON. In case of DELETE it copies data into archive table then updates txn_history
+--       with location data for archive table
 --
-CREATE FUNCTION change_trigger() RETURNS trigger
+CREATE FUNCTION change_fnc() RETURNS TRIGGER
     LANGUAGE plpgsql
     AS $$BEGIN
 IF TG_OP='INSERT'
@@ -27,42 +28,26 @@ VALUES(TG_RELNAME,TG_TABLE_SCHEMA, TG_OP, row_to_json(NEW), row_to_json(OLD));
 RETURN NEW;
 ELSIF TG_OP = 'DELETE'
 THEN
-INSERT INTO archive (old_row, old_submission_date, old_entity, old_dba,
-	    old_facility_address, old_facility_suite, old_facility_zip,
-		old_mailing_address, old_mrl, old_neighborhood_association,
-		old_compliance_region, old_primary_contact_first_name,
-		old_primary_contact_last_name,old_email,old_phone,
-		old_endorse_type,old_license_type,old_repeat_location,
-		old_app_complete,old_fee_schedule,old_receipt_num,
-		old_cash_amount,old_check_amount,old_card_amount,
-		old_check_num_approval_code,old_mrl_num,old_notes )
-VALUES(OLD.row, OLD.submission_date, OLD.entity, OLD.dba,
-	   OLD.facility_address, OLD.facility_suite, OLD.facility_zip,
-		OLD.mailing_address, OLD.mrl, OLD.neighborhood_association,
-		OLD.compliance_region, OLD.primary_contact_first_name,
-		OLD.primary_contact_last_name,OLD.email,OLD.phone,
-		OLD.endorse_type,OLD.license_type,OLD.repeat_location,
-		OLD.app_complete,OLD.fee_schedule,OLD.receipt_num,
-		OLD.cash_amount,OLD.check_amount,OLD.card_amount,
-		OLD.check_num_approval_code,OLD.mrl_num,OLD.notes);
-INSERT INTO public.txn_history(tabname,schemaname,operation, archive_row)
+INSERT INTO archive (old_val)
+VALUES(row_to_json(OLD));
+INSERT INTO txn_history(tabname,schemaname,operation, archive_row)
 VALUES(TG_RELNAME,TG_TABLE_SCHEMA, TG_OP, (SELECT currval('archive_row_seq')));
 RETURN OLD;
 END IF;
 END;
 $$;
 
-ALTER FUNCTION change_trigger() OWNER TO cc;
+ALTER FUNCTION change_fnc() OWNER TO cc;
 
 --
--- A trigger for insert conflict strategy
--- Name: check_insertion_to_intake_trigger; Type: TRIGGER; Schema: public; Owner: cc
+-- A TRIGGER for insert conflict strategy
+-- Name: check_insertion_fnc; Type: TRIGGER; Schema: public; Owner: cc
 --
-CREATE FUNCTION check_insertion_to_intake_tri_fnc()
-    RETURNS trigger
+CREATE FUNCTION check_insertion_fnc()
+    RETURNS TRIGGER
     LANGUAGE 'plpgsql'
 AS $BODY$BEGIN
-CASE WHEN NEW.dba IS NULL
+CASE when NEW.dba IS NULL
 THEN
 IF (SELECT count(*)
    FROM public.intake
@@ -89,7 +74,7 @@ END IF;
 END CASE;
 END;$BODY$;
 
-ALTER FUNCTION check_insertion_to_intake_tri_fnc() OWNER TO cc;
+ALTER FUNCTION check_insertion_fnc() OWNER TO cc;
 
 -------------------------
 -- DB Parameters
@@ -182,39 +167,66 @@ CREATE TABLE archive (
     row_id integer NOT NULL,
     tstamp timestamp without time zone DEFAULT now(),
     who text DEFAULT CURRENT_USER,
-    old_row integer,
-    old_submission_date date,
-    old_entity text,
-    old_dba text,
-    old_facility_address text,
-    old_facility_suite text,
-    old_facility_zip text,
-    old_mailing_address text,
-    old_mrl character varying(10),
-    old_neighborhood_association character varying(30),
-    old_compliance_region character varying(2),
-    old_primary_contact_first_name text,
-    old_primary_contact_last_name text,
-    old_email text,
-    old_phone character(12),
-    old_endorse_type character(25),
-    old_license_type character varying(25),
-    old_repeat_location character(1),
-    old_app_complete character varying(3),
-    old_fee_schedule character varying(5),
-    old_receipt_num integer,
-    old_cash_amount text,
-    old_check_amount text,
-    old_card_amount text,
-    old_check_num_approval_code character varying(25),
-    old_mrl_num character varying(10),
-    old_notes text
+    old_val json
 );
 ALTER TABLE archive OWNER TO cc;
 COMMENT ON TABLE archive IS 'Table tracks the rows removed from the intake database table';
 ALTER TABLE ONLY archive
     ADD CONSTRAINT archive_pkey PRIMARY KEY (row_id);
-    
+
+--
+-- Name: violations Type: table Schema: public Owner: cc
+--
+CREATE TABLE IF NOT EXISTS violations
+(
+    row_id integer NOT NULL,
+    dba text,
+    address text,
+    mrl_num text,
+    license_type text,
+    violation_sent_date date,
+    original_violation_amount text,
+    admin_rvw_decision_date date,
+    admin_rvw_violation_amount text,
+    certified_num text,
+    certified_receipt_returned text,
+    date_paid_waived date,
+    receipt_no text,
+    cash_amount text,
+    check_amount text,
+    card_amount text,
+    check_num_approval_code text,
+    notes text
+);
+ALTER TABLE violations OWNER to cc;
+COMMENT ON TABLE violations IS 'Table to hold all the information regarding violations.';
+ALTER TABLE ONLY violations
+    ADD CONSTRAINT violations_pkey PRIMARY KEY (row_id);
+
+--
+-- Name: records Type: table Schema: public Owner: cc
+--
+CREATE TABLE IF NOT EXISTS records
+(
+    row_id integer NOT NULL,
+    date date,
+    method text,
+    intake_person text,
+    rp_name text,
+    rp_contact_info text,
+    concern text,
+    location_name text,
+    address text,
+    mrl_num text,
+    action_taken text,
+    status text,
+    status_date date,
+    additional_notes text
+);
+ALTER TABLE records OWNER to cc;
+COMMENT ON TABLE records IS 'Table to hold all the information regarding violations.';
+ALTER TABLE ONLY records
+    ADD CONSTRAINT records_pkey PRIMARY KEY (row_id);
 -------------------------
 -- Sequences
 -------------------------
@@ -267,26 +279,73 @@ ALTER TABLE archive_row_seq OWNER TO cc;
 ALTER SEQUENCE archive_row_seq OWNED BY archive.row_id;
 ALTER TABLE ONLY archive ALTER COLUMN row_id SET DEFAULT nextval('archive_row_seq'::regclass);
 
+--
+-- Name: violations_row_seq
+-- Desc: Sequence used as PK for violations table Owner: cc
+--
+CREATE SEQUENCE violations_row_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER TABLE violations_row_seq OWNER TO cc;
+ALTER SEQUENCE violations_row_seq OWNED BY violations.row_id;
+ALTER TABLE ONLY violations ALTER COLUMN row_id SET DEFAULT nextval('violations_row_seq'::regclass);
+
+--
+-- Name: records_row_seq
+-- Desc: Sequence used as PK for records table Owner: cc
+--
+CREATE SEQUENCE records_row_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER TABLE records_row_seq OWNER TO cc;
+ALTER SEQUENCE records_row_seq OWNED BY records.row_id;
+ALTER TABLE ONLY records ALTER COLUMN row_id SET DEFAULT nextval('records_row_seq'::regclass);
+
 -------------------------
 -- Triggers
 -------------------------
 
 --
--- Name: transactions
--- Desc: Monitor intake table, before any transaction calls function change_trigger
+-- Name: intake_transactions
+-- Desc: Monitor intake table, before any transaction calls function change_TRIGGER
 --
-CREATE TRIGGER transactions 
-BEFORE INSERT OR UPDATE OR DELETE ON intake 
-FOR EACH ROW EXECUTE FUNCTION change_trigger();
+CREATE TRIGGER intake_transactions
+BEFORE INSERT OR UPDATE OR DELETE ON intake
+FOR EACH ROW EXECUTE FUNCTION change_fnc();
 
 --
--- Name: check_insertion
+-- Name: intake_check_insertion
 -- Desc: Monitor intake table, before any INSERT calls function check_insertion_to_intake_tri_fnc
 --
-CREATE TRIGGER check_insertion 
-BEFORE INSERT ON intake 
-FOR EACH ROW EXECUTE FUNCTION check_insertion_to_intake_tri_fnc();
+CREATE TRIGGER intake_check_insertion
+BEFORE INSERT ON intake
+FOR EACH ROW EXECUTE FUNCTION check_insertion_fnc();
 
+--
+-- Name: violations_transactions
+-- Desc: Monitor violations table, before any transaction calls function change_fnc
+--
+CREATE TRIGGER violations_transactions
+BEFORE INSERT OR UPDATE OR DELETE ON violations
+FOR EACH ROW EXECUTE FUNCTION change_fnc();
+
+--
+-- Name: records_transactions
+-- Desc: Monitor records table, before any transaction calls function change_fnc
+--
+CREATE TRIGGER records_transactions
+BEFORE INSERT OR UPDATE OR DELETE ON records
+FOR EACH ROW EXECUTE FUNCTION change_fnc();
 -------------------------
 -- Groups
 -------------------------

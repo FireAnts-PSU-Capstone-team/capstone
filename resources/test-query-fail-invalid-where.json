@@ -1,0 +1,10 @@
+{
+  "table": "intake",
+  "columns": [
+    "dba",
+    "mrl"
+  ],
+  "where": {
+    "x": 1
+  }
+}

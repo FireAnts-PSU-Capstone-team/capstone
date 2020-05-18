@@ -1,20 +1,24 @@
-import pandas as pd
-import numpy as np
-import psycopg2
-
-from db import connection as c
-from models.IntakeRow import RowNames
+import collections
 import os
 import sys
 import time
+import pandas as pd
+import numpy as np
+import psycopg2
 from openpyxl import load_workbook
-from validation import validate_data_file
+from pandas.io.json import json_normalize
+
+from db import connection as c
+from models.IntakeRow import ColNames, intake_headers
+from query_parser import QueryParser, RequestParseException
+from validation import validate_dataframe
 
 test_file = 'resources/sample.xlsx'
 primary_table = 'intake'
-db_tables = ['intake', 'txn_history', 'archive', 'metadata']
+db_tables = ['intake', 'txn_history', 'archive', 'metadata', 'violations', 'records']
 metadata_table = 'metadata'
 connection_error_msg = 'The connection to the database is closed and cannot be opened. Verify DB server is up.'
+
 
 # TODO: refactor to remove duplicated code
 is_connected = False
@@ -76,12 +80,13 @@ def sql_except(err):
         err - the error message generated
     Returns None
     """
+    # roll back the last sql command
+    pgSqlCur.execute("ROLLBACK")
     # get the details for exception
     err_type, err_obj, traceback = sys.exc_info()
 
     # print the connect() error
     sys.stderr.write(f"\npsycopg2 ERROR: {err}")
-    return "psycopg2 ERROR:", err
 
 
 def fmt(s):
@@ -118,10 +123,7 @@ def dump_tables():
         for row in rows:
             print(row)
     except Exception as err:
-        # print the exception
         sql_except(err)
-        # roll back the last sql command
-        pgSqlCur.execute("ROLLBACK")
 
     print("\nMetadata:\n-------------------------------")
     try:
@@ -130,10 +132,7 @@ def dump_tables():
         for row in rows:
             print(row)
     except Exception as err:
-        # print the exception
         sql_except(err)
-        # roll back the last sql command
-        pgSqlCur.execute("ROLLBACK")
 
 
 def table_exists(cur, table):
@@ -157,7 +156,6 @@ def table_exists(cur, table):
     return exists
         
 
-# TODO: error handling
 class InvalidTableException(Exception):
     """
     Thrown when the specified table does not exist.
@@ -165,16 +163,42 @@ class InvalidTableException(Exception):
     pass
 
 
+def filter_table(request_body):
+    """
+    Return a JSON object representing the requested data from the table.
+    Built to take a JSON request, which is parsed in order to construct a SQL query; returns the result of that query.
+    The query must comply to a schema outlined in the Swagger file.
+    Args:
+        request_body ({}): a JSON object, which must conform to a defined schema and is parsed to build the query
+    Returns:
+         query (str): the query string passed to the database
+         response ({}): the retrieved data
+         status (int): the HTTP status code of the response
+    """
+    try:
+        table_names = get_table_list()
+        qp = QueryParser(table_names)
+        query = qp.build_query(request_body)
+    except RequestParseException as e:
+        return 'JSON could not be parsed', e.msg, 400
+    try:
+        pgSqlCur.execute(query)
+        return query, pgSqlCur.fetchall(), 200
+    except psycopg2.Error as err:
+        sql_except(err)
+        return None, str(err), 400
+
+
 def get_table(table_name, columns):
     """
     Return a JSON-like format of table data.
     Args:
         table_name (str): the table to fetch
-        columns ([str]):
+        columns ([str]): a list of columns to include in the results
     Returns ([str]): an object-notated dump of the table
     """
     result = []
-    column_name = []
+    column_names = []
 
     # check to make sure that the connection is open and active
     if not check_conn():
@@ -189,12 +213,12 @@ def get_table(table_name, columns):
         rows = pgSqlCur.fetchall()
 
         for col in pgSqlCur.description:
-            column_name.append(col.name)
+            column_names.append(col.name)
 
         for row in rows:
             a_row = {}
             i = 0
-            for col in column_name:
+            for col in column_names:
                 if columns:
                     if col in columns:
                         a_row[col] = row[i]
@@ -205,15 +229,11 @@ def get_table(table_name, columns):
             result.append(a_row)
             
     except Exception as err:
-        # print the exception
         sql_except(err)
-        # roll back the last sql command
-        pgSqlCur.execute("ROLLBACK")
 
     return result
 
 
-# TODO: error handling
 def read_metadata(f):
     """
     Collects metadata about a spreadsheet to be consumed.
@@ -221,6 +241,7 @@ def read_metadata(f):
         f (str): the filename of the spreadsheet
     Returns (dict): the metadata collection
     """
+    headerMatches = 0
     data = {}
     workbook = load_workbook(f)
     file_data = workbook.properties.__dict__
@@ -234,8 +255,17 @@ def read_metadata(f):
     data['modified'] = fmt(file_data.get('modified').strftime('%Y-%m-%d %H:%M:%S+08'))
     data['lastModifiedBy'] = fmt(file_data.get('lastModifiedBy'))
     data['title'] = fmt(file_data.get('title'))
-    data['rows'] = sheet_data.max_row
     data['columns'] = sheet_data.max_column
+
+    # adjust row count to account for header row, if necessary
+    headerMatches = 0
+    for cell in sheet_data[1]:
+        if cell.value in intake_headers:
+            headerMatches += 1
+    if headerMatches == len(intake_headers):
+        data['rows'] = sheet_data.max_row - 1
+    else:
+        data['rows'] = sheet_data.max_row
 
     return data
 
@@ -289,10 +319,7 @@ def write_metadata(metadata):
         pgSqlConn.commit()
 
     except Exception as err:
-        # print the exception
         sql_except(err)
-        # roll back the last sql command
-        pgSqlCur.execute("ROLLBACK")
 
 
 def row_number_exists(cur, row_number, table=primary_table):
@@ -314,7 +341,41 @@ def row_number_exists(cur, row_number, table=primary_table):
     return exists
 
 
-# TODO: implement multi-row insertion
+def get_table_list():
+    """
+    Gets the database's active tables.
+    Returns [str]: list of table names
+    """
+    try:
+        pgSqlCur.execute("""
+        SELECT table_name 
+        FROM information_schema.tables
+        WHERE table_name 
+        NOT LIKE 'pg_%'
+            AND table_schema='public'; 
+        """)
+        return str([x[0] for x in pgSqlCur.fetchall()])
+    except psycopg2.Error as err:
+        sql_except(err)
+
+
+def validate_row(json_item):
+    """
+    Preps a JSON input row and passes it to the data validator. Returns the validator's response.
+    Args:
+        json_item ({}): input JSON
+    Returns ((bool, str)): <whether row is valid>, <error message>
+    """
+    # If the incoming json object doesn't have a row associated with it, we add a temporary one for validation
+    if 'row' not in json_item:
+        json_item = collections.OrderedDict(json_item)
+        json_item.update({'row': 999})
+        json_item.move_to_end('row', last=False)
+    df = json_normalize(json_item)
+    return validate_dataframe(df)
+
+
+
 def insert_row(table, row, checked=False):
     """
     Insert an array of values into the specified table.
@@ -357,18 +418,16 @@ def insert_row(table, row, checked=False):
             return 1, None
         else:
             failed_row = {
-                'submission_date': row[RowNames.SUBMISSION_DATE.value],
-                'entity': row[RowNames.ENTITY.value],
-                'dba': row[RowNames.DBA.value],
-                'mrl': row[RowNames.MRL.value]
+                'submission_date': row[ColNames.SUBMISSION_DATE.value],
+                'entity': row[ColNames.ENTITY.value],
+                'dba': row[ColNames.DBA.value],
+                'mrl': row[ColNames.MRL.value]
             }
             return 0, failed_row
 
     except Exception as err:
-        # print the exception
         sql_except(err)
-        # roll back the last sql command
-        pgSqlCur.execute("ROLLBACK")
+        return -1, None
 
 
 def process_file(f):
@@ -385,7 +444,7 @@ def process_file(f):
         # read file content
         df = pd.read_excel(f)
         # Validate data frame
-        valid, error_msg = validate_data_file(df)
+        valid, error_msg = validate_dataframe(df)
         if not valid:
             return False, {'status': 'invalid', 'error_msg': error_msg}
         # Write the data to the DB
