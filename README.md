@@ -57,14 +57,45 @@ You can open a browser and go to [https://localhost:443](https://localhost:443) 
 
 You can also query the API from the command line, using `curl`: 
 
-&emsp;List the contents of the `intake` table: \
-&emsp;&emsp;`curl -k https://localhost:443/list?table=intake` \
-&emsp;Post the `sample.xlsx` file to the `/load` endpoint: \
-&emsp;&emsp;`curl -k --form -X POST "file=@resources/sample.xlsx" https://localhost:443/load` \
-&emsp;Add a single row, as contained in the `sample-row-1.json` file: \
-&emsp;&emsp;`curl -k -X PUT https://localhost:443/load?table=intake -d @resources/sample-row-1.json -H "Content-Type: application/json"` \
-&emsp;List entries from the `intake` table, but only the submission date and MRL fields: \
-&emsp;&emsp;`curl -k "https://localhost:443/list?table=intake&column=submission_date+mrl"` \
-&emsp;List entries from the database where results are filtered based on a JSON-structured query file: \
-&emsp;&emsp;`curl -k -X POST https://localhost:443/list -d @resources/test-query-and-1.json -H "Content-Type: application/json"` 
+> /list
 
+**List the contents of the `intake` table:** 
+```
+curl -k https://localhost:443/list?table=intake
+```
+
+**List entries from the `intake` table, but only the submission date and MRL fields:**
+```
+curl -k "https://localhost:443/list?table=intake&column=submission_date+mrl"
+```
+
+**List entries from the database where results are filtered based on a JSON-structured query file:**
+```
+curl -k -X POST https://localhost:443/list -d @resources/test-query-and-1.json -H "Content-Type: application/json"
+``` 
+
+
+> /load
+
+**Post the `sample.xlsx` file to the `/load` endpoint:**
+```
+curl -k --form -X POST "file=@resources/sample.xlsx" https://localhost:443/load
+```
+
+**Add a single row, as contained in the `sample-row-1.json` file:**
+```
+curl -k -X PUT https://localhost:443/load?table=intake -d @resources/sample-row-1.json -H "Content-Type: application/json"
+```
+
+
+> /update
+
+**Update intake table on row 1, for 2 columns, in content-type of JSON:**
+```
+curl -d '{"row":"1", "receipt_num":200, "phone": 555555}' -H "Content-Type: application/json" -k -X POST https://localhost:443/update
+```
+
+**Update intake table on row 1, for 1 columns, in content-type of x-www-form-urlencoded:**
+```
+curl -d "row=1&cash_amount=100" -X POST -k https://localhost:443/update
+```
