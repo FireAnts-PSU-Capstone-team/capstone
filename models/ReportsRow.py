@@ -1,8 +1,8 @@
 from enum import Enum
 
 
-class RowNames(Enum):
-    ROW_ID = 0
+class ColNames(Enum):
+    ROW = 0
     DATE = 1
     METHOD = 2
     INTAKE_PERSON = 3
