@@ -18,12 +18,12 @@ CREATE FUNCTION change_fnc() RETURNS TRIGGER
     AS $$BEGIN
 IF TG_OP='INSERT'
 THEN
-INSERT INTO public.txn_history(tabname,schemaname,operation, new_val)
+INSERT INTO txn_history(tabname,schemaname,operation, new_val)
 VALUES(TG_RELNAME, TG_TABLE_SCHEMA, TG_OP, row_to_json(NEW));
 RETURN NEW;
 ELSIF TG_OP = 'UPDATE'
 THEN
-INSERT INTO public.txn_history(tabname,schemaname,operation, new_val, old_val)
+INSERT INTO txn_history(tabname,schemaname,operation, new_val, old_val)
 VALUES(TG_RELNAME,TG_TABLE_SCHEMA, TG_OP, row_to_json(NEW), row_to_json(OLD));
 RETURN NEW;
 ELSIF TG_OP = 'DELETE'
