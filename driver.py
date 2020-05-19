@@ -462,6 +462,63 @@ def process_file(f):
         return failed_insertions == 0, result_obj
 
 
+def update_table(table, row, update_columns):
+    """
+    Update one row (multiple columns) for a target table
+    Args:
+        table (str): table name
+        row (str/int): row number
+        update_columns (dict): obj of {column_name: new value, ... }
+    Returns (bool, str): bool is successful or not, str includes processing info
+    """
+    col_str = ''
+    arg_str = ''
+    exe_arg_str = ''
+    arg_num = 1
+
+    for key in update_columns:
+        col_str += f', {key} = ${arg_num}'
+        if (isinstance(update_columns[key], int)):
+            arg_str += ',integer'
+            exe_arg_str += f",{update_columns[key]}"
+        else:
+            exe_arg_str += f",'{update_columns[key]}'"
+            arg_str += ',text'
+        arg_num += 1
+
+    col_str = col_str[1:]
+    arg_str = arg_str[1:]
+    exe_arg_str = exe_arg_str[1:]
+
+    # app.logger.info(col_str)
+    # app.logger.info(arg_str)
+    # app.logger.info(exe_arg_str)
+
+    try:
+        pgSqlCur.execute(f"deallocate all;\
+        prepare update_table({arg_str},integer) as \
+        update {table} \
+        set {col_str} \
+        where row = ${arg_num};")
+        pgSqlCur.execute(f'execute update_table({exe_arg_str},{row});')
+
+        if pgSqlCur.rowcount != 1:
+            # the target row is not updated, not existing??
+            return (0, 'updated failed, please check if the row exists')
+
+    except Exception as err:
+        # print the exception
+        sql_except(err)
+        # roll back the last sql command
+        pgSqlCur.execute("ROLLBACK")
+        # return err to user
+        return (0, str(err))
+
+    # commit if no error
+    pgSqlConn.commit()
+    return (1, 'updated successfully')
+
+
 def test_driver():
     # Pre-insert query
     print('Dump tables -------------------------------------------------')

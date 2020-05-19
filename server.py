@@ -147,6 +147,69 @@ def show_metadata():
     return make_response(response_body, 200)
 
 
+@app.route('/update', methods=['POST'])
+def update_table():
+    """
+    Update the contents of the intake table.
+    Returns ({}): result of updating the contents of the table.
+    """
+    update_columns = {}
+    row = None
+    request_param = None
+    data_content_type = request.content_type
+
+    # app.logger.info(request)
+    # app.logger.info(data_content_type)
+    # app.logger.info(request.form)
+    # app.logger.info(request.args)
+
+    if (data_content_type is None):
+        result = {'message': 'update need parameters.'}
+        return make_response(jsonify(result), 400)
+
+    if(data_content_type.find('json') != -1):
+        request_param = request.get_json(force=True)
+    elif(data_content_type.find('x-www-form-urlencoded') != -1):
+        request_param = request.form
+    else:
+        result = {'message': f'not supported data content-type: {data_content_type}'}
+        return make_response(jsonify(result), 400)
+
+    for key in request_param:
+        if (key == 'row'):
+            row = request_param[key]
+        else:
+            update_columns[key] = request_param[key]
+
+    app.logger.info(request_param)
+    app.logger.info(update_columns)
+
+    if (row is None):
+        result = {'message': 'Row column is required.'}
+        return make_response(jsonify(result), 400)
+
+    try:
+        row = int(row)
+    except:
+        result = {'message': 'Row is a number.'}
+        return make_response(jsonify(result), 400)
+
+    if (len(update_columns) == 0):
+        result = {'message': 'No column provided to update.'}
+        return make_response(jsonify(result), 400)
+
+    # only update intake table now
+    response_body = driver.update_table('intake', row, update_columns)
+    result = {'message': response_body[1]}
+    app.logger.info(result)
+    if response_body[0] == 0:
+        # error on updating
+        return make_response(jsonify(result), 400)
+    else:
+        # succeed on updating
+        return make_response(jsonify(result), 200)
+
+
 @app.route('/')
 def hello_world():
     return make_response(jsonify('Hello World'), 200)
