@@ -77,34 +77,6 @@ END;$BODY$;
 
 ALTER FUNCTION check_insertion_fnc() OWNER TO cc;
 
-CREATE FUNCTION seq_update()
- RETURNS TRIGGER
- LANGUAGE 'plpgsql'
-AS $BODY$
-DECLARE
-counter := nextval('intake_row_seq');
-BEGIN
-CASE WHEN NEW."row"<counter
-THEN
-IF (SELECT count(*)
-    FROM intake
-    WHERE "row" = NEW."row")=0
-THEN
-RETURN NEW;
-ELSE
-IF (SELECT count(*)
-    FROM intake
-    WHERE "row" = counter) = 0
-THEN
-NEW."row" := counter;
-ALTER SEQUENCE intake_row_seq RESTART WITH counter;
-END IF;
-CASE WHEN NEW."row"=counter
-THEN
-ELSE
-END CASE;
-END; $BODY$
-
 -------------------------
 -- DB Parameters
 -------------------------

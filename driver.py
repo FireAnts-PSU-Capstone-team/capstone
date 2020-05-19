@@ -165,6 +165,13 @@ class InvalidTableException(Exception):
     pass
 
 
+class InvalidRowException(Exception):
+    """
+    Thrown when the specified row is invalid.
+    """
+    pass
+
+
 def filter_table(request_body):
     """
     Return a JSON object representing the requested data from the table.
@@ -468,7 +475,7 @@ def delete_row(table, row_num):
         try:
             row_num = list(map(int,row_num))
         except ValueError:
-            return(False,{'Invalid Row' : row_num})
+            raise InvalidRowException
         for rows in row_num:
             if rows<=0:
                 delete_info[f'Row {str(rows)}'] = 'Invalid row number'

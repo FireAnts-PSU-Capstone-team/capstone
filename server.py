@@ -183,7 +183,8 @@ def delete_row():
 
     except driver.InvalidTableException:
         return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
-
+    except driver.InvalidRowException:
+        return make_response(jsonify('Row '.join(row_num) + ' is invalid input.'), 404)
 
 @app.route('/')
 def hello_world():
