@@ -50,7 +50,7 @@ AS $BODY$BEGIN
 CASE when NEW.dba IS NULL
 THEN
 IF (SELECT count(*)
-   FROM public.intake
+   FROM intake
    WHERE submission_date = new.submission_date
    AND entity = new.entity
    AND mrl = NEW.mrl) = 0
@@ -61,7 +61,7 @@ ELSE
 END IF;
 ELSE
 IF (SELECT count(*)
-   FROM public.intake
+   FROM intake
    WHERE submission_date = NEW.submission_date
    AND entity = NEW.entity
    AND dba = NEW.dba
