@@ -20,6 +20,7 @@ class RowNames(Enum):
     CARD_AMT = 15
     CHECK_NUM = 16
     NOTES = 17
+    VALIDATION_ERRORS = 18
 
 
 class ViolationsRow:

@@ -16,6 +16,7 @@ class RowNames(Enum):
     STATUS = 11
     STATUS_DATE = 12
     ADDITIONAL_NOTES = 13
+    VALIDATION_ERRORS = 14
 
 
 class ReportsRow:

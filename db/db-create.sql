@@ -224,7 +224,8 @@ CREATE TABLE IF NOT EXISTS records
     action_taken text,
     status text,
     status_date date,
-    additional_notes text
+    additional_notes text,
+    validation_errors text
 );
 ALTER TABLE records OWNER to cc;
 COMMENT ON TABLE records IS 'Table to hold all the information regarding violations.';
