@@ -114,7 +114,7 @@ paths:
         400:
           description: No table/row specified in query
         404:
-          description: Table doesn't exist
+          description: Table doesn't exist, row input invalid
         500:
           $ref: "#/responses/Standard500ErrorResponse"
 
