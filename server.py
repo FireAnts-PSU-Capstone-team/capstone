@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify, Response, make_response
 from flask_cors import CORS
 import driver
-import pandas as pd
 from pandas.io.json import json_normalize
 from cors import cors_setup
 from models.IntakeRow import IntakeRow
