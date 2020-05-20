@@ -152,9 +152,9 @@ def show_metadata():
 @app.route('/export', methods=['GET'])
 def export_csv():
     """
-    Returns a CSV file of the table listed in the request.
+    Returns CSV of the table listed in the request.
     Usage:
-        GET /export?table=<table_name> to retrieve CSV of table
+        GET /export?table=<table_name> -o outputfile.csv to retrieve CSV of table
     Returns ({}): CSV object of table data
     """
     if request.method == 'GET':
@@ -164,8 +164,8 @@ def export_csv():
         try:
             table_output = driver.get_table(table_name, None)
             df = json_normalize(table_output)
-            df.to_csv('export.csv', index = False)
-            return send_file('export.csv', attachment_filename='export.csv')
+            table_info_obj = df.to_csv(index = False)
+            return make_response(table_info_obj, 200)
         except driver.InvalidTableException:
             return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
 
