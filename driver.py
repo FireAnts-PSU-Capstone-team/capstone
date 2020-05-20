@@ -484,11 +484,11 @@ def delete_row(table, row_num):
             try:
                 pgSqlCur.execute(cmd)
                 pgSqlConn.commit()
-                if pgSqlCur.statusmessage=='DELETE 1':
+                if pgSqlCur.rowcount == 1:
                     success = True
-                    delete_info[f'Row {str(rows)}'] = f'Successfully Deleted.'
+                    delete_info[f'Row {str(rows)}'] = 'Successfully Deleted'
                 else:
-                    delete_info[f'Row {str(rows)}'] = f'Failed to Delete.'
+                    delete_info[f'Row {str(rows)}'] = 'Failure to delete'
 
             except Exception as err:
                 # print the exception
