@@ -31,7 +31,7 @@ class ViolationsRow:
         """
         Default constructor.
         """
-        self.row_id = None
+        self.row = None
         self.dba = ''
         self.address = ''
         self.mrl = ''
@@ -56,7 +56,7 @@ class ViolationsRow:
         Args:
             input_json ({}): JSON object representing a row of the intake table
         """
-        self.row_id = input_json.get('row_id')
+        self.row = input_json.get('row')
         self.dba = input_json.get('DBA')
         self.address = input_json.get('Address')
         self.mrl = input_json.get('MRL#')
@@ -80,7 +80,7 @@ class ViolationsRow:
         Order data into an array that can be consumed by the row insertion method.
         Returns ([]): array of data members
         """
-        return [self.row_id, self.dba, self.address, self.mrl, self.license_type, self.violation_sent_date,
+        return [self.row, self.dba, self.address, self.mrl, self.license_type, self.violation_sent_date,
                 self.original_violation_amount, self.admin_rvw_decision_date, self.admin_rvw_violation_amount,
                 self.certified_num, self.certified_reciept_returned,
                 self.date_paid_waived, self.receipt_no, self.cash_amt,

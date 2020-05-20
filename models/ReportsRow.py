@@ -27,7 +27,7 @@ class ReportsRow:
         """
         Default constructor.
         """
-        self.row_id = None
+        self.row = None
         self.date = ''
         self.method = ''
         self.intake_person = ''
@@ -48,7 +48,7 @@ class ReportsRow:
         Args:
             input_json ({}): JSON object representing a row of the intake table
         """
-        self.row_id = input_json.get('row')
+        self.row = input_json.get('row')
         self.date = input_json.get('Date')
         self.method = input_json.get('Method')
         self.intake_person = input_json.get('Intake Person')
@@ -68,6 +68,6 @@ class ReportsRow:
         Order data into an array that can be consumed by the row insertion method.
         Returns ([]): array of data members
         """
-        return [self.row_id, self.date, self.method, self.intake_person, self.rp_name, self.rp_contact_info,
+        return [self.row, self.date, self.method, self.intake_person, self.rp_name, self.rp_contact_info,
                 self.concern, self.location_name, self.location_address, self.mrl, self.action_taken,
                 self.status, self.status_date, self.additional_notes]
