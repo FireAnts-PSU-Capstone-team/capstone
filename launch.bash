@@ -5,6 +5,11 @@
 CURRENT_FILE_FOLDER_PATH=$(dirname $(realpath $0))
 CURRENT_FILE_FOLDER_NAME=$(basename ${CURRENT_FILE_FOLDER_PATH})
 USER_CURRENT_PATH=$(pwd)
+source <(grep = "db/database.ini")
+db_name=$dbname
+db_port=$port
+db_user=$user
+db_pass=$password
 
 if [[ $(dirname $0) != '.' ]]
 then
@@ -13,15 +18,16 @@ fi
 
 function usage() {
     echo "Usage: "
-    echo "  bash $0 clean                   delete any existing version of the web server image"
-    echo "  bash $0 run                     build and run the program"
-    echo "  bash $0 stop                    stop the program"
-    echo "  bash $0 rebuild                 remove all data and rebuild the program"
-    echo "  bash $0 rebuild-db              remove only DB data and re-run the program"
-    echo "  bash $0 test                    test the program (for a fresh/new built program)"
-    echo "  bash $0 backup <path/to/save>   backup current DB to an external file"
-    echo "  bash $0 restore <file/to/load>  restore current DB from an external file"
-    echo "  bash $0 backup-schedule <opt> <path/to/save>  schedule to perform backup in specific time interval"
+    echo "  bash $0 clean                                     remove all data and project-specific Docker images"
+    echo "  bash $0 run                                       build and run the program"
+    echo "  bash $0 stop                                      stop the program"
+    echo "  bash $0 rebuild                                   remove all data and rebuild the program"
+    echo "  bash $0 rebuild-db                                remove only DB data and re-run the program"
+    echo "  bash $0 test                                      test the program (for a freshly built program)"
+    echo "  bash $0 backup <path/to/save>                     backup current DB to an external file"
+    echo "                                                    if path not provided, save in current directory as <current_date>.sql"
+    echo "  bash $0 restore <filename>                        restore DB from an external file"
+    echo "  bash $0 backup-schedule <month|week|day> [path]   schedule regular backups at specified time intervals"
 }
 
 # ctrl-c is used to abort a running container session. To keep the session self-contained by this script,
@@ -50,7 +56,7 @@ function count_rows() {
 function run_test() {
 
     # config variables
-    server_port='443'
+    server_port='443' # TODO: don't need
     tables=('metadata' 'intake' 'txn_history' 'archive')
     primary_table='intake'
     record_row=(9 29 38)
@@ -58,11 +64,6 @@ function run_test() {
     self_signed=' -k'
     testing_spreadsheet='resources/sample-extension.xlsx'
     test_row='resources/sample-row-1.json'
-    # read from database.ini
-    source <(grep = "db/database.ini")
-    db_name=$dbname
-    db_user=$user
-    db_pass=$password
 
     if [[ -z $(psql postgresql://${db_user}:${db_pass}@localhost:5432/postgres?sslmode=require -c '') ]]
     then
@@ -183,12 +184,6 @@ function clean() {
 }
 
 function backup() {
-    # read from database.ini
-    source <(grep = "db/database.ini")
-    db_name=$dbname
-    db_port=$port
-    db_user=$user
-    db_pass=$password
     db_container="${CURRENT_FILE_FOLDER_NAME}_db_1"
     out_file_path=''
 
