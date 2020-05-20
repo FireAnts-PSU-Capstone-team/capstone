@@ -1,7 +1,6 @@
-from flask import Flask, request, jsonify, Response, make_response, send_file
+from flask import Flask, request, jsonify, Response, make_response
 from flask_cors import CORS
 import driver
-import csv
 import pandas as pd
 from pandas.io.json import json_normalize
 from cors import cors_setup
