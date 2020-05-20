@@ -31,10 +31,18 @@ class ColNames(Enum):
     NOTES = 26
 
 
+intake_headers = ['Submission date', 'Entity', 'DBA', 'Facility Address', 'Facility Suite #', 'Facility Zip',
+                  'Mailing Address', 'MRL', 'Neighborhood Association', 'Compliance Region',
+                  'Primary Contact Name (first)', 'Primary Contact Name (last)', 'Email', 'Phone', 'Endorse Type',
+                  'License Type', 'Repeat location?', 'App complete?', 'Fee Schedule', 'Receipt No.', 'Cash Amount',
+                  'Check Amount', 'Card Amount', 'Check No. / Approval Code', 'MRL#', 'Notes']
+
+
 class IntakeRow:
     """
     Represents a row of the intake table.
     """
+
     def __init__(self, input_json):
         """
         Constructor from a JSON object. Any unsupplied data defaults to None
@@ -49,9 +57,9 @@ class IntakeRow:
                 raise KeyError(f"Missing field: {field}")
 
         self.row = input_json.get('row')
-        self.submission_date = check_to_exist(input_json,'Submission date')
+        self.submission_date = check_to_exist(input_json, 'Submission date')
         self.entity = check_to_exist(input_json, 'Entity')
-        self.dba = check_to_exist(input_json,'DBA')
+        self.dba = check_to_exist(input_json, 'DBA')
         self.facility_address = check_to_exist(input_json, 'Facility Address')
         self.facility_suite = check_to_exist(input_json, 'Facility Suite #')
         self.facility_zip = check_to_exist(input_json, 'Facility Zip')
@@ -82,7 +90,9 @@ class IntakeRow:
         Returns ([]): array of data members
         """
         return [self.row, self.submission_date, self.entity, self.dba, self.facility_address, self.facility_suite,
-                self.facility_zip, self.mailing_address, self.mrl, self.neighborhood_association, self.compliance_region,
-                self.primary_contact_first_name, self.primary_contact_last_name, self.email, self.phone, self.endorse_type, self.license_type,
+                self.facility_zip, self.mailing_address, self.mrl, self.neighborhood_association,
+                self.compliance_region,
+                self.primary_contact_first_name, self.primary_contact_last_name, self.email, self.phone,
+                self.endorse_type, self.license_type,
                 self.repeat_license, self.app_complete, self.fee_schedule, self.receipt_num, self.cash_amount,
                 self.check_amount, self.card_amount, self.check_num, self.mrl_num, self.notes]

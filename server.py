@@ -1,10 +1,8 @@
 from flask import Flask, request, jsonify, Response, make_response
 from flask_cors import CORS
-import driver, sys
+import driver
 from cors import cors_setup
 from models.IntakeRow import IntakeRow
-from pandas import json_normalize
-import collections
 
 UPLOAD_FOLDER = 'resources'
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
@@ -41,7 +39,7 @@ def fetch_data():
     """
     if request.method == 'POST':
         query, response, status = driver.filter_table(request.json)
-        app.logger.info("Received query: " + query)
+        app.logger.info("Received query: " + str(query))
         return make_response(jsonify(response), status)
 
     if request.method == 'GET':
@@ -57,22 +55,6 @@ def fetch_data():
             return make_response(jsonify(table_info_obj), 200)
         except driver.InvalidTableException:
             return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
-
-
-def validate_row(json_item):
-    """
-    Preps a JSON input row and passes it to the data validator. Returns the validator's response.
-    Args:
-        json_item ({}): input JSON
-    Returns ((bool, str)): <whether row is valid>, <error message>
-    """
-    # If the incoming json object doesn't have a row associated with it, we add a temporary one for validation
-    if 'row' not in json_item:
-        json_item = collections.OrderedDict(json_item)
-        json_item.update({'row': 999})
-        json_item.move_to_end('row', last=False)
-    df = json_normalize(json_item)
-    return driver.validate_dataframe(df)
 
 
 @app.route("/load", methods=["PUT", "POST"])
@@ -95,7 +77,7 @@ def load_data():
             except driver.InvalidTableException:
                 return make_response(jsonify(f"Table {table_name} does not exist."), 404)
 
-            valid, error_msg = validate_row(request.get_json(force=True))
+            valid, error_msg = driver.validate_row(request.get_json(force=True))
             if not valid:
                 result = {'message': error_msg}
                 return make_response(jsonify(result), 404)
