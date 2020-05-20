@@ -27,6 +27,39 @@ def allowed_file(filename):
     """
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def table_listing_post(request):
+    query, response, status = driver.filter_table(request.json)
+    app.logger.info("Received query: " + str(query))
+    return make_response(jsonify(response), status)
+
+def table_listing_get(request):
+    table_name = request.args.get('table')
+    if table_name is None:
+        return make_response(jsonify('Table name not supplied.'), 400)
+    try:
+        # TODO: once authentication is in place, restrict the tables that can be listed here
+        columns = request.args.get('column')
+        if columns is not None:
+            columns = str.split(columns.strip(), ' ')
+        table_info_obj = driver.get_table(table_name, columns)
+        return make_response(jsonify(table_info_obj), 200)
+    except driver.InvalidTableException:
+        return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
+
+#TODO:Update so it requires authentication
+@app.route("/adminlist", methods=["GET","POST"])
+def fetch_admin_data():
+    """
+    Displays the contents of the table listed in the request. 
+    Usage:
+        GET /list?table=<table_name> to retrieve entire table
+        POST /list to process specific query
+    Returns ({}): JSON object of table data
+    """
+    if request.method == 'POST':
+        return table_listing_post(request)
+    if request.method == 'GET':
+        return table_listing_get(request)
 
 @app.route("/list", methods=["GET", "POST"])
 def fetch_data():
@@ -38,23 +71,10 @@ def fetch_data():
     Returns ({}): JSON object of table data
     """
     if request.method == 'POST':
-        query, response, status = driver.filter_table(request.json)
-        app.logger.info("Received query: " + str(query))
-        return make_response(jsonify(response), status)
+        return table_listing_post(request)
 
     if request.method == 'GET':
-        table_name = request.args.get('table')
-        if table_name is None:
-            return make_response(jsonify('Table name not supplied.'), 400)
-        try:
-            # TODO: once authentication is in place, restrict the tables that can be listed here
-            columns = request.args.get('column')
-            if columns is not None:
-                columns = str.split(columns.strip(), ' ')
-            table_info_obj = driver.get_table(table_name, columns)
-            return make_response(jsonify(table_info_obj), 200)
-        except driver.InvalidTableException:
-            return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
+        return table_listing_post(request)
 
 
 @app.route("/load", methods=["PUT", "POST"])
@@ -82,7 +102,7 @@ def load_data():
                 result = {'message': error_msg}
                 return make_response(jsonify(result), 404)
             try:
-                row_data = IntakeRow(request.get_json(force=True)).value_array()
+                row_data = j(request.get_json(force=True)).value_array()
             except (KeyError, ValueError) as err:
                 message = {'message': err}
                 return make_response(jsonify(message), 404)
