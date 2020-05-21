@@ -135,7 +135,8 @@ CREATE TABLE intake (
     card_amount text,
     check_num_approval_code character varying(25),
     mrl_num character varying(10),
-    notes text
+    notes text,
+    validation_errors text 
 );
 ALTER TABLE intake OWNER TO cc;
 COMMENT ON TABLE intake IS 'Table to track all the data for cannabis program in city of portalnd';
@@ -197,7 +198,8 @@ CREATE TABLE IF NOT EXISTS violations
     check_amount text,
     card_amount text,
     check_num_approval_code text,
-    notes text
+    notes text,
+    validation_errors text 
 );
 ALTER TABLE violations OWNER to cc;
 COMMENT ON TABLE violations IS 'Table to hold all the information regarding violations.';
@@ -222,7 +224,8 @@ CREATE TABLE IF NOT EXISTS records
     action_taken text,
     status text,
     status_date date,
-    additional_notes text
+    additional_notes text,
+    validation_errors text
 );
 ALTER TABLE records OWNER to cc;
 COMMENT ON TABLE records IS 'Table to hold all the information regarding violations.';
