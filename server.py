@@ -150,7 +150,7 @@ def show_metadata():
 @app.route("/delete", methods=["GET"])
 def delete_row():
     """
-    Delete a row of data of the intake .
+    Delete a row of data of the specified table .
     Usage: /delete?table=<table_name>&row=<row_num>
     Returns (str):Success or failure message
     """
