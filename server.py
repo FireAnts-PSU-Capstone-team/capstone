@@ -106,7 +106,7 @@ def load_data():
             return make_response(jsonify(result), 200)
 
     elif request.method == 'POST':
-        if 'file' not in request.files or request.files.get('file') is None:
+        if 'file' not in request.files:
             result = {'message': 'No file listed'}
             return make_response(jsonify(result), 400)
         else:
