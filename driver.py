@@ -5,6 +5,7 @@ import time
 import pandas as pd
 import numpy as np
 import psycopg2
+from psycopg2 import IntegrityError
 from openpyxl import load_workbook
 from pandas.io.json import json_normalize
 
@@ -386,6 +387,7 @@ def insert_row(table, row, checked=False):
     Returns: (bool, dict) a bool indicate whether insertion is successful, a dict of failed row info
     """
     # Check flag for multi row insert, if false check to make sure that the connection is open and active
+    default = False
     if not checked:
         if not check_conn():
             return 0, connection_error_msg
@@ -406,12 +408,26 @@ def insert_row(table, row, checked=False):
             cmd += str(row[0])
     else:
         cmd += "DEFAULT"
+        default = True
 
     for i in range(1, len(row)):
         cmd += f", {fmt(row[i])}"
     cmd += ")"
     try:
-        pgSqlCur.execute(cmd)
+        if default:
+            while default:
+                try:
+                    pgSqlCur.execute(cmd)
+                    status = pgSqlCur.statusmessage
+                    if status=='INSERT 0 1':
+                        break
+
+                except IntegrityError as err:
+                    pgSqlCur.execute("ROLLBACK")
+                    #sql_except(err)
+                    pass
+        else:
+            pgSqlCur.execute(cmd)
         if not checked:
             pgSqlConn.commit()
         if pgSqlCur.rowcount == 1:

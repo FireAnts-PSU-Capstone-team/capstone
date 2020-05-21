@@ -52,24 +52,21 @@ CASE when NEW.dba IS NULL
 THEN
 IF (SELECT count(*)
    FROM intake
-   WHERE submission_date = new.submission_date
-   AND entity = new.entity
-   AND mrl = NEW.mrl) = 0
+   WHERE mrl = NEW.mrl) = 0
 THEN
    RETURN NEW;
 ELSE
+    PERFORM setval('intake_row_seq',cast(currval('intake_row_seq') as integer)-1,true);
    RETURN NULL;
 END IF;
 ELSE
 IF (SELECT count(*)
    FROM intake
-   WHERE submission_date = NEW.submission_date
-   AND entity = NEW.entity
-   AND dba = NEW.dba
-   AND mrl = NEW.mrl) = 0
+   WHERE mrl = NEW.mrl) = 0
 THEN
    RETURN NEW;
 ELSE
+   PERFORM setval('intake_row_seq',cast(currval('intake_row_seq') as integer)-1,true);
    RETURN NULL;
 END IF;
 END CASE;
