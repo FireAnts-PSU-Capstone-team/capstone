@@ -52,10 +52,10 @@ function run_test() {
     record_row=(9 29 38)
     prefixed_host='https://localhost'
     self_signed=' -k'
-    testing_spreadsheet='resources/sample-extension.xlsx'
-    test_row='resources/sample-row-1.json'
+    testing_spreadsheet='kanabi/resources/sample-extension.xlsx'
+    test_row='kanabi/resources/sample-row-1.json'
     # read from database.ini
-    source <(grep = "db/database.ini")
+    source <(grep = "kanabi/db/database.ini")
     db_name=$dbname
     db_user=$user
     db_pass=$password
@@ -160,9 +160,9 @@ function run_test() {
 function run() {
 
     # change permissions of SSL config files
-    sudo chown -R 999:root configs/
-    sudo chmod 777 configs/
-    sudo chmod 600 configs/*
+    sudo chown -R 999:root kanabi/configs/
+    sudo chmod 777 kanabi/configs/
+    sudo chmod 600 kanabi/configs/*
 
     # if the image doesn't exist (or we've just deleted it), build it fresh
     sudo docker image inspect flask-server:v1 >/dev/null 2>&1
@@ -185,7 +185,7 @@ function run() {
 }
 
 function clean() {
-    sudo rm -rf pgdata
+    sudo rm -rf kanabi/pgdata
     sudo docker image rm flask-server:v1 >/dev/null 2>&1
 }
 
@@ -199,9 +199,9 @@ elif [[ $1 == "run" ]]; then
     # if the image doesn't exist (or we've just deleted it), build it fresh
     sudo docker image inspect flask-server:v1 >/dev/null 2>&1
     [[ $? != 0 ]] && echo "Image does not exist; building image" && sudo docker build -t flask-server:v1 .
-    sudo chown -R 999:root configs/
-    sudo chmod 777 configs/
-    sudo chmod 600 configs/*
+    sudo chown -R 999:root kanabi/configs/
+    sudo chmod 777 kanabi/configs/
+    sudo chmod 600 kanabi/configs/*
 
     # bring up the container
     sudo docker-compose up
@@ -222,7 +222,7 @@ elif [[ $1 == "build" ]]; then
     
 elif [[ $1 == "rebuild-db" ]]; then
     # clear DB data and re-run the program
-    sudo rm -r pgdata
+    sudo rm -r kanabi/pgdata
     run
 
 elif [[ $1 == "test" ]]; then
