@@ -16,6 +16,8 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 # Utilizes CORS with the list of origin strings and regex expressions to validate resource requests.
 CORS(app, origins=origin_list)
 
+restrictedTables = ['archive', 'txn_history']
+nonRestrictedTables = ['intake', 'metadata', 'violations', 'records']
 
 def allowed_file(filename):
     """
@@ -46,9 +48,18 @@ def table_listing_get(request):
     except driver.InvalidTableException:
         return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
 
-#TODO:Update so it requires authentication
+def checkTableRouting(table, tableList):
+    if table in tableList:
+        return True, None
+    else:
+        msg = {
+            'message':'Innapropriate route for requested table'
+        }
+        return False, msg
+
+#TODO:Update so it requires authentication?
 @app.route("/adminlist", methods=["GET","POST"])
-def fetch_admin_data():
+def fetch_admin_data(admin=True):
     """
     Displays the contents of the table listed in the request. 
     Usage:
@@ -56,13 +67,16 @@ def fetch_admin_data():
         POST /list to process specific query
     Returns ({}): JSON object of table data
     """
+    valid, msg = checkTableRouting(request.args.get('table'), restrictedTables)
+    if not valid:
+        return make_response(jsonify(msg), 404)
     if request.method == 'POST':
         return table_listing_post(request)
     if request.method == 'GET':
         return table_listing_get(request)
 
 @app.route("/list", methods=["GET", "POST"])
-def fetch_data():
+def fetch_data(admin=False):
     """
     Displays the contents of the table listed in the request.
     Usage:
@@ -70,11 +84,14 @@ def fetch_data():
         POST /list to process specific query
     Returns ({}): JSON object of table data
     """
+    valid, msg = checkTableRouting(request.args.get('table'), nonRestrictedTables)
+    if not valid:
+        return make_response(jsonify(msg), 404)
     if request.method == 'POST':
         return table_listing_post(request)
 
     if request.method == 'GET':
-        return table_listing_post(request)
+        return table_listing_get(request)
 
 
 @app.route("/load", methods=["PUT", "POST"])
@@ -102,7 +119,7 @@ def load_data():
                 result = {'message': error_msg}
                 return make_response(jsonify(result), 404)
             try:
-                row_data = j(request.get_json(force=True)).value_array()
+                row_data = (request.get_json(force=True)).value_array()
             except (KeyError, ValueError) as err:
                 message = {'message': err}
                 return make_response(jsonify(message), 404)
