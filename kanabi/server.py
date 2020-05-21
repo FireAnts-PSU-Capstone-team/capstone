@@ -4,7 +4,7 @@ from flask import Blueprint, jsonify, make_response, request, render_template, r
 from flask_login import login_required, current_user
 from flask_principal import Permission, RoleNeed
 from flask_cors import CORS
-import cors_setup
+from kanabi.cors import cors_setup
 from werkzeug.security import generate_password_hash
 from functools import wraps
 from pandas import json_normalize
@@ -33,12 +33,12 @@ edit_permission = Permission(RoleNeed('editor'))
 def write_permission(function):
     @wraps(function)
     def wrapper(*args, **kwargs):
+        headers = {"Content-Type": "application/json"}
+        msg = 'No Write-permissions. User is in read-only mode.'
         if 'read_only_mode' not in session:
-            flash("Action Forbidden. User is currently in Read-Only mode.")
-            return render_template('profile.html', name=current_user.name, read_only=True)
+            return make_gui_response(headers, 400, msg)
         elif session['read_only_mode']:
-            flash("Action Forbidden. User is currently in Read-Only mode.")
-            return render_template('profile.html', name=current_user.name, read_only=True)
+            return make_gui_response(headers, 400, msg)
         else:
             return function(*args, **kwargs)
     return wrapper

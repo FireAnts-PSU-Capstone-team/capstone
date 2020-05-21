@@ -2,10 +2,13 @@
 # folders
 __pycache__
 bin
-pgdata
+kanabi/pgdata
 
 # files
 .idea
 *.exe
 uploaded_*.xlsx
 .DS_Store
+kanabi/db.sqlite
+**/*.cookie
+
