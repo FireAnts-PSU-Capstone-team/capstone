@@ -428,6 +428,7 @@ def insert_row(table, row, checked=False):
                         row_seq[table]+=1
                         break
                     row_seq[table]+=1
+                    cmd = cmd.replace(f"({row_seq[table]-1}", f"({row_seq[table]}",1)
 
                 except IntegrityError as err:
                     pgSqlCur.execute("ROLLBACK")
