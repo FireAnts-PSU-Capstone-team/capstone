@@ -106,7 +106,7 @@ def load_data():
             return make_response(jsonify(result), 200)
 
     elif request.method == 'POST':
-        if 'file' not in request.files or request.files.get('file') is None:
+        if 'file' not in request.files:
             result = {'message': 'No file listed'}
             return make_response(jsonify(result), 400)
         else:
@@ -128,7 +128,7 @@ def load_data():
                 if result_obj.get('status', '') == 'invalid':
                     return make_response(jsonify(result_obj.get('error_msg')), 400)
                 result = {
-                    'message': 'File processed, but with failed rows due to duplicate primary key:',
+                    'message': 'File processed, but with failed rows:',
                     'result': result_obj
                 }
                 return make_response(jsonify(result), 400)

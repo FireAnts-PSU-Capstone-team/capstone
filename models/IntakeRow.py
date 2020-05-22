@@ -29,6 +29,7 @@ class ColNames(Enum):
     CHECK_NUM_APPROVAL_CODE = 24
     MRL_NUM = 25
     NOTES = 26
+    VALIDATION_ERRORS = 27
 
 
 intake_headers = ['Submission date', 'Entity', 'DBA', 'Facility Address', 'Facility Suite #', 'Facility Zip',
