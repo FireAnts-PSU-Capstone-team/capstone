@@ -43,7 +43,6 @@ ALTER FUNCTION change_fnc() OWNER TO cc;
 -- A TRIGGER for insert conflict strategy
 -- Name: check_insertion_fnc; Type: TRIGGER; Schema: public; Owner: cc
 --
-
 CREATE FUNCTION check_insertion_fnc()
     RETURNS TRIGGER
     LANGUAGE 'plpgsql'
@@ -91,7 +90,7 @@ SET default_table_access_method = heap;
 --
 -- Name: metadata; Type: TABLE; Schema: public; Owner: cc
 --
-CREATE TABLE IF NOT EXISTS metadata (
+CREATE TABLE metadata (
     filename TEXT NOT NULL,
     creator TEXT,
     size INT,
@@ -135,7 +134,8 @@ CREATE TABLE intake (
     card_amount text,
     check_num_approval_code character varying(25),
     mrl_num character varying(10),
-    notes text
+    notes text,
+    validation_errors text 
 );
 ALTER TABLE intake OWNER TO cc;
 COMMENT ON TABLE intake IS 'Table to track all the data for cannabis program in city of portalnd';
@@ -165,7 +165,7 @@ ALTER TABLE ONLY txn_history
 -- Name: archive; Type: TABLE; Schema: public; Owner: CC
 --
 CREATE TABLE archive (
-    row_id integer NOT NULL,
+    "row" integer NOT NULL,
     tstamp timestamp without time zone DEFAULT now(),
     who text DEFAULT CURRENT_USER,
     old_val json
@@ -173,14 +173,14 @@ CREATE TABLE archive (
 ALTER TABLE archive OWNER TO cc;
 COMMENT ON TABLE archive IS 'Table tracks the rows removed from the intake database table';
 ALTER TABLE ONLY archive
-    ADD CONSTRAINT archive_pkey PRIMARY KEY (row_id);
+    ADD CONSTRAINT archive_pkey PRIMARY KEY ("row");
 
 --
 -- Name: violations Type: table Schema: public Owner: cc
 --
 CREATE TABLE IF NOT EXISTS violations
 (
-    row_id integer NOT NULL,
+    "row" integer NOT NULL,
     dba text,
     address text,
     mrl_num text,
@@ -197,19 +197,20 @@ CREATE TABLE IF NOT EXISTS violations
     check_amount text,
     card_amount text,
     check_num_approval_code text,
-    notes text
+    notes text,
+    validation_errors text 
 );
 ALTER TABLE violations OWNER to cc;
 COMMENT ON TABLE violations IS 'Table to hold all the information regarding violations.';
 ALTER TABLE ONLY violations
-    ADD CONSTRAINT violations_pkey PRIMARY KEY (row_id);
+    ADD CONSTRAINT violations_pkey PRIMARY KEY ("row");
 
 --
 -- Name: records Type: table Schema: public Owner: cc
 --
 CREATE TABLE IF NOT EXISTS records
 (
-    row_id integer NOT NULL,
+    "row" integer NOT NULL,
     date date,
     method text,
     intake_person text,
@@ -222,12 +223,13 @@ CREATE TABLE IF NOT EXISTS records
     action_taken text,
     status text,
     status_date date,
-    additional_notes text
+    additional_notes text,
+    validation_errors text
 );
 ALTER TABLE records OWNER to cc;
 COMMENT ON TABLE records IS 'Table to hold all the information regarding violations.';
 ALTER TABLE ONLY records
-    ADD CONSTRAINT records_pkey PRIMARY KEY (row_id);
+    ADD CONSTRAINT records_pkey PRIMARY KEY ("row");
 -------------------------
 -- Sequences
 -------------------------
@@ -277,8 +279,8 @@ CREATE SEQUENCE archive_row_seq
     CACHE 1;
 
 ALTER TABLE archive_row_seq OWNER TO cc;
-ALTER SEQUENCE archive_row_seq OWNED BY archive.row_id;
-ALTER TABLE ONLY archive ALTER COLUMN row_id SET DEFAULT nextval('archive_row_seq'::regclass);
+ALTER SEQUENCE archive_row_seq OWNED BY archive."row";
+ALTER TABLE ONLY archive ALTER COLUMN "row" SET DEFAULT nextval('archive_row_seq'::regclass);
 
 --
 -- Name: violations_row_seq
@@ -293,8 +295,8 @@ CREATE SEQUENCE violations_row_seq
     CACHE 1;
 
 ALTER TABLE violations_row_seq OWNER TO cc;
-ALTER SEQUENCE violations_row_seq OWNED BY violations.row_id;
-ALTER TABLE ONLY violations ALTER COLUMN row_id SET DEFAULT nextval('violations_row_seq'::regclass);
+ALTER SEQUENCE violations_row_seq OWNED BY violations."row";
+ALTER TABLE ONLY violations ALTER COLUMN "row" SET DEFAULT nextval('violations_row_seq'::regclass);
 
 --
 -- Name: records_row_seq
@@ -309,8 +311,8 @@ CREATE SEQUENCE records_row_seq
     CACHE 1;
 
 ALTER TABLE records_row_seq OWNER TO cc;
-ALTER SEQUENCE records_row_seq OWNED BY records.row_id;
-ALTER TABLE ONLY records ALTER COLUMN row_id SET DEFAULT nextval('records_row_seq'::regclass);
+ALTER SEQUENCE records_row_seq OWNED BY records."row";
+ALTER TABLE ONLY records ALTER COLUMN "row" SET DEFAULT nextval('records_row_seq'::regclass);
 
 -------------------------
 -- Triggers

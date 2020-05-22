@@ -1,3 +1,16 @@
+from enum import Enum
+
+
+class ColNames(Enum):
+    ID = 0
+    TSTAMP = 1
+    SCHEMANAME = 2
+    OEPRATION = 3
+    WHO = 4
+    NEW_VAL = 5
+    OLD_VAL = 6
+    TABNAME = 7
+
 class TxnHistoryRow:
     """
     Represents a row of the Txn_History table.

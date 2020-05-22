@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, Response, make_response
 from flask_cors import CORS
 import driver
+from pandas.io.json import json_normalize
 from cors import cors_setup
 from models.IntakeRow import IntakeRow
 
@@ -106,7 +107,7 @@ def load_data():
             return make_response(jsonify(result), 200)
 
     elif request.method == 'POST':
-        if 'file' not in request.files or request.files.get('file') is None:
+        if 'file' not in request.files:
             result = {'message': 'No file listed'}
             return make_response(jsonify(result), 400)
         else:
@@ -128,7 +129,7 @@ def load_data():
                 if result_obj.get('status', '') == 'invalid':
                     return make_response(jsonify(result_obj.get('error_msg')), 400)
                 result = {
-                    'message': 'File processed, but with failed rows due to duplicate primary key:',
+                    'message': 'File processed, but with failed rows:',
                     'result': result_obj
                 }
                 return make_response(jsonify(result), 400)
@@ -145,6 +146,46 @@ def show_metadata():
     """
     response_body = jsonify(driver.get_table('metadata', None))
     return make_response(response_body, 200)
+
+@app.route('/export', methods=['GET'])
+def export_csv():
+    """
+    Returns CSV of the table listed in the request.
+    Usage:
+        GET /export?table=<table_name> -o outputfile.csv to retrieve CSV of table
+    Returns ({}): CSV object of table data
+    """
+    if request.method == 'GET':
+        table_name = request.args.get('table')
+        if table_name is None:
+            return make_response(jsonify('Table name not supplied.'), 400)
+        try:
+            table_output = driver.get_table(table_name, None)
+            df = json_normalize(table_output)
+            table_info_obj = df.to_csv(index = False)
+            return make_response(table_info_obj, 200)
+        except driver.InvalidTableException:
+            return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
+
+@app.route("/delete", methods=["GET"])
+def delete_row():
+    """
+    Delete a row of data of the specified table .
+    Usage: /delete?table=<table_name>&row=<row_num>
+    Returns (str):Success or failure message
+    """
+    table_name = request.args.get('table', '')
+    row_nums = request.args.get('row', '')
+    if table_name == '' or row_nums == '':
+        return make_response(jsonify('Table name or row number not supplied.'), 400)
+    try:
+        row_nums = str.split(row_nums.strip(), ' ')
+        table_info_obj = driver.delete_row(table_name, row_nums)
+        return make_response(jsonify(table_info_obj), 200)
+    except driver.InvalidTableException:
+        return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
+    except driver.InvalidRowException:
+        return make_response(jsonify('Row '.join(row_nums) + ' is invalid input.'), 404)
 
 
 @app.route('/update', methods=['POST'])

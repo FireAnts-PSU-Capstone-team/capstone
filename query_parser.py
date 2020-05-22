@@ -137,8 +137,10 @@ class QueryParser:
                 raise RequestParseException("Requested table not found")
 
             # if columns not listed, assume all
-            columns = q.get('columns', '*')
-            if not isinstance(columns, list):
+            columns = q.get('columns')
+            if columns is None:
+                columns = '*'
+            elif not isinstance(columns, list):
                 raise RequestParseException("Columns must be present as list in request body")
             if columns != '*':
                 for col in columns:

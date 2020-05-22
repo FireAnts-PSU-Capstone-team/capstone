@@ -97,7 +97,7 @@ def fmt(s):
         s: the input element
     Returns (str): a SQL-friendly string representation
     """
-    if s is None or str(s).lower() == 'nan':
+    if s is None or str(s).lower() == 'nan' or str(s) == '':
         s = "NULL"
     else:
         if type(s) is str:
@@ -159,6 +159,13 @@ def table_exists(cur, table):
 class InvalidTableException(Exception):
     """
     Thrown when the specified table does not exist.
+    """
+    pass
+
+
+class InvalidRowException(Exception):
+    """
+    Thrown when the specified row is invalid.
     """
     pass
 
@@ -285,11 +292,14 @@ def write_info_data(df):
     row_array = np.ndenumerate(df.values).iter.base
     total_count = len(row_array)
     for row in row_array:
-        (re, failed_row) = insert_row(primary_table, row, True)
-        if re == 1:
-            success_count += 1
-        else:
-            failed_rows.append(failed_row)
+        try:
+            re, failed_row = insert_row(primary_table, row, True)  # TODO: need to replace so we can name a table
+            if re == 1:
+                success_count += 1
+            else:
+                failed_rows.append(failed_row)
+        except:
+            failed_rows.append(row)
 
     return {
         'insertions_attempted': total_count,
@@ -375,7 +385,6 @@ def validate_row(json_item):
     return validate_dataframe(df)
 
 
-
 def insert_row(table, row, checked=False):
     """
     Insert an array of values into the specified table.
@@ -417,17 +426,16 @@ def insert_row(table, row, checked=False):
         if pgSqlCur.rowcount == 1:
             return 1, None
         else:
-            failed_row = {
-                'submission_date': row[ColNames.SUBMISSION_DATE.value],
-                'entity': row[ColNames.ENTITY.value],
-                'dba': row[ColNames.DBA.value],
-                'mrl': row[ColNames.MRL.value]
-            }
-            return 0, failed_row
-
+            raise psycopg2.Error
     except Exception as err:
         sql_except(err)
-        return -1, None
+        failed_row = {
+            'submission_date': row[ColNames.SUBMISSION_DATE.value],
+            'entity': row[ColNames.ENTITY.value],
+            'dba': row[ColNames.DBA.value],
+            'mrl': row[ColNames.MRL.value]
+        }
+        return 0, failed_row
 
 
 def process_file(f):
@@ -445,8 +453,7 @@ def process_file(f):
         df = pd.read_excel(f)
         # Validate data frame
         valid, error_msg = validate_dataframe(df)
-        if not valid:
-            return False, {'status': 'invalid', 'error_msg': error_msg}
+
         # Write the data to the DB
         result_obj = write_info_data(df)
         # insert metadata into metadata table
@@ -457,9 +464,52 @@ def process_file(f):
 
         # commit execution
         pgSqlConn.commit()
-
+        if not valid:
+            result_obj['failed_rows'] = error_msg
         failed_insertions = result_obj['insertions_attempted'] - result_obj['insertions_successful']
         return failed_insertions == 0, result_obj
+
+
+def delete_row(table, row_nums):
+    """
+    Args:
+        table (str): table name to delete row from
+        row_nums ([int]): the rowId(s) to delete
+    Returns (bool, dict): Boolean is successful or not, dict contains processed info
+    """
+    success = False
+    delete_info = {}
+    if not check_conn():
+        return 0, connection_error_msg
+    else:
+        # verify table is within the db
+        if table not in db_tables:
+            raise InvalidTableException
+        # convert each row_num to digit;
+        try:
+            row_nums = list(map(int, row_nums))
+        except ValueError:
+            raise InvalidRowException
+        for row in row_nums:
+            if row <= 0:
+                delete_info[f'Row {str(row)}'] = 'Invalid row number'
+                continue
+            cmd = f'DELETE FROM {table} WHERE "row" = {row};'
+            try:
+                pgSqlCur.execute(cmd)
+                pgSqlConn.commit()
+                if pgSqlCur.rowcount == 1:
+                    success = True
+                    delete_info[f'Row {str(row)}'] = 'Successfully deleted'
+                else:
+                    delete_info[f'Row {str(row)}'] = 'Failed to delete'
+
+            except psycopg2.Error as err:
+                sql_except(err)
+        if success:
+            return 'Deletion successful', delete_info
+        else:
+            return 'Some/all deletions failed', delete_info
 
 
 def update_table(table, row, update_columns):
@@ -550,4 +600,4 @@ def test_driver():
 
 if __name__ == '__main__':
     test_driver()
-    print(get_table({primary_table}, None))
+    print(get_table(primary_table, None))
