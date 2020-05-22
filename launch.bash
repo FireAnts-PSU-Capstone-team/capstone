@@ -5,11 +5,11 @@
 CURRENT_FILE_FOLDER_PATH=$(dirname $(realpath $0))
 CURRENT_FILE_FOLDER_NAME=$(basename ${CURRENT_FILE_FOLDER_PATH})
 USER_CURRENT_PATH=$(pwd)
+db_container="capstone_db_1"
+web_container="capstone_web_1"
+server_port=443
+# defines dbname, user, password, port
 source <(grep = "db/database.ini")
-db_name=$dbname
-db_port=$port
-db_user=$user
-db_pass=$password
 
 if [[ $(dirname $0) != '.' ]]
 then
@@ -56,7 +56,6 @@ function count_rows() {
 function run_test() {
 
     # config variables
-    server_port='443' # TODO: don't need
     tables=('metadata' 'intake' 'txn_history' 'archive')
     primary_table='intake'
     record_row=(9 29 38)
@@ -65,7 +64,7 @@ function run_test() {
     testing_spreadsheet='resources/sample-extension.xlsx'
     test_row='resources/sample-row-1.json'
 
-    if [[ -z $(psql postgresql://${db_user}:${db_pass}@localhost:5432/postgres?sslmode=require -c '') ]]
+    if [[ -z $(psql postgresql://${user}:${password}@localhost:5432/postgres?sslmode=require -c '') ]]
     then
         echo "1. DB connection successful."
     else
@@ -74,18 +73,18 @@ function run_test() {
     fi
 
     # check if the target DB was created inside the postgres DB
-    out=$(psql postgresql://${db_user}:${db_pass}@localhost:5432/postgres?sslmode=require -lA | grep "${db_name}|")
+    out=$(psql postgresql://${user}:${password}@localhost:5432/postgres?sslmode=require -lA | grep "${dbname}|")
 
     if [[ -z ${out} ]]
     then
         echo "2. ERROR: DB not created."
         exit
     else
-        echo "2. DB \"${db_name}\" created."
+        echo "2. DB \"${dbname}\" created."
     fi
 
     # check if required tables created in the DB
-    out=$(psql postgresql://${db_user}:${db_pass}@localhost:5432/${db_name}?sslmode=require -Ac '\d')
+    out=$(psql postgresql://${user}:${password}@localhost:5432/${dbname}?sslmode=require -Ac '\d')
 
     for i in "${tables[@]}"
     do
@@ -173,7 +172,6 @@ function run() {
     sudo docker image inspect flask-server:v1 >/dev/null 2>&1
     [[ $? != 0 ]] && echo "Image does not exist; building image" && sudo docker build -t flask-server:v1 .
 
-    # launch and check for 'port in use' error
     echo "Launching container"
     sudo docker-compose up
 }
@@ -184,7 +182,7 @@ function clean() {
 }
 
 function backup() {
-    db_container="${CURRENT_FILE_FOLDER_NAME}_db_1"
+
     out_file_path=''
 
     if [[ -z $1 ]]
@@ -200,17 +198,11 @@ function backup() {
         fi
     fi
 
-    sudo docker exec -it ${db_container} pg_dump -d postgresql://${db_user}:${db_pass}@localhost:${port}/${db_name} > $out_file_path
+    sudo docker exec -it ${db_container} pg_dump -d postgresql://${user}:${password}@localhost:${server_port}/${dbname} > $out_file_path
     echo "Backup successfully to file: ${out_file_path}"
 }
 
 function restore() {
-    # read from database.ini
-    source <(grep = "db/database.ini")
-    db_name=$dbname
-    db_port=$port
-    db_user=$user
-    db_pass=$password
     in_file_path=''
 
     if [[ -z $1 ]]
@@ -228,20 +220,20 @@ function restore() {
         ls $in_file_path > /dev/null 2> /dev/null
         if [[ $? != 0 ]]
         then
-            echo "File ${in_file_path} is not exist."
-            exit
+            echo "File ${in_file_path} does not exist."
+            exit 1
         fi
     fi
 
-    echo "Restoring DB form file (${in_file_path})..."
+    echo "Restoring DB from file (${in_file_path})..."
 
     # remove current DB stuffs
-    psql postgresql://${db_user}:${db_pass}@localhost:${port}/${db_name} < db/db-remove.sql
+    psql postgresql://${user}:${password}@localhost:${server_port}/${dbname} < db/db-remove.sql
     
     # execute backup .sql file
-    psql postgresql://${db_user}:${db_pass}@localhost:${port}/${db_name} < ${in_file_path}
+    psql postgresql://${user}:${password}@localhost:${server_port}/${dbname} < ${in_file_path}
     
-    echo "Restored successfully."
+    [[ $? == 0 ]] && echo "Restored successfully."
 }
 
 function backup-schedule() {
@@ -276,7 +268,7 @@ elif [[ $1 == "run" ]]; then
 
 elif [[ $1 == "stop" ]]; then
 
-    server_container="${CURRENT_FILE_FOLDER_NAME}_web_1" 
+    server_container="${CURRENT_FILE_FOLDER_NAME}_web_1"
     db_container="${CURRENT_FILE_FOLDER_NAME}_db_1"
 
     # stop the containers

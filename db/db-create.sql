@@ -18,12 +18,12 @@ CREATE FUNCTION change_fnc() RETURNS TRIGGER
     AS $$BEGIN
 IF TG_OP='INSERT'
 THEN
-INSERT INTO public.txn_history(tabname,schemaname,operation, new_val)
+INSERT INTO txn_history(tabname,schemaname,operation, new_val)
 VALUES(TG_RELNAME, TG_TABLE_SCHEMA, TG_OP, row_to_json(NEW));
 RETURN NEW;
 ELSIF TG_OP = 'UPDATE'
 THEN
-INSERT INTO public.txn_history(tabname,schemaname,operation, new_val, old_val)
+INSERT INTO txn_history(tabname,schemaname,operation, new_val, old_val)
 VALUES(TG_RELNAME,TG_TABLE_SCHEMA, TG_OP, row_to_json(NEW), row_to_json(OLD));
 RETURN NEW;
 ELSIF TG_OP = 'DELETE'
@@ -50,7 +50,7 @@ AS $BODY$BEGIN
 CASE when NEW.dba IS NULL
 THEN
 IF (SELECT count(*)
-   FROM public.intake
+   FROM intake
    WHERE submission_date = new.submission_date
    AND entity = new.entity
    AND mrl = NEW.mrl) = 0
@@ -61,7 +61,7 @@ ELSE
 END IF;
 ELSE
 IF (SELECT count(*)
-   FROM public.intake
+   FROM intake
    WHERE submission_date = NEW.submission_date
    AND entity = NEW.entity
    AND dba = NEW.dba
