@@ -163,6 +163,13 @@ class InvalidTableException(Exception):
     pass
 
 
+class InvalidRowException(Exception):
+    """
+    Thrown when the specified row is invalid.
+    """
+    pass
+
+
 def filter_table(request_body):
     """
     Return a JSON object representing the requested data from the table.
@@ -462,6 +469,48 @@ def process_file(f):
             result_obj['failed_rows'] = error_msg
         failed_insertions = result_obj['insertions_attempted'] - result_obj['insertions_successful']
         return failed_insertions == 0, result_obj
+
+
+def delete_row(table, row_nums):
+    """
+    Args:
+        table (str): table name to delete row from
+        row_nums ([int]): the rowId(s) to delete
+    Returns (bool, dict): Boolean is successful or not, dict contains processed info
+    """
+    success = False
+    delete_info = {}
+    if not check_conn():
+        return 0, connection_error_msg
+    else:
+        # verify table is within the db
+        if table not in db_tables:
+            raise InvalidTableException
+        # convert each row_num to digit;
+        try:
+            row_nums = list(map(int, row_nums))
+        except ValueError:
+            raise InvalidRowException
+        for row in row_nums:
+            if row <= 0:
+                delete_info[f'Row {str(row)}'] = 'Invalid row number'
+                continue
+            cmd = f'DELETE FROM {table} WHERE "row" = {row};'
+            try:
+                pgSqlCur.execute(cmd)
+                pgSqlConn.commit()
+                if pgSqlCur.rowcount == 1:
+                    success = True
+                    delete_info[f'Row {str(row)}'] = 'Successfully deleted'
+                else:
+                    delete_info[f'Row {str(row)}'] = 'Failed to delete'
+
+            except psycopg2.Error as err:
+                sql_except(err)
+        if success:
+            return 'Deletion successful', delete_info
+        else:
+            return 'Some/all deletions failed', delete_info
 
 
 def test_driver():
