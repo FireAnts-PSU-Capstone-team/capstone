@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, Response, make_response
 from flask_cors import CORS
 import driver
+from pandas.io.json import json_normalize
 from cors import cors_setup
 from models.IntakeRow import IntakeRow
 
@@ -146,6 +147,25 @@ def show_metadata():
     response_body = jsonify(driver.get_table('metadata', None))
     return make_response(response_body, 200)
 
+@app.route('/export', methods=['GET'])
+def export_csv():
+    """
+    Returns CSV of the table listed in the request.
+    Usage:
+        GET /export?table=<table_name> -o outputfile.csv to retrieve CSV of table
+    Returns ({}): CSV object of table data
+    """
+    if request.method == 'GET':
+        table_name = request.args.get('table')
+        if table_name is None:
+            return make_response(jsonify('Table name not supplied.'), 400)
+        try:
+            table_output = driver.get_table(table_name, None)
+            df = json_normalize(table_output)
+            table_info_obj = df.to_csv(index = False)
+            return make_response(table_info_obj, 200)
+        except driver.InvalidTableException:
+            return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
 
 @app.route('/')
 def hello_world():
