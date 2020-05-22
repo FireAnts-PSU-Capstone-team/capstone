@@ -47,29 +47,24 @@ ALTER FUNCTION change_fnc() OWNER TO cc;
 CREATE FUNCTION check_insertion_fnc()
     RETURNS TRIGGER
     LANGUAGE 'plpgsql'
-AS $BODY$BEGIN
-CASE when NEW.dba IS NULL
-THEN
+AS $BODY$
+BEGIN
 IF (SELECT count(*)
    FROM intake
    WHERE mrl = NEW.mrl) = 0
+AND
+    (SELECT count(*)
+     FROM intake
+     WHERE "row" = NEW."row") = 0
+AND
+    (SELECT count(*)
+     FROM intake
+     WHERE receipt_num=NEW."receipt_num")=0
 THEN
    RETURN NEW;
 ELSE
-    PERFORM setval('intake_row_seq',cast(currval('intake_row_seq') as integer)-1,true);
    RETURN NULL;
 END IF;
-ELSE
-IF (SELECT count(*)
-   FROM intake
-   WHERE mrl = NEW.mrl) = 0
-THEN
-   RETURN NEW;
-ELSE
-   PERFORM setval('intake_row_seq',cast(currval('intake_row_seq') as integer)-1,true);
-   RETURN NULL;
-END IF;
-END CASE;
 END;$BODY$;
 
 ALTER FUNCTION check_insertion_fnc() OWNER TO cc;
@@ -114,7 +109,7 @@ CREATE TABLE intake (
     facility_suite text,
     facility_zip text,
     mailing_address text,
-    mrl character varying(10),
+    mrl character varying(10) UNIQUE,
     neighborhood_association character varying(30),
     compliance_region character varying(2),
     primary_contact_first_name text,
@@ -126,7 +121,7 @@ CREATE TABLE intake (
     repeat_location character(1),
     app_complete character varying(3),
     fee_schedule character varying(10),
-    receipt_num integer,
+    receipt_num integer UNIQUE,
     cash_amount text,
     check_amount text,
     card_amount text,
@@ -181,7 +176,7 @@ CREATE TABLE IF NOT EXISTS violations
     row_id integer NOT NULL,
     dba text,
     address text,
-    mrl_num text,
+    mrl_num text UNIQUE,
     license_type text,
     violation_sent_date date,
     original_violation_amount text,
@@ -190,7 +185,7 @@ CREATE TABLE IF NOT EXISTS violations
     certified_num text,
     certified_receipt_returned text,
     date_paid_waived date,
-    receipt_no text,
+    receipt_no text UNIQUE,
     cash_amount text,
     check_amount text,
     card_amount text,
@@ -217,7 +212,7 @@ CREATE TABLE IF NOT EXISTS records
     concern text,
     location_name text,
     address text,
-    mrl_num text,
+    mrl_num text UNIQUE,
     action_taken text,
     status text,
     status_date date,
@@ -232,21 +227,21 @@ ALTER TABLE ONLY records
 -- Sequences
 -------------------------
 
+----
+---- Name: intake_row_seq
+---- Desc: Sequence used as PK for intake table Owner: cc
+----
+--CREATE SEQUENCE intake_row_seq
+--    AS integer
+--    START WITH 1
+--    INCREMENT BY 1
+--    NO MINVALUE
+--    NO MAXVALUE
+--    CACHE 1;
 --
--- Name: intake_row_seq
--- Desc: Sequence used as PK for intake table Owner: cc
---
-CREATE SEQUENCE intake_row_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-ALTER TABLE intake_row_seq OWNER TO cc;
-ALTER SEQUENCE intake_row_seq OWNED BY intake."row";
-ALTER TABLE ONLY intake ALTER COLUMN "row" SET DEFAULT nextval('intake_row_seq'::regclass);
+--ALTER TABLE intake_row_seq OWNER TO cc;
+--ALTER SEQUENCE intake_row_seq OWNED BY intake."row";
+--ALTER TABLE ONLY intake ALTER COLUMN "row" SET DEFAULT nextval('intake_row_seq'::regclass);
 
 --
 -- Name: txn_history_id_seq
@@ -284,33 +279,33 @@ ALTER TABLE ONLY archive ALTER COLUMN row_id SET DEFAULT nextval('archive_row_se
 -- Name: violations_row_seq
 -- Desc: Sequence used as PK for violations table Owner: cc
 --
-CREATE SEQUENCE violations_row_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-ALTER TABLE violations_row_seq OWNER TO cc;
-ALTER SEQUENCE violations_row_seq OWNED BY violations.row_id;
-ALTER TABLE ONLY violations ALTER COLUMN row_id SET DEFAULT nextval('violations_row_seq'::regclass);
+--CREATE SEQUENCE violations_row_seq
+--    AS integer
+--    START WITH 1
+--    INCREMENT BY 1
+--    NO MINVALUE
+--    NO MAXVALUE
+--    CACHE 1;
+--
+--ALTER TABLE violations_row_seq OWNER TO cc;
+--ALTER SEQUENCE violations_row_seq OWNED BY violations.row_id;
+--ALTER TABLE ONLY violations ALTER COLUMN row_id SET DEFAULT nextval('violations_row_seq'::regclass);
 
 --
 -- Name: records_row_seq
 -- Desc: Sequence used as PK for records table Owner: cc
 --
-CREATE SEQUENCE records_row_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-ALTER TABLE records_row_seq OWNER TO cc;
-ALTER SEQUENCE records_row_seq OWNED BY records.row_id;
-ALTER TABLE ONLY records ALTER COLUMN row_id SET DEFAULT nextval('records_row_seq'::regclass);
+--CREATE SEQUENCE records_row_seq
+--    AS integer
+--    START WITH 1
+--    INCREMENT BY 1
+--    NO MINVALUE
+--    NO MAXVALUE
+--    CACHE 1;
+--
+--ALTER TABLE records_row_seq OWNER TO cc;
+--ALTER SEQUENCE records_row_seq OWNED BY records.row_id;
+--ALTER TABLE ONLY records ALTER COLUMN row_id SET DEFAULT nextval('records_row_seq'::regclass);
 
 -------------------------
 -- Triggers
