@@ -13,8 +13,8 @@
 ## Startup
 
 There is a launch script that will handle bringing up the containers and performing cleanup on exit. To build and launch 
-the project, type `bash launch.bash build`.\
-If a current image of the project already exists locally, you can instead run the existing image by typing `bash launch.bash run` instead.
+the project, type `bash launch.bash run`.
+ 
 
 ### If you prefer to run the commands manually
 
@@ -37,23 +37,28 @@ sudo docker stop <server-container> <db-container>
 In project folder:
 
 ``` sh
-bash launch.bash clean          delete any existing version of the web server image
-bash launch.bash run            run the program
-bash launch.bash stop           stop the program
-bash launch.bash build          remove all data and rebuild the program
-bash launch.bash rebuild-db     remove only DB data and re-run the program
-bash launch.bash test           test the program (for a fresh/new built program)
+bash launch.bash clean                                     remove all data and project-specific Docker images
+bash launch.bash run                                       build and run the program
+bash launch.bash stop                                      stop the program
+bash launch.bash rebuild                                   remove all data and rebuild the program
+bash launch.bash rebuild-db                                remove only DB data and re-run the program
+bash launch.bash test                                      test the program (for a freshly built container)
+bash launch.bash backup [path]                             backup current DB to an external file
+                                                           if path not provided, save in current directory as <current_date>.sql
+bash launch.bash restore <filename>                        restore DB from an external file
+bash launch.bash backup-schedule <month|week|day> [path]   schedule regular backups at specified time intervals
 ```
 
 ## Troubleshooting
 If you get an error when running `sudo docker-compose up` indicating that port 5432 (Postgres) is already in use, you need to stop postgresql and try again:\
 `sudo service postgresql stop`\
 \
-If you attempt a request and receive a reply regarding unverified certificates, repeat the command 
+If you attempt a request and receive a reply regarding unverified SSL certificates, repeat the command 
 with `-k` provided as an additional argument.
 
 ## Interacting with the server
-You can open a browser and go to [https://localhost:443](https://localhost:443) to connect to the running API. From here, you can hit any of the endpoints specified in the `server.py` file.
+You can open a browser and go to [https://localhost:443](https://localhost:443) to connect to the running API. From here, 
+you can hit any of the endpoints specified in the `server.py` file.
 
 You can also query the API from the command line, using `curl`: 
 

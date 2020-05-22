@@ -43,7 +43,6 @@ ALTER FUNCTION change_fnc() OWNER TO cc;
 -- A TRIGGER for insert conflict strategy
 -- Name: check_insertion_fnc; Type: TRIGGER; Schema: public; Owner: cc
 --
-
 CREATE FUNCTION check_insertion_fnc()
     RETURNS TRIGGER
     LANGUAGE 'plpgsql'
@@ -91,7 +90,7 @@ SET default_table_access_method = heap;
 --
 -- Name: metadata; Type: TABLE; Schema: public; Owner: cc
 --
-CREATE TABLE IF NOT EXISTS metadata (
+CREATE TABLE metadata (
     filename TEXT NOT NULL,
     creator TEXT,
     size INT,
