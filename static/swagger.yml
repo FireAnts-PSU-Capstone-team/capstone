@@ -156,7 +156,7 @@ paths:
   /delete:
     get:
       summary: Delete a row
-      description: Delete a row(s) from specified table
+      description: Delete specified row(s) from specified table
       parameters:
         - name: table
           in: query
@@ -167,7 +167,7 @@ paths:
         - name: row
           in: query
           required: true
-          description: Integer of row id to be deleted
+          description: Integer of row ID to be deleted. Multipe IDs are separated by '+', e.g. "row=1+2"
           schema:
             type: integer
       responses:
@@ -180,7 +180,7 @@ paths:
           content:
             application/json: {}
         404:
-          description: Table doesn't exist, row input invalid
+          description: Table doesn't exist or row input invalid
           content:
             application/json: {}
         500:

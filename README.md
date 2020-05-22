@@ -69,4 +69,6 @@ You can also query the API from the command line, using `curl`:
 &emsp;&emsp;`curl -k -X POST https://localhost:443/list -d @resources/test-query-and-1.json -H "Content-Type: application/json"` \
 &emsp;Delete a row of the `intake` table: \
 &emsp;&emsp;`curl -k "https://localhost:443/delete?table=intake&row=2"`
+&emsp;Delete multiple rows: \
+&emsp;&emsp;`curl -k "https://localhost:443/delete?table=intake&row=1+2"`
 

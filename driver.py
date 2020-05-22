@@ -382,7 +382,6 @@ def validate_row(json_item):
     return validate_dataframe(df)
 
 
-
 def insert_row(table, row, checked=False):
     """
     Insert an array of values into the specified table.
@@ -468,15 +467,16 @@ def process_file(f):
         failed_insertions = result_obj['insertions_attempted'] - result_obj['insertions_successful']
         return failed_insertions == 0, result_obj
 
-def delete_row(table, row_num):
+
+def delete_row(table, row_nums):
     """
     Args:
-        table - string of the table name to delete row from
-        row_num - int representing the rowId to delete
-    Returns: (bool, dict) - Boolean is successful or not, dict contains processed info
+        table (str): table name to delete row from
+        row_nums ([int]): the rowId(s) to delete
+    Returns (bool, dict): Boolean is successful or not, dict contains processed info
     """
     success = False
-    delete_info={}
+    delete_info = {}
     if not check_conn():
         return 0, connection_error_msg
     else:
@@ -485,32 +485,29 @@ def delete_row(table, row_num):
             raise InvalidTableException
         # convert each row_num to digit;
         try:
-            row_num = list(map(int,row_num))
+            row_nums = list(map(int, row_nums))
         except ValueError:
             raise InvalidRowException
-        for rows in row_num:
-            if rows<=0:
-                delete_info[f'Row {str(rows)}'] = 'Invalid row number'
+        for row in row_nums:
+            if row <= 0:
+                delete_info[f'Row {str(row)}'] = 'Invalid row number'
                 continue
-            cmd = f'DELETE FROM {table} WHERE "row" = {rows};'
+            cmd = f'DELETE FROM {table} WHERE "row" = {row};'
             try:
                 pgSqlCur.execute(cmd)
                 pgSqlConn.commit()
                 if pgSqlCur.rowcount == 1:
                     success = True
-                    delete_info[f'Row {str(rows)}'] = 'Successfully Deleted'
+                    delete_info[f'Row {str(row)}'] = 'Successfully deleted'
                 else:
-                    delete_info[f'Row {str(rows)}'] = 'Failure to delete'
+                    delete_info[f'Row {str(row)}'] = 'Failed to delete'
 
-            except Exception as err:
-                # print the exception
+            except psycopg2.Error as err:
                 sql_except(err)
-                # roll back the last sql command
-                pgSqlCur.execute("ROLLBACK")
         if success:
-            return('Deletion Successful', delete_info)
+            return 'Deletion successful', delete_info
         else:
-            return('Some/All deletions failed', delete_info)
+            return 'Some/all deletions failed', delete_info
 
 
 def test_driver():

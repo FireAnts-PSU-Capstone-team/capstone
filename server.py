@@ -155,18 +155,18 @@ def delete_row():
     Returns (str):Success or failure message
     """
     table_name = request.args.get('table', '')
-    row_num = request.args.get('row','')
-    if table_name == '' or row_num == '':
+    row_nums = request.args.get('row', '')
+    if table_name == '' or row_nums == '':
         return make_response(jsonify('Table name or row number not supplied.'), 400)
     try:
-        row_num = str.split(row_num.strip(), ' ')
-        table_info_obj = driver.delete_row(table_name, row_num)
+        row_nums = str.split(row_nums.strip(), ' ')
+        table_info_obj = driver.delete_row(table_name, row_nums)
         return make_response(jsonify(table_info_obj), 200)
-
     except driver.InvalidTableException:
         return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
     except driver.InvalidRowException:
-        return make_response(jsonify('Row '.join(row_num) + ' is invalid input.'), 404)
+        return make_response(jsonify('Row '.join(row_nums) + ' is invalid input.'), 404)
+
 
 @app.route('/')
 def hello_world():
