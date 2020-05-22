@@ -227,10 +227,10 @@ ALTER TABLE ONLY records
 -- Sequences
 -------------------------
 
-----
----- Name: intake_row_seq
----- Desc: Sequence used as PK for intake table Owner: cc
-----
+--
+-- Name: intake_row_seq
+-- Desc: Sequence used as PK for intake table Owner: cc
+--
 --CREATE SEQUENCE intake_row_seq
 --    AS integer
 --    START WITH 1
