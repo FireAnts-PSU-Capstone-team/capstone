@@ -393,6 +393,8 @@ def insert_row(table, row, checked=False):
     # Check flag for multi row insert, if false check to make sure that the connection is open and active
     default = False
     global row_seq
+    row_temp = row_seq[table]
+
     if not checked:
         if not check_conn():
             return 0, connection_error_msg
@@ -412,33 +414,20 @@ def insert_row(table, row, checked=False):
         else:
             cmd += str(row[0])
     else:
-        cmd += f"{row_seq[table]}"
-        default = True
+        #Loop through and update row seq to first available spot
+        while row_number_exists(pgSqlCur,row_temp):
+            row_temp+=1
+        cmd += f"{row_temp}"
 
     for i in range(1, len(row)):
         cmd += f", {fmt(row[i])}"
     cmd += ")"
     try:
-        if default:
-            while default:
-                try:
-                    pgSqlCur.execute(cmd)
-                    status = pgSqlCur.statusmessage
-                    if status=='INSERT 0 1':
-                        row_seq[table]+=1
-                        break
-                    row_seq[table]+=1
-                    cmd = cmd.replace(f"({row_seq[table]-1}", f"({row_seq[table]}",1)
-
-                except IntegrityError as err:
-                    pgSqlCur.execute("ROLLBACK")
-                    #sql_except(err)
-                    pass
-        else:
-            pgSqlCur.execute(cmd)
+        pgSqlCur.execute(cmd)
         if not checked:
             pgSqlConn.commit()
         if pgSqlCur.rowcount == 1:
+            row_seq[table] = row_temp
             return 1, None
         else:
             raise psycopg2.Error

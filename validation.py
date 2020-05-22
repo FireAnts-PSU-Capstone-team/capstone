@@ -90,7 +90,7 @@ def validate_receipt_num(receiptNo):
         return False
     else:
         # Must be converted to string upon return! Otherwise casts to a float and refuses to be cast back
-        uniqueReceipts[receiptNo] = 1
+        #uniqueReceipts[receiptNo] = 1
         return True
 
 
@@ -102,7 +102,7 @@ def validate_mrl(mrl):
         m = mrl.upper().split('-')[0]
         if m[0:3] != "MRL" or not m[3:].isdigit() or m in seen_mrls:
             return False
-        seen_mrls[m] = 1
+        #seen_mrls[m] = 1
         return True
     except (ValueError, AttributeError):
         return False

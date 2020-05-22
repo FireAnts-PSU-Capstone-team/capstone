@@ -52,14 +52,14 @@ BEGIN
 IF (SELECT count(*)
    FROM intake
    WHERE mrl = NEW.mrl) = 0
-AND
-    (SELECT count(*)
-     FROM intake
-     WHERE "row" = NEW."row") = 0
-AND
-    (SELECT count(*)
-     FROM intake
-     WHERE receipt_num=NEW."receipt_num")=0
+--AND
+--    (SELECT count(*)
+--     FROM intake
+--     WHERE "row" = NEW."row") = 0
+--AND
+--    (SELECT count(*)
+--     FROM intake
+--     WHERE receipt_num=NEW."receipt_num")=0
 THEN
    RETURN NEW;
 ELSE
