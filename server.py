@@ -147,6 +147,7 @@ def show_metadata():
     response_body = jsonify(driver.get_table('metadata', None))
     return make_response(response_body, 200)
 
+
 @app.route('/export', methods=['GET'])
 def export_csv():
     """
@@ -162,17 +163,18 @@ def export_csv():
         try:
             table_output = driver.get_table(table_name, None)
             df = json_normalize(table_output)
-            table_info_obj = df.to_csv(index = False)
+            table_info_obj = df.to_csv(index=False)
             return make_response(table_info_obj, 200)
         except driver.InvalidTableException:
             return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
 
+
 @app.route("/delete", methods=["GET"])
 def delete_row():
     """
-    Delete a row of data of the specified table .
+    Delete a row of data from the specified table.
     Usage: /delete?table=<table_name>&row=<row_num>
-    Returns (str):Success or failure message
+    Returns ({}): Response object containing status message
     """
     table_name = request.args.get('table', '')
     row_nums = request.args.get('row', '')
@@ -196,46 +198,37 @@ def update_table():
     """
     update_columns = {}
     row = None
-    request_param = None
     data_content_type = request.content_type
 
-    # app.logger.info(request)
-    # app.logger.info(data_content_type)
-    # app.logger.info(request.form)
-    # app.logger.info(request.args)
-
-    if (data_content_type is None):
-        result = {'message': 'update need parameters.'}
+    if data_content_type is None:
+        result = {'message': 'Update operation requires parameters.'}
         return make_response(jsonify(result), 400)
 
-    if(data_content_type.find('json') != -1):
+    if data_content_type.find('json') != -1:
         request_param = request.get_json(force=True)
-    elif(data_content_type.find('x-www-form-urlencoded') != -1):
+    elif data_content_type.find('x-www-form-urlencoded') != -1:
         request_param = request.form
     else:
-        result = {'message': f'not supported data content-type: {data_content_type}'}
+        result = {'message': f'Unsupported data content-type: {data_content_type}'}
         return make_response(jsonify(result), 400)
 
     for key in request_param:
-        if (key == 'row'):
+        if key == 'row':
             row = request_param[key]
         else:
             update_columns[key] = request_param[key]
 
-    app.logger.info(request_param)
-    app.logger.info(update_columns)
-
-    if (row is None):
-        result = {'message': 'Row column is required.'}
+    if row is None:
+        result = {'message': 'Row number must be specified.'}
         return make_response(jsonify(result), 400)
 
     try:
         row = int(row)
-    except:
-        result = {'message': 'Row is a number.'}
+    except ValueError:
+        result = {'message': 'Row must be a number.'}
         return make_response(jsonify(result), 400)
 
-    if (len(update_columns) == 0):
+    if len(update_columns) == 0:
         result = {'message': 'No column provided to update.'}
         return make_response(jsonify(result), 400)
 

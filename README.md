@@ -60,23 +60,9 @@ with `-k` provided as an additional argument.
 You can open a browser and go to [https://localhost:443](https://localhost:443) to connect to the running API. From here, 
 you can hit any of the endpoints specified in the `server.py` file.
 
-You can also query the API from the command line, using `curl`: 
-
-&emsp;List the contents of the `intake` table: \
-&emsp;&emsp;`curl -k https://localhost:443/list?table=intake` \
-&emsp;Post the `sample.xlsx` file to the `/load` endpoint: \
-&emsp;&emsp;`curl -k --form -X POST "file=@resources/sample.xlsx" https://localhost:443/load` \
-&emsp;Add a single row, as contained in the `sample-row-1.json` file: \
-&emsp;&emsp;`curl -k -X PUT https://localhost:443/load?table=intake -d @resources/sample-row-1.json -H "Content-Type: application/json"` \
-&emsp;List entries from the `intake` table, but only the submission date and MRL fields: \
-&emsp;&emsp;`curl -k "https://localhost:443/list?table=intake&column=submission_date+mrl"` \
-&emsp;List entries from the database where results are filtered based on a JSON-structured query file: \
-&emsp;&emsp;`curl -k -X POST https://localhost:443/list -d @resources/test-query-and-1.json -H "Content-Type: application/json"` \
-&emsp;Delete a row of the `intake` table: \
-&emsp;&emsp;`curl -k "https://localhost:443/delete?table=intake&row=2"` \
-&emsp;Delete multiple rows: \
-&emsp;&emsp;`curl -k "https://localhost:443/delete?table=intake&row=1+2"` \
-
+You can also query the API from the command line, using `curl`: \
+&emsp; \
+&emsp;
 > /list
 
 **List the contents of the `intake` table:** 
@@ -93,7 +79,7 @@ curl -k "https://localhost:443/list?table=intake&column=submission_date+mrl"
 ```
 curl -k -X POST https://localhost:443/list -d @resources/test-query-and-1.json -H "Content-Type: application/json"
 ``` 
-
+&emsp; 
 
 > /load
 
@@ -106,7 +92,7 @@ curl -k --form -X POST "file=@resources/sample.xlsx" https://localhost:443/load
 ```
 curl -k -X PUT https://localhost:443/load?table=intake -d @resources/sample-row-1.json -H "Content-Type: application/json"
 ```
-
+&emsp; 
 
 > /update
 
@@ -119,4 +105,22 @@ curl -d '{"row":"1", "receipt_num":200, "phone": 555555}' -H "Content-Type: appl
 ```
 curl -d "row=1&cash_amount=100" -X POST -k https://localhost:443/update
 ```
+&emsp; 
+> /delete
 
+**Delete the row with ID '2' from the intake table:**
+```
+curl -k "https://localhost:443/delete?table=intake&row=2" 
+```
+
+**Delete multiple rows from the intake table:**
+```
+curl -k "https://localhost:443/delete?table=intake&row=1+2" 
+```
+&emsp; 
+> /export
+
+**Export the intake table as a CSV file named 'intake.csv':**
+```
+curl https://localhost/export?table=intake -o intake.csv
+```

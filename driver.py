@@ -528,7 +528,7 @@ def update_table(table, row, update_columns):
 
     for key in update_columns:
         col_str += f', {key} = ${arg_num}'
-        if (isinstance(update_columns[key], int)):
+        if isinstance(update_columns[key], int):
             arg_str += ',integer'
             exe_arg_str += f",{update_columns[key]}"
         else:
@@ -540,10 +540,6 @@ def update_table(table, row, update_columns):
     arg_str = arg_str[1:]
     exe_arg_str = exe_arg_str[1:]
 
-    # app.logger.info(col_str)
-    # app.logger.info(arg_str)
-    # app.logger.info(exe_arg_str)
-
     try:
         pgSqlCur.execute(f"deallocate all;\
         prepare update_table({arg_str},integer) as \
@@ -553,20 +549,16 @@ def update_table(table, row, update_columns):
         pgSqlCur.execute(f'execute update_table({exe_arg_str},{row});')
 
         if pgSqlCur.rowcount != 1:
-            # the target row is not updated, not existing??
-            return (0, 'updated failed, please check if the row exists')
+            # the target row is not updated
+            return 0, 'Update failed, please check if the row exists'
 
-    except Exception as err:
-        # print the exception
+    except psycopg2.Error as err:
         sql_except(err)
-        # roll back the last sql command
-        pgSqlCur.execute("ROLLBACK")
-        # return err to user
-        return (0, str(err))
+        return 0, str(err)
 
     # commit if no error
     pgSqlConn.commit()
-    return (1, 'updated successfully')
+    return 1, 'Updated successfully'
 
 
 def test_driver():
