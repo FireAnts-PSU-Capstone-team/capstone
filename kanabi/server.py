@@ -15,6 +15,7 @@ from .model import User
 
 UPLOAD_FOLDER = 'resources'
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
+json_header = {"Content-Type": "application/json"}
 
 main_bp = Blueprint('main_bp', __name__)
 
@@ -58,44 +59,39 @@ def index():
 def profile():
     if 'read_only_mode' not in session:
         session['read_only_mode'] = False
-    headers = {"Content-Type": "application/json"}
-    return make_gui_response(headers, 200, 'OK')
+    return make_gui_response(json_header, 200, 'OK')
 
 
 # Admin tools endpoint. Uses decorators with flask principal to enforce role-related access
 @main_bp.route("/admin")
 @admin_permission.require(http_exception=403)
 def admin_tools():
-    headers = {"Content-Type": "application/json"}
-    return make_gui_response(headers, 200, 'OK')
+    return make_gui_response(json_header, 200, 'OK')
 
 
 # Registers the first 'admin' account. Ignores all requests after 'admin' account has already been created.
 @main_bp.route("/makeadmin")
 def register_admin():
     user = User.query.filter_by(name='admin', is_admin=True).first()
-    headers = {"Content-Type": "application/json"}
     if user:
         msg = 'An admin account has already been registered.'
-        return make_gui_response(headers, 400, msg)
-    return make_gui_response(headers, 200, 'OK')
+        return make_gui_response(json_header, 400, msg)
+    return make_gui_response(json_header, 200, 'OK')
 
 
 @main_bp.route("/usrhello")
 @login_required
 def usr_hello():
-    headers = {"Content-Type": "application/json"}
-    return make_gui_response(headers, 200, 'OK')
+    return make_gui_response(json_header, 200, 'OK')
 
 
 # Actually creates the 'admin' account in the database using the submission form from makeadmin.html
 @main_bp.route("/makeadmin", methods=['POST'])
 def register_admin_post():
     user = User.query.filter_by(name='admin', is_admin=True).first()
-    headers = {"Content-Type": "application/json"}
     if user:
         msg = 'An admin account has already been created.'
-        return make_gui_response(headers, 400, msg)
+        return make_gui_response(json_header, 400, msg)
     else:
         password = request.form.get('password')
         email = request.form.get('email')
@@ -103,8 +99,7 @@ def register_admin_post():
                         is_admin=True, is_editor=True)
         db.session.add(new_user)
         db.session.commit()
-        headers = {"Content-Type": "application/json"}
-        return make_gui_response(headers, 200, 'OK')
+        return make_gui_response(json_header, 200, 'OK')
 
 
 # Places the user into read-only mode
@@ -112,8 +107,7 @@ def register_admin_post():
 @login_required
 def enable_read_only():
     session['read_only_mode'] = True
-    headers = {"Content-Type": "application/json"}
-    return make_gui_response(headers, 200, 'OK')
+    return make_gui_response(json_header, 200, 'OK')
 
 
 # Takes user out of read-only mode
@@ -121,8 +115,7 @@ def enable_read_only():
 @login_required
 def disable_read_only():
     session['read_only_mode'] = False
-    headers = {"Content-Type": "application/json"}
-    return make_gui_response(headers, 200, 'OK')
+    return make_gui_response(json_header, 200, 'OK')
 
 
 # Test to verify that the '@write_permission' decorator is enforcing read-only mode
@@ -130,8 +123,7 @@ def disable_read_only():
 @login_required
 @write_permission
 def test_read_only():
-    headers = {"Content-Type": "application/json"}
-    return make_gui_response(headers, 200, 'OK')
+    return make_gui_response(json_header, 200, 'OK')
 
 
 def allowed_file(filename):

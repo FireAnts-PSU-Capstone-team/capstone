@@ -5,7 +5,7 @@ import numpy as np
 import re as re
 import json
 
-from models.IntakeRow import ColNames
+from .models.IntakeRow import ColNames
 
 # addressRegex = r'^(\d+)\s([a-zA-Z]{1,2})\s([a-zA-Z0-9\-\.]+\s)+([a-zA-Z]+)(\.?)'
 # addressWithFacilityRegex = r'^(\d+)\s([a-zA-Z]{1,2})\s(([a-zA-Z1-9]+\s)+)([a-zA-Z]+)(\.?)(\,?)\s(#\d+)'

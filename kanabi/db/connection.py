@@ -1,6 +1,7 @@
 import psycopg2
 from .dbConfig import pgSqlConfig
 
+
 def pg_connect():
     """
     Connect to the PostgreSQL database server.
@@ -15,6 +16,7 @@ def pg_connect():
         cur = conn.cursor()
         conn.commit()
         return cur, conn
+    # TODO: validate the exceptions thrown here, no reason to catch Exception and something else
     except (Exception, psycopg2.DatabaseError) as error:
         print(error)
 

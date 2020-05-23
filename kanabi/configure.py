@@ -9,6 +9,7 @@ from .responses import make_gui_response
 
 db = SQLAlchemy()
 
+
 # Creates the app and initializes core plugins and configurable parameters
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
