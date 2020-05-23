@@ -1,10 +1,8 @@
-import collections
-
-from flask import Blueprint, jsonify, make_response, request, render_template, redirect, url_for, flash, session, Response
-from flask_login import login_required, current_user
+from flask import Blueprint, jsonify, make_response, request, session
+from flask_login import login_required
 from flask_principal import Permission, RoleNeed
-from flask_cors import CORS
-from kanabi.cors import cors_setup
+from pandas.io.json import json_normalize
+
 from werkzeug.security import generate_password_hash
 from functools import wraps
 from pandas import json_normalize
@@ -19,6 +17,8 @@ UPLOAD_FOLDER = 'resources'
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
 
 main_bp = Blueprint('main_bp', __name__)
+
+# TODO: review permissions expectations given that most users will be 'editor'
 
 # Administrator permissions. The '@admin_permission.require()' decorator can be used on endpoints.
 # Additionally, 'with admin_permission.require():' can be used inside function definitions for conditionality.
@@ -41,15 +41,15 @@ def write_permission(function):
             return make_gui_response(headers, 400, msg)
         else:
             return function(*args, **kwargs)
-    return wrapper
 
+    return wrapper
 
 
 # Homepage endpoint which loads the template for index.html
 @main_bp.route("/", methods=['GET'])
 def index():
-        headers = {"Content-Type": "application/json"}
-        return make_gui_response(headers, 200, 'OK')
+    headers = {"Content-Type": "application/json"}
+    return make_gui_response(headers, 200, 'OK')
 
 
 # Profile endpoint which loads the profile and passes in read-only mode information
@@ -145,45 +145,32 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-@main_bp.route("/list", methods=["GET"])
-def dump_table():
+@main_bp.route("/list", methods=["GET", "POST"])
+def fetch_data():
     """
     Displays the contents of the table listed in the request.
-    Usage: /list?table=<table_name>
+    Usage:
+        GET /list?table=<table_name> to retrieve entire table
+        POST /list to process specific query
     Returns ({}): JSON object of table data
     """
-    table_name = request.args.get('table', '')
-    if table_name == '':
-        return make_response(jsonify('Table name not supplied.'), 400)
-    try:
-        # TODO: once authentication is in place, restrict the tables that can be listed here
-        columns = request.args.get('column', '')
-        if columns == '':
-            columns = None
-        else:
-            columns = str.split(columns.strip(), ' ')
+    if request.method == 'POST':
+        query, response, status = driver.filter_table(request.json)
+        return make_response(jsonify(response), status)
 
-        table_info_obj = driver.get_table(table_name, columns)
-        return make_response(jsonify(table_info_obj), 200)
-    except driver.InvalidTableException:
-        return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
-
-
-def validate_row(json_item):
-    """
-    Preps a JSON input row and passes it to the data validator. Returns the validator's response.
-    Args:
-        json_item ({}): input JSON
-    Returns ((bool, str)): <whether row is valid>, <error message>
-
-    """
-    # If the incoming json object doesn't have a row associated with it, we add a temporary one for validation
-    if 'row' not in json_item:
-        json_item = collections.OrderedDict(json_item)
-        json_item.update({'row': 999})
-        json_item.move_to_end('row', last=False)
-    df = json_normalize(json_item)
-    return driver.validate_dataframe(df)
+    if request.method == 'GET':
+        table_name = request.args.get('table')
+        if table_name is None:
+            return make_response(jsonify('Table name not supplied.'), 400)
+        try:
+            # TODO: once authentication is in place, restrict the tables that can be listed here
+            columns = request.args.get('column')
+            if columns is not None:
+                columns = str.split(columns.strip(), ' ')
+            table_info_obj = driver.get_table(table_name, columns)
+            return make_response(jsonify(table_info_obj), 200)
+        except driver.InvalidTableException:
+            return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
 
 
 @main_bp.route("/load", methods=["PUT", "POST"])
@@ -195,7 +182,6 @@ def load_data():
         POST: /load?file=</path/to/file.xlsx>
     Returns ({}): HTTPS response
     """
-    # TODO: add error handling if JSON schema doesn't match
     if request.method == 'PUT':
         table_name = request.args.get('table')
         if table_name is None:
@@ -207,21 +193,26 @@ def load_data():
             except driver.InvalidTableException:
                 return make_response(jsonify(f"Table {table_name} does not exist."), 404)
 
-            valid, error_msg = validate_row(request.get_json(force=True))
+            valid, error_msg = driver.validate_row(request.get_json(force=True))
             if not valid:
                 result = {'message': error_msg}
-                return make_response(jsonify(result),404)
+                return make_response(jsonify(result), 404)
             try:
                 row_data = IntakeRow(request.get_json(force=True)).value_array()
             except (KeyError, ValueError) as err:
                 message = {'message': err}
                 return make_response(jsonify(message), 404)
 
-            (row_count, fail_row) = driver.insert_row(table_name, row_data)
+            row_count, fail_row = driver.insert_row(table_name, row_data)
             if row_count == 1:
                 result = {
                     'message': 'PUT completed',
                     'rows_affected': row_count
+                }
+            elif row_count == -1:
+                result = {
+                    'message': 'PUT failed',
+                    'cause': 'duplicate row number'
                 }
             else:
                 result = {
@@ -231,7 +222,7 @@ def load_data():
             return make_response(jsonify(result), 200)
 
     elif request.method == 'POST':
-        if 'file' not in request.files or request.files.get('file') is None:
+        if 'file' not in request.files:
             result = {'message': 'No file listed'}
             return make_response(jsonify(result), 400)
         else:
@@ -253,7 +244,7 @@ def load_data():
                 if result_obj.get('status', '') == 'invalid':
                     return make_response(jsonify(result_obj.get('error_msg')), 400)
                 result = {
-                    'message': 'File processed, but with failed rows due to duplicate primary key:',
+                    'message': 'File processed, but with failed rows:',
                     'result': result_obj
                 }
                 return make_response(jsonify(result), 400)
@@ -271,3 +262,102 @@ def show_metadata():
     response_body = jsonify(driver.get_table('metadata', None))
     return make_response(response_body, 200)
 
+
+@main_bp.route('/export', methods=['GET'])
+def export_csv():
+    """
+    Returns CSV of the table listed in the request.
+    Usage:
+        GET /export?table=<table_name> -o outputfile.csv to retrieve CSV of table
+    Returns ({}): CSV object of table data
+    """
+    if request.method == 'GET':
+        table_name = request.args.get('table')
+        if table_name is None:
+            return make_response(jsonify('Table name not supplied.'), 400)
+        try:
+            table_output = driver.get_table(table_name, None)
+            df = json_normalize(table_output)
+            table_info_obj = df.to_csv(index=False)
+            return make_response(table_info_obj, 200)
+        except driver.InvalidTableException:
+            return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
+
+
+@main_bp.route("/delete", methods=["GET"])
+def delete_row():
+    """
+    Delete a row of data from the specified table.
+    Usage: /delete?table=<table_name>&row=<row_num>
+    Returns ({}): Response object containing status message
+    """
+    table_name = request.args.get('table', '')
+    row_nums = request.args.get('row', '')
+    if table_name == '' or row_nums == '':
+        return make_response(jsonify('Table name or row number not supplied.'), 400)
+    try:
+        row_nums = str.split(row_nums.strip(), ' ')
+        table_info_obj = driver.delete_row(table_name, row_nums)
+        return make_response(jsonify(table_info_obj), 200)
+    except driver.InvalidTableException:
+        return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
+    except driver.InvalidRowException:
+        return make_response(jsonify('Row '.join(row_nums) + ' is invalid input.'), 404)
+
+
+@main_bp.route('/update', methods=['POST'])
+def update_table():
+    """
+    Update the contents of the intake table.
+    Returns ({}): result of updating the contents of the table.
+    """
+    update_columns = {}
+    row = None
+    data_content_type = request.content_type
+
+    if data_content_type is None:
+        result = {'message': 'Update operation requires parameters.'}
+        return make_response(jsonify(result), 400)
+
+    if data_content_type.find('json') != -1:
+        request_param = request.get_json(force=True)
+    elif data_content_type.find('x-www-form-urlencoded') != -1:
+        request_param = request.form
+    else:
+        result = {'message': f'Unsupported data content-type: {data_content_type}'}
+        return make_response(jsonify(result), 400)
+
+    for key in request_param:
+        if key == 'row':
+            row = request_param[key]
+        else:
+            update_columns[key] = request_param[key]
+
+    if row is None:
+        result = {'message': 'Row number must be specified.'}
+        return make_response(jsonify(result), 400)
+
+    try:
+        row = int(row)
+    except ValueError:
+        result = {'message': 'Row must be a number.'}
+        return make_response(jsonify(result), 400)
+
+    if len(update_columns) == 0:
+        result = {'message': 'No column provided to update.'}
+        return make_response(jsonify(result), 400)
+
+    # only update intake table now
+    response_body = driver.update_table('intake', row, update_columns)
+    result = {'message': response_body[1]}
+    if response_body[0] == 0:
+        # error on updating
+        return make_response(jsonify(result), 400)
+    else:
+        # succeed on updating
+        return make_response(jsonify(result), 200)
+
+
+@main_bp.route('/')
+def hello_world():
+    return make_response(jsonify('Hello World'), 200)
