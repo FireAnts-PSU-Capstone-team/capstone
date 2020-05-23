@@ -34,12 +34,9 @@ edit_permission = Permission(RoleNeed('editor'))
 def write_permission(function):
     @wraps(function)
     def wrapper(*args, **kwargs):
-        headers = {"Content-Type": "application/json"}
         msg = 'No Write-permissions. User is in read-only mode.'
-        if 'read_only_mode' not in session:
-            return make_gui_response(headers, 400, msg)
-        elif session['read_only_mode']:
-            return make_gui_response(headers, 400, msg)
+        if 'read_only_mode' in session:
+            return make_gui_response(json_header, 400, msg)
         else:
             return function(*args, **kwargs)
 
@@ -49,8 +46,7 @@ def write_permission(function):
 # Homepage endpoint which loads the template for index.html
 @main_bp.route("/", methods=['GET'])
 def index():
-    headers = {"Content-Type": "application/json"}
-    return make_gui_response(headers, 200, 'OK')
+    return make_gui_response(json_header, 200, 'OK')
 
 
 # Profile endpoint which loads the profile and passes in read-only mode information
@@ -85,7 +81,8 @@ def usr_hello():
     return make_gui_response(json_header, 200, 'OK')
 
 
-# Actually creates the 'admin' account in the database using the submission form from makeadmin.html
+# Creates the 'admin' account in the database. Should be executed once and only once, immediately after project
+#   is created. This creates an admin-level user named 'admin' who can be used
 @main_bp.route("/makeadmin", methods=['POST'])
 def register_admin_post():
     user = User.query.filter_by(name='admin', is_admin=True).first()
@@ -95,7 +92,7 @@ def register_admin_post():
     else:
         password = request.form.get('password')
         email = request.form.get('email')
-        new_user = User(email=email, password=generate_password_hash('pass', method='sha256'), name='admin',
+        new_user = User(email=email, password=generate_password_hash(password, method='sha256'), name='admin',
                         is_admin=True, is_editor=True)
         db.session.add(new_user)
         db.session.commit()
@@ -348,8 +345,3 @@ def update_table():
     else:
         # succeed on updating
         return make_response(jsonify(result), 200)
-
-
-@main_bp.route('/')
-def hello_world():
-    return make_response(jsonify('Hello World'), 200)

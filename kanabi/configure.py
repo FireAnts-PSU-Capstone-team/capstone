@@ -23,7 +23,6 @@ def create_app():
     # This can be accomplished using '$ export APP_CONFIG_FILE=/var/www/kanabi/config/production.py'
     # app.config.from_envvar('APP_CONFIG_FILE')
 
-
     # Initialize Plugins
     db.init_app(app)
     principals = Principal(app)
@@ -70,6 +69,7 @@ def create_app():
                 identity.provides.add(RoleNeed('editor'))
             if current_user.is_admin:
                 identity.provides.add(RoleNeed('admin'))
+
     from .model import User
 
     with app.app_context():
@@ -83,4 +83,3 @@ def create_app():
         # Create Database Models
         db.create_all()
     return app
-

@@ -7,6 +7,7 @@ from .configure import db
 from .responses import make_gui_response
 
 auth_bp = Blueprint('auth_bp', __name__)
+json_header = {"Content-Type": "application/json"}
 
 # Test Curls:
 # curl --insecure --cacert ca-crt.pem --key client.key --cert client.crt -X POST -d "email=admin@gmail.com&password=pass" -c "test.cookie" https://localhost:443/login
@@ -16,8 +17,7 @@ auth_bp = Blueprint('auth_bp', __name__)
 # Loads user login template from 'login.html'
 @auth_bp.route('/login')
 def login():
-    headers = {"Content-Type": "application/json"}
-    return make_gui_response(headers, 200, 'OK')
+    return make_gui_response(json_header, 200, 'OK')
 
 
 # Uses flask-login to actually log the user in and updates their identity in flask-principle
@@ -27,12 +27,11 @@ def login_post():
     password = request.form.get('password')
     remember = True if request.form.get('remember') else False
     user = User.query.filter_by(email=email).first()
-    headers = {"Content-Type": "application/json"}
 
     # Check if user actually exists and compare provided and stored password hashes
     if not user or not check_password_hash(user.password, password):
         # Reload page if user doesn't exist or the password was incorrect
-        return make_gui_response(headers, 400, 'Invalid Credentials')
+        return make_gui_response(json_header, 400, 'Invalid Credentials')
 
     # Login-Manager creates new user session
     login_user(user, remember=remember)
@@ -40,14 +39,13 @@ def login_post():
 
     # Tell Flask-Principal the identity has changed
     identity_changed.send(current_app._get_current_object(),identity=Identity(user.id))
-    return make_gui_response(headers, 200, 'OK')
+    return make_gui_response(json_header, 200, 'OK')
 
 
 # Loads the user signup form from the template 'signup.html'
 @auth_bp.route('/signup')
 def signup():
-    headers = {"Content-Type": "application/json"}
-    return make_gui_response(headers, 200, 'OK')
+    return make_gui_response(json_header, 200, 'OK')
 
 
 # Actually adds the user being signed up to the database and rejects duplicate emails
@@ -56,13 +54,12 @@ def signup_post():
     email = request.form.get('email')
     name = request.form.get('name')
     password = request.form.get('password')
-    headers = {"Content-Type": "application/json"}
 
     # Check if user already exists in the database
     user = User.query.filter_by(email=email).first()
     # if a user is found, we want to redirect back to signup page so user can try again
     if user:
-        return make_gui_response(headers, 400, 'A user with that email already exists')
+        return make_gui_response(json_header, 400, 'A user with that email already exists')
 
     # create new user with the form data. Hash the password so plaintext version isn't saved.
     new_user = User(email=email, password=generate_password_hash(password, method='sha256'),
@@ -70,13 +67,14 @@ def signup_post():
     # add the new user to the database
     db.session.add(new_user)
     db.session.commit()
-    return make_gui_response(headers, 200, 'OK')
+    return make_gui_response(json_header, 200, 'OK')
 
 
 # Logs the user out in flask-login and updates the flask-principle identity to be anonymous
 @auth_bp.route('/logout')
 @login_required
 def logout():
+
     # Login-Manager removes the user information from the session
     logout_user()
 
@@ -84,6 +82,5 @@ def logout():
     for key in ('identity.name', 'identity.auth_type'):
         session.pop(key, None)
     # Tell Flask-Principal the user is now anonymous
-    identity_changed.send(current_app._get_current_object(),identity=AnonymousIdentity())
-    headers = {"Content-Type": "application/json"}
-    return make_gui_response(headers, 200, 'OK')
+    identity_changed.send(current_app._get_current_object(), identity=AnonymousIdentity())
+    return make_gui_response(json_header, 200, 'OK')
