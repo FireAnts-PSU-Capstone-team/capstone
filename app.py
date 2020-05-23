@@ -7,7 +7,6 @@ from kanabi.configure import create_app
 
 app = create_app()
 
-
 if __name__ == "__main__":
     # Generating Server Certificates:
     # Creating a Certificate Authority that will validate certificates. Creates 'ca.key' and 'ca-crt.pem' files.
@@ -41,14 +40,12 @@ if __name__ == "__main__":
     #   $ curl --insecure --cacert ca-crt.pem --key client.key --cert client.crt https://DOMAIN:PORT/RESOURCE_PATH/RESOURCE
     #   OUTPUT: (returns expected result)
 
-    #context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-    #context.verify_mode = ssl.CERT_REQUIRED          # Not sure about this. Maybe depricated and removed? Need to verify it's working or stick with Connor's
-    #context.load_verify_locations('kanabi/certs/ca-crt.pem')
-    #context.load_cert_chain('kanabi/certs/server.crt', 'kanabi/certs/server.key')
-    #app.run(debug=True, host='127.0.0.1', port=443, ssl_context=context)
+    # context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    # context.verify_mode = ssl.CERT_REQUIRED
+    #   Not sure about this. Maybe deprecated and removed? Need to verify it's working or stick with Connor's
+    # context.load_verify_locations('kanabi/certs/ca-crt.pem')
+    # context.load_cert_chain('kanabi/certs/server.crt', 'kanabi/certs/server.key')
+    # app.run(debug=True, host='127.0.0.1', port=443, ssl_context=context)
 
     context = ('./kanabi/configs/cert.pem', './kanabi/configs/key.pem')
     app.run(host='0.0.0.0', port=443, ssl_context=context, threaded=True, debug=True)
-
-
-

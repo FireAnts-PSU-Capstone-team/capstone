@@ -2,9 +2,6 @@ import collections
 import os
 import sys
 import time
-import pandas as pd
-import numpy as np
-import psycopg2
 
 import numpy as np
 import pandas as pd
@@ -12,14 +9,11 @@ import psycopg2
 from openpyxl import load_workbook
 
 import kanabi.db.connection as c
-from kanabi.models.IntakeRow import RowNames
-from kanabi.validation import validate_dataframe
 from pandas.io.json import json_normalize
 
-from db import connection as c
-from models.IntakeRow import ColNames, intake_headers
+from .models.IntakeRow import ColNames, intake_headers
 from query_parser import QueryParser, RequestParseException
-from validation import validate_dataframe
+from .validation import validate_dataframe
 
 test_file = 'resources/sample.xlsx'
 primary_table = 'intake'

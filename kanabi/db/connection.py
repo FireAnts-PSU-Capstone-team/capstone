@@ -1,6 +1,7 @@
 import psycopg2
 from .dbConfig import pgSqlConfig
 
+
 def pg_connect():
     """
     Connect to the PostgreSQL database server.
