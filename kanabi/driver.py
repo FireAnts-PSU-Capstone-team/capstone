@@ -9,11 +9,9 @@ import psycopg2
 from openpyxl import load_workbook
 
 import kanabi.db.connection as c
-from pandas import json_normalize
-
-from .models.IntakeRow import ColNames, intake_headers
+from kanabi.models.IntakeRow import ColNames, intake_headers
 from kanabi.query_parser import QueryParser, RequestParseException
-from .validation import validate_dataframe
+from kanabi.validation.intake_validation import validate_dataframe
 
 test_file = 'resources/sample.xlsx'
 primary_table = 'intake'
@@ -387,7 +385,7 @@ def validate_row(json_item):
         json_item = collections.OrderedDict(json_item)
         json_item.update({'row': 999})
         json_item.move_to_end('row', last=False)
-    df = json_normalize(json_item)
+    df = pd.json_normalize(json_item)
     return validate_dataframe(df)
 
 
