@@ -229,7 +229,11 @@
 						"id": "81e60d2b-5d13-4697-bbf5-f8b782418d16",
 						"exec": [
 							"pm.test(\"Duplicate Intake Request\", function () {",
-							"    pm.expect(pm.response.text()).to.include(\"Failed row: \");",
+							"    pm.expect(pm.response.text()).to.include(\"failed_row: \");",
+							"}",
+							");",
+							"pm.test(\"Duplicate Intake Status Code\", function () {",
+							"    pm.response.to.have.status(404);",
 							"}",
 							");"
 						],

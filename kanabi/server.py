@@ -187,7 +187,7 @@ def load_data():
 
             valid, error_msg = driver.validate_row(request.get_json(force=True))
             if not valid:
-                result = {'message': error_msg}
+                result = {'failed_row': error_msg}
                 return make_response(jsonify(result), 404)
             try:
                 row_data = IntakeRow(request.get_json(force=True)).value_array()

@@ -434,9 +434,6 @@ def insert_row(table, row, checked=False):
     except Exception as err:
         sql_except(err)
         failed_row = {
-            'submission_date': row[ColNames.SUBMISSION_DATE.value],
-            'entity': row[ColNames.ENTITY.value],
-            'dba': row[ColNames.DBA.value],
             'mrl': row[ColNames.MRL.value]
         }
         return 0, failed_row
