@@ -1,0 +1,22 @@
+{
+  "table": "intake",
+  "columns": [
+    "entity",
+    "mrl",
+    "submission_date"
+  ],
+  "where": {
+    "or": [
+      {
+        "column": "mrl",
+        "op": "=",
+        "operand": "MRL20"
+      },
+      {
+        "column": "submission_date",
+        "op": ">",
+        "operand": "1/1/2010"
+      }
+    ]
+  }
+}

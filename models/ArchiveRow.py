@@ -1,16 +1,16 @@
+from enum import Enum
+
+
+class ColNames(Enum):
+    ROW = 0
+    TSTAMP = 1
+    WHO = 2
+    OLD_VAL = 3
+
 class ArchiveRow:
     """
     Represents a row of the Archive table.
     """
-
-    def __init__(self):
-        """
-        Default constructor.
-        """
-        self.row = None
-        self.tstamp = ''
-        self.who =''
-        self.old_val=''
 
     def __init__(self, input_json):
         """
