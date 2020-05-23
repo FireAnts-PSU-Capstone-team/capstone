@@ -292,7 +292,6 @@ def write_info_data(df):
     row_array = np.ndenumerate(df.values).iter.base
     total_count = len(row_array)
     for row in row_array:
-        print(row)
         try:
             re, failed_row = insert_row(primary_table, row, True)  # TODO: need to replace so we can name a table
             if re == 1:
@@ -454,7 +453,7 @@ def process_file(f):
         df = pd.read_excel(f)
         # Validate data frame
         valid, error_msg = validate_dataframe(df)
-        
+
         # Write the data to the DB
         result_obj = write_info_data(df)
         # insert metadata into metadata table
@@ -511,6 +510,55 @@ def delete_row(table, row_nums):
             return 'Deletion successful', delete_info
         else:
             return 'Some/all deletions failed', delete_info
+
+
+def update_table(table, row, update_columns):
+    """
+    Update one row (multiple columns) for a target table
+    Args:
+        table (str): table name
+        row (str/int): row number
+        update_columns (dict): obj of {column_name: new value, ... }
+    Returns (bool, str): bool is successful or not, str includes processing info
+    """
+    col_str = ''
+    arg_str = ''
+    exe_arg_str = ''
+    arg_num = 1
+
+    for key in update_columns:
+        col_str += f', {key} = ${arg_num}'
+        if isinstance(update_columns[key], int):
+            arg_str += ',integer'
+            exe_arg_str += f",{update_columns[key]}"
+        else:
+            exe_arg_str += f",'{update_columns[key]}'"
+            arg_str += ',text'
+        arg_num += 1
+
+    col_str = col_str[1:]
+    arg_str = arg_str[1:]
+    exe_arg_str = exe_arg_str[1:]
+
+    try:
+        pgSqlCur.execute(f"deallocate all;\
+        prepare update_table({arg_str},integer) as \
+        update {table} \
+        set {col_str} \
+        where row = ${arg_num};")
+        pgSqlCur.execute(f'execute update_table({exe_arg_str},{row});')
+
+        if pgSqlCur.rowcount != 1:
+            # the target row is not updated
+            return 0, 'Update failed, please check if the row exists'
+
+    except psycopg2.Error as err:
+        sql_except(err)
+        return 0, str(err)
+
+    # commit if no error
+    pgSqlConn.commit()
+    return 1, 'Updated successfully'
 
 
 def test_driver():
