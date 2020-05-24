@@ -57,43 +57,43 @@ class IntakeRow:
             else:
                 raise KeyError(f"Missing field: {field}")
 
-        self.ROW = input_json.get('ROW')
-        self.SUBMISSION_DATE = check_to_exist(input_json, 'SUBMISSION DATE')
-        self.ENTITY = check_to_exist(input_json, 'ENTITY')
-        self.DBA = check_to_exist(input_json, 'DBA')
-        self.FACILITY_ADDRESS = check_to_exist(input_json, 'FACILITY ADDRESS')
-        self.FACILITY_SUITE = check_to_exist(input_json, 'FACILITY SUITE #')
-        self.FACILITY_ZIP = check_to_exist(input_json, 'FACILITY ZIP')
-        self.MAILING_ADDRESS = check_to_exist(input_json, 'MAILING ADDRESS')
-        self.MRL = check_to_exist(input_json, 'MRL')
-        self.NEIGHBORHOOD_ASSOCIATION = check_to_exist(input_json, 'NEIGHBORHOOD ASSOCIATION')
-        self.COMPLIANCE_REGION = check_to_exist(input_json, 'COMPLIANCE REGION')
-        self.PRIMARY_CONTACT_FIRST_NAME = check_to_exist(input_json, 'PRIMARY_CONTACT_FIRST_NAME')
-        self.PRIMARY_CONTACT_LAST_NAME = check_to_exist(input_json, 'PRIMARY_CONTACT_LAST_NAME')
-        self.EMAIL = check_to_exist(input_json, 'EMAIL')
-        self.PHONE = check_to_exist(input_json, 'PHONE')
-        self.ENDORSE_TYPE = check_to_exist(input_json, 'ENDORSE_TYPE')
-        self.LICENSE_TYPE = check_to_exist(input_json, 'LICENSE_TYPE')
-        self.REPEAT_LICENSE = check_to_exist(input_json, 'REPEAT_L0CATION')
-        self.APP_COMPLETE = check_to_exist(input_json, 'APP_COMPLETE')
-        self.FEE_SCHEDULE = check_to_exist(input_json, 'FEE_SCHEDULE')
-        self.RECEIPT_NUM = check_to_exist(input_json, 'RECEIPT_NUM')
-        self.CASH_AMOUNT = check_to_exist(input_json, 'CASH_AMOUNT')
-        self.CHECK_AMOUNT = check_to_exist(input_json, 'CHECK_AMOUNT')
-        self.CARD_AMOUNT = check_to_exist(input_json, 'CARD_AMOUNT')
-        self.CHECK_NUM = check_to_exist(input_json, 'CHECK_NUM')
-        self.MRL_NUM = check_to_exist(input_json, 'MRL_NUM')
-        self.NOTES = check_to_exist(input_json, 'NOTES')
+        self.row = input_json.get('row')
+        self.submission_date = check_to_exist(input_json, 'Submission date')
+        self.entity = check_to_exist(input_json, 'Entity')
+        self.dba = check_to_exist(input_json, 'DBA')
+        self.facility_address = check_to_exist(input_json, 'Facility Address')
+        self.facility_suite = check_to_exist(input_json, 'Facility Suite #')
+        self.facility_zip = check_to_exist(input_json, 'Facility Zip')
+        self.mailing_address = check_to_exist(input_json, 'Mailing Address')
+        self.mrl = check_to_exist(input_json, 'MRL')
+        self.neighborhood_association = check_to_exist(input_json, 'Neighborhood Association')
+        self.compliance_region = check_to_exist(input_json, 'Compliance Region')
+        self.primary_contact_first_name = check_to_exist(input_json, 'Primary Contact Name (first)')
+        self.primary_contact_last_name = check_to_exist(input_json, 'Primary Contact Name (last)')
+        self.email = check_to_exist(input_json, 'Email')
+        self.phone = check_to_exist(input_json, 'Phone')
+        self.endorse_type = check_to_exist(input_json, 'Endorse Type')
+        self.license_type = check_to_exist(input_json, 'License Type')
+        self.repeat_license = check_to_exist(input_json, 'Repeat location?')
+        self.app_complete = check_to_exist(input_json, 'App complete?')
+        self.fee_schedule = check_to_exist(input_json, 'Fee Schedule')
+        self.receipt_num = check_to_exist(input_json, 'Receipt No.')
+        self.cash_amount = check_to_exist(input_json, 'Cash Amount')
+        self.check_amount = check_to_exist(input_json, 'Check Amount')
+        self.card_amount = check_to_exist(input_json, 'Card Amount')
+        self.check_num = check_to_exist(input_json, 'Check No. / Approval Code')
+        self.mrl_num = check_to_exist(input_json, 'MRL#')
+        self.notes = check_to_exist(input_json, 'Notes')
 
     def value_array(self):
         """
         Order data into an array that can be consumed by the row insertion method.
         Returns ([]): array of data members
         """
-        return [self.ROW, self.SUBMISSION_DATE, self.ENTITY, self.DBA, self.FACILITY_ADDRESS, self.FACILITY_SUITE,
-                self.FACILITY_ZIP, self.MAILING_ADDRESS, self.MRL, self.NEIGHBORHOOD_ASSOCIATION,
-                self.COMPLIANCE_REGION,
-                self.PRIMARY_CONTACT_FIRST_NAME, self.PRIMARY_CONTACT_LAST_NAME, self.EMAIL, self.PHONE,
-                self.ENDORSE_TYPE, self.LICENSE_TYPE,
-                self.REPEAT_LICENSE, self.APP_COMPLETE, self.FEE_SCHEDULE, self.RECEIPT_NUM, self.CASH_AMOUNT,
-                self.CHECK_AMOUNT, self.CARD_AMOUNT, self.CHECK_NUM, self.MRL_NUM, self.NOTES]
+        return [self.row, self.submission_date, self.entity, self.dba, self.facility_address, self.facility_suite,
+                self.facility_zip, self.mailing_address, self.mrl, self.neighborhood_association,
+                self.compliance_region,
+                self.primary_contact_first_name, self.primary_contact_last_name, self.email, self.phone,
+                self.endorse_type, self.license_type,
+                self.repeat_license, self.app_complete, self.fee_schedule, self.receipt_num, self.cash_amount,
+                self.check_amount, self.card_amount, self.check_num, self.mrl_num, self.notes]
