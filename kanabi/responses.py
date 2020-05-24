@@ -13,5 +13,5 @@ def make_gui_response(headers, return_code, status_msg):
     else:
         user_dict = {'logged_in': False}
 
-    response_body = {'headers': headers, 'returnCode': return_code, 'return_msg':status_msg, 'user': user_dict}
-    return make_response(jsonify(response_body))
+    response_body = {'headers': headers, 'return_msg': status_msg, 'user': user_dict}
+    return make_response(jsonify(response_body), return_code)
