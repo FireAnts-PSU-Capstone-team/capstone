@@ -14,12 +14,6 @@ json_header = {"Content-Type": "application/json"}
 # curl --insecure --cacert ca-crt.pem --key client.key --cert client.crt -b test.cookie https://localhost:443/logout -c test.cookie
 
 
-# Loads user login template from 'login.html'
-@auth_bp.route('/login')
-def login():
-    return make_gui_response(json_header, 200, 'OK')
-
-
 # Uses flask-login to actually log the user in and updates their identity in flask-principle
 @auth_bp.route('/login', methods=['POST'])
 def login_post():
@@ -38,17 +32,11 @@ def login_post():
     session['is_admin'] = user.is_admin
 
     # Tell Flask-Principal the identity has changed
-    identity_changed.send(current_app._get_current_object(),identity=Identity(user.id))
+    identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
     return make_gui_response(json_header, 200, 'OK')
 
 
-# Loads the user signup form from the template 'signup.html'
-@auth_bp.route('/signup')
-def signup():
-    return make_gui_response(json_header, 200, 'OK')
-
-
-# Actually adds the user being signed up to the database and rejects duplicate emails
+# Adds the user to the database and rejects duplicate emails
 @auth_bp.route('/signup', methods=['POST'])
 def signup_post():
     email = request.form.get('email')
@@ -71,7 +59,7 @@ def signup_post():
 
 
 # Logs the user out in flask-login and updates the flask-principle identity to be anonymous
-@auth_bp.route('/logout')
+@auth_bp.route('/logout', methods=['GET'])
 @login_required
 def logout():
 

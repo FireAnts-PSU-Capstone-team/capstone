@@ -43,25 +43,17 @@ def write_permission(function):
     return wrapper
 
 
-# Homepage endpoint which loads the template for index.html
 @main_bp.route("/", methods=['GET'])
 def index():
-    return make_gui_response(json_header, 200, 'OK')
-
-
-# Profile endpoint which loads the profile and passes in read-only mode information
-@main_bp.route('/profile')
-@login_required
-def profile():
-    if 'read_only_mode' not in session:
-        session['read_only_mode'] = False
-    return make_gui_response(json_header, 200, 'OK')
+    return make_gui_response(json_header, 200, 'Hello World')
 
 
 # Admin tools endpoint. Uses decorators with flask principal to enforce role-related access
+# TODO: these are missing
 @main_bp.route("/admin")
 @admin_permission.require(http_exception=403)
 def admin_tools():
+    # ???
     return make_gui_response(json_header, 200, 'OK')
 
 
@@ -82,7 +74,7 @@ def usr_hello():
 
 
 # Creates the 'admin' account in the database. Should be executed once and only once, immediately after project
-#   is created. This creates an admin-level user named 'admin' who can be used
+#   is created. This creates an admin-level user named 'admin' who can be used to conduct user setup
 @main_bp.route("/makeadmin", methods=['POST'])
 def register_admin_post():
     user = User.query.filter_by(name='admin', is_admin=True).first()
