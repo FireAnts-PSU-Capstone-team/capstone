@@ -99,7 +99,7 @@ function run_test() {
 
     # check if server is working
     out=$(curl -s ${prefixed_host}:${server_port}${self_signed})
-    if [[ ${out} == "\"Hello World\"" ]]
+    if [[ ${out} =~ .*"Hello World".* ]]
     then
         echo "4. Web server is up."
     else
@@ -181,6 +181,7 @@ function clean() {
     sudo docker image rm flask-server:v1 >/dev/null 2>&1
 }
 
+# TODO: update so this works
 function backup() {
 
     out_file_path=''
@@ -198,8 +199,12 @@ function backup() {
         fi
     fi
 
-    sudo docker exec -it ${db_container} pg_dump -d postgresql://${user}:${password}@localhost:${server_port}/${dbname} > $out_file_path
-    echo "Backup successfully to file: ${out_file_path}"
+    sudo docker exec -it ${db_container} pg_dump -d postgresql://${user}:${password}@localhost:5432/${dbname} > $out_file_path
+    if [[ $? == 0 ]]; then
+        echo "Backup successful to file: ${out_file_path}"
+    else
+        echo "Backup failed"
+    fi
 }
 
 function restore() {
@@ -228,10 +233,10 @@ function restore() {
     echo "Restoring DB from file (${in_file_path})..."
 
     # remove current DB stuffs
-    psql postgresql://${user}:${password}@localhost:${server_port}/${dbname} < db/db-remove.sql
+    psql postgresql://${user}:${password}@localhost:5432/${dbname} < db/db-remove.sql
 
     # execute backup .sql file
-    psql postgresql://${user}:${password}@localhost:${server_port}/${dbname} < ${in_file_path}
+    psql postgresql://${user}:${password}@localhost:5432/${dbname} < ${in_file_path}
 
     [[ $? == 0 ]] && echo "Restored successfully."
 }
