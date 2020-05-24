@@ -10,17 +10,22 @@ auth_bp = Blueprint('auth_bp', __name__)
 json_header = {"Content-Type": "application/json"}
 
 # Test Curls:
-# curl --insecure --cacert ca-crt.pem --key client.key --cert client.crt -X POST -d "email=admin@gmail.com&password=pass" -c "test.cookie" https://localhost:443/login
-# curl --insecure --cacert ca-crt.pem --key client.key --cert client.crt -b test.cookie https://localhost:443/logout -c test.cookie
+# curl -k https://localhost:443/signup -X POST -d "email=joseph@gmail.com&name=joseph&password=pwd"
+# curl -k https://localhost:443/login -X POST -d "email=joseph@gmail.com&password=pwd" -c "test.cookie"
+# curl -k https://localhost:443/logout -c test.cookie -b test.cookie
 
 
-# Uses flask-login to actually log the user in and updates their identity in flask-principle
+def fetch_user(email: str) -> User:
+    return User.query.filter_by(email=email).first()
+
+
+# Uses flask-login to log the user in and update their identity in flask-principal
 @auth_bp.route('/login', methods=['POST'])
-def login_post():
+def login():
     email = request.form.get('email')
     password = request.form.get('password')
     remember = True if request.form.get('remember') else False
-    user = User.query.filter_by(email=email).first()
+    user = fetch_user(email)
 
     # Check if user actually exists and compare provided and stored password hashes
     if not user or not check_password_hash(user.password, password):
@@ -43,10 +48,8 @@ def signup_post():
     name = request.form.get('name')
     password = request.form.get('password')
 
-    # Check if user already exists in the database
-    user = User.query.filter_by(email=email).first()
-    # if a user is found, we want to redirect back to signup page so user can try again
-    if user:
+    # if a user is found, reject attempt
+    if bool(fetch_user(email)):
         return make_gui_response(json_header, 400, 'A user with that email already exists')
 
     # create new user with the form data. Hash the password so plaintext version isn't saved.
