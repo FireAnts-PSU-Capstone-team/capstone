@@ -33,7 +33,6 @@ validNeighborhoods = ['Alameda', 'Arbor Lodge', 'Ardenwald/Johnson Creek', 'Arga
 
 valid_endorsements = ["CT", "ED", "EX", "TO"]
 license_types = ['MD', 'MR', 'MC', 'MW', 'MP', 'MU']
-uniqueReceipts = {}
 seen_mrls = {}
 
 
@@ -86,13 +85,7 @@ def validate_license_type(lic):
 
 
 def validate_receipt_num(receiptNo):
-    # validates parseable integer with no repeated values
-    if receiptNo in uniqueReceipts or not str(receiptNo).isdigit():
-        return False
-    else:
-        # Must be converted to string upon return! Otherwise casts to a float and refuses to be cast back
-        uniqueReceipts[receiptNo] = 1
-        return True
+    return str(receiptNo).isdigit()
 
 
 def validate_mrl(mrl):
@@ -107,6 +100,14 @@ def validate_mrl(mrl):
         return True
     except (ValueError, AttributeError):
         return False
+
+
+def fmt_failed_row(row):
+    msg = "Failed row: "
+    for item in row:
+        msg += f"{item}, "
+    msg = msg[0:len(msg) - 2]
+    return msg
 
 
 def replacePhoneNumber(phone):
