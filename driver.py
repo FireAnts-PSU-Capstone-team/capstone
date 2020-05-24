@@ -13,6 +13,7 @@ from db import connection as c
 from models.IntakeRow import ColNames, intake_headers
 from query_parser import QueryParser, RequestParseException
 from validation import validate_dataframe
+from loader import loadSeqCounts
 
 test_file = 'resources/sample.xlsx'
 primary_table = 'intake'
@@ -20,7 +21,8 @@ db_tables = ['intake', 'txn_history', 'archive', 'metadata', 'violations', 'reco
 metadata_table = 'metadata'
 connection_error_msg = 'The connection to the database is closed and cannot be opened. Verify DB server is up.'
 row_seq={"intake":1, "violations":1, "records":1}
-
+seq_storage='row_seq_counts.ini'
+loadSeqCounts(seq_storage,db_tables, row_seq)
 
 # TODO: refactor to remove duplicated code
 is_connected = False
@@ -397,7 +399,6 @@ def insert_row(table, row, checked=False):
     Returns: (bool, dict) a bool indicate whether insertion is successful, a dict of failed row info
     """
     # Check flag for multi row insert, if false check to make sure that the connection is open and active
-    default = False
     global row_seq
     row_temp = row_seq[table]
 
