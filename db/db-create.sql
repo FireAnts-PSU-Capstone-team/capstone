@@ -47,19 +47,10 @@ ALTER FUNCTION change_fnc() OWNER TO cc;
 CREATE FUNCTION check_insertion_fnc()
     RETURNS TRIGGER
     LANGUAGE 'plpgsql'
-AS $BODY$
-BEGIN
+AS $BODY$BEGIN
 IF (SELECT count(*)
    FROM intake
    WHERE mrl = NEW.mrl) = 0
---AND
---    (SELECT count(*)
---     FROM intake
---     WHERE "row" = NEW."row") = 0
---AND
---    (SELECT count(*)
---     FROM intake
---     WHERE receipt_num=NEW."receipt_num")=0
 THEN
    RETURN NEW;
 ELSE
