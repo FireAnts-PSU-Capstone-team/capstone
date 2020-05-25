@@ -124,3 +124,16 @@ curl -k "https://localhost:443/delete?table=intake&row=1+2"
 ```
 curl https://localhost/export?table=intake -o intake.csv
 ```
+
+**View the list of neighborhood associations accepted by the validator**
+```
+curl -k https://localhost/neighborhoods
+```
+**Add a member to the neighborhood association list (REQUIRES ADMIN ACCESS)**
+```
+curl -X PUT https://localhost/modify?member=Hillsboro -k
+```
+**Remove a member from the neighborhood association list (REQUIRES ADMIN ACCESS)**
+```
+curl -X DELETE https://localhost/modify?member=Hillsboro -k
+```

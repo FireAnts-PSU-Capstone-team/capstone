@@ -250,7 +250,7 @@ def modify_neighborhoods():
     '''
     Modify the list of valid neighborhood associations
     Usage:
-        /modifyneighbors?member=<memberToAddOrDelete>
+        /modify?member=<memberToAddOrDelete>
 
     '''
     member = request.args.get('member')
