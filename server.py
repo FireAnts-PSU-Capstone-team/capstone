@@ -16,9 +16,6 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 # Utilizes CORS with the list of origin strings and regex expressions to validate resource requests.
 CORS(app, origins=origin_list)
 
-restrictedTables = ['archive', 'txn_history']
-nonRestrictedTables = ['intake', 'metadata', 'violations', 'records']
-
 def allowed_file(filename):
     """
     Checks an input file for approved extensions.
@@ -29,12 +26,12 @@ def allowed_file(filename):
     """
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def table_listing_post(request):
+def table_listing_post(request, admin=False):
     query, response, status = driver.filter_table(request.json)
     app.logger.info("Received query: " + str(query))
     return make_response(jsonify(response), status)
 
-def table_listing_get(request):
+def table_listing_get(request, admin=False):
     table_name = request.args.get('table')
     if table_name is None:
         return make_response(jsonify('Table name not supplied.'), 400)
@@ -48,18 +45,10 @@ def table_listing_get(request):
     except driver.InvalidTableException:
         return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
 
-def checkTableRouting(table, tableList):
-    if table in tableList:
-        return True, None
-    else:
-        msg = {
-            'message':'Innapropriate route for requested table'
-        }
-        return False, msg
 
 #TODO:Update so it requires authentication?
 @app.route("/adminlist", methods=["GET","POST"])
-def fetch_admin_data(admin=True):
+def fetch_admin_data():
     """
     Displays the contents of the table listed in the request. 
     Usage:
@@ -67,16 +56,13 @@ def fetch_admin_data(admin=True):
         POST /list to process specific query
     Returns ({}): JSON object of table data
     """
-    valid, msg = checkTableRouting(request.args.get('table'), restrictedTables)
-    if not valid:
-        return make_response(jsonify(msg), 404)
     if request.method == 'POST':
-        return table_listing_post(request)
+        return table_listing_post(request, True)
     if request.method == 'GET':
-        return table_listing_get(request)
+        return table_listing_get(request, True)
 
 @app.route("/list", methods=["GET", "POST"])
-def fetch_data(admin=False):
+def fetch_data():
     """
     Displays the contents of the table listed in the request.
     Usage:
@@ -84,9 +70,6 @@ def fetch_data(admin=False):
         POST /list to process specific query
     Returns ({}): JSON object of table data
     """
-    valid, msg = checkTableRouting(request.args.get('table'), nonRestrictedTables)
-    if not valid:
-        return make_response(jsonify(msg), 404)
     if request.method == 'POST':
         return table_listing_post(request)
 
@@ -119,7 +102,7 @@ def load_data():
                 result = {'message': error_msg}
                 return make_response(jsonify(result), 404)
             try:
-                row_data = (request.get_json(force=True)).value_array()
+                row_data = IntakeRow(request.get_json(force=True)).value_array()
             except (KeyError, ValueError) as err:
                 message = {'message': err}
                 return make_response(jsonify(message), 404)
