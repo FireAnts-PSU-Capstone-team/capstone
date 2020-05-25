@@ -16,6 +16,7 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 # Utilizes CORS with the list of origin strings and regex expressions to validate resource requests.
 CORS(app, origins=origin_list)
 
+
 def allowed_file(filename):
     """
     Checks an input file for approved extensions.
@@ -26,18 +27,19 @@ def allowed_file(filename):
     """
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def table_listing_post(request, admin=False):
-    query, response, status = driver.filter_table(request.json)
+
+def table_listing_post(req, admin=False):
+    query, response, status = driver.filter_table(req.json)
     app.logger.info("Received query: " + str(query))
     return make_response(jsonify(response), status)
 
-def table_listing_get(request, admin=False):
-    table_name = request.args.get('table')
+
+def table_listing_get(req, admin=False):
+    table_name = req.args.get('table')
     if table_name is None:
         return make_response(jsonify('Table name not supplied.'), 400)
     try:
-        # TODO: once authentication is in place, restrict the tables that can be listed here
-        columns = request.args.get('column')
+        columns = req.args.get('column')
         if columns is not None:
             columns = str.split(columns.strip(), ' ')
         table_info_obj = driver.get_table(table_name, columns)
@@ -46,8 +48,8 @@ def table_listing_get(request, admin=False):
         return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
 
 
-#TODO:Update so it requires authentication?
-@app.route("/adminlist", methods=["GET","POST"])
+# TODO: Update so it requires authentication
+@app.route("/adminlist", methods=["GET", "POST"])
 def fetch_admin_data():
     """
     Displays the contents of the table listed in the request. 
@@ -60,6 +62,7 @@ def fetch_admin_data():
         return table_listing_post(request, True)
     if request.method == 'GET':
         return table_listing_get(request, True)
+
 
 @app.route("/list", methods=["GET", "POST"])
 def fetch_data():

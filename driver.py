@@ -375,7 +375,6 @@ def validate_row(json_item):
     return validate_dataframe(df)
 
 
-
 def insert_row(table, row, checked=False):
     """
     Insert an array of values into the specified table.
