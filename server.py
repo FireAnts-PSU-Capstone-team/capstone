@@ -84,8 +84,8 @@ def load_data():
                 return make_response(jsonify(result), 404)
             try:
                 row_data = IntakeRow(request.get_json(force=True)).value_array()
-            except (KeyError, ValueError) as err:
-                message = {'message': err}
+            except (KeyError, ValueError):
+                message = {'message': 'Error encountered while parsing input'}
                 return make_response(jsonify(message), 404)
 
             row_count, fail_row = driver.insert_row(table_name, row_data)
