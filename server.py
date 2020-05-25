@@ -4,6 +4,7 @@ import driver
 from pandas.io.json import json_normalize
 from cors import cors_setup
 from models.IntakeRow import IntakeRow
+import json
 
 UPLOAD_FOLDER = 'resources'
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
@@ -243,6 +244,49 @@ def update_table():
         # succeed on updating
         return make_response(jsonify(result), 200)
 
+#TODO: Make so only admins can modify?
+@app.route('/modify', methods=['PUT', 'DELETE'])
+def modify_neighborhoods():
+    '''
+    Modify the list of valid neighborhood associations
+    Usage:
+        /modifyneighbors?member=<memberToAddOrDelete>
+
+    '''
+    member = request.args.get('member')
+    if member is None:
+        return make_response(jsonify('No neighborhood listed'), 400)
+    with open("resources/portland-neighborhoods.json", "r") as f:
+        neighborhood = json.load(f)
+    
+    if request.method == 'PUT':
+        if not member in neighborhood:
+            neighborhood.append(member)
+        else:
+            msg = {"message":"Neighborhood already in list"}
+            return make_response(jsonify(msg), 400)
+    
+    if request.method == "DELETE":
+        if member in neighborhood:
+            neighborhood.remove(member)
+        else: 
+            msg = {"message":"Neighborhood not in list"}
+            return make_response(jsonify(msg), 400)
+
+    with open("resources/portland-neighborhoods.json", "w") as f:
+        json.dump(neighborhood, f)
+
+    msg = {"message": "Neighborhood list updated"}
+    return make_response(jsonify(msg), 200)
+
+@app.route('/neighborhoods', methods=['GET'])
+def retrieve_neighborhoods():
+    with open("resources/portland-neighborhoods.json","r") as f:
+        neighborhoods = json.load(f)
+    msg = {
+        "Portland Neighborhoods" : neighborhoods
+    }
+    return make_response(jsonify(msg), 200)
 
 @app.route('/')
 def hello_world():
