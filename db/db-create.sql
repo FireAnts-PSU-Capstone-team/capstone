@@ -219,22 +219,6 @@ ALTER TABLE ONLY records
 -------------------------
 
 --
--- Name: intake_row_seq
--- Desc: Sequence used as PK for intake table Owner: cc
---
---CREATE SEQUENCE intake_row_seq
---    AS integer
---    START WITH 1
---    INCREMENT BY 1
---    NO MINVALUE
---    NO MAXVALUE
---    CACHE 1;
---
---ALTER TABLE intake_row_seq OWNER TO cc;
---ALTER SEQUENCE intake_row_seq OWNED BY intake."row";
---ALTER TABLE ONLY intake ALTER COLUMN "row" SET DEFAULT nextval('intake_row_seq'::regclass);
-
---
 -- Name: txn_history_id_seq
 -- Desc: Sequence used as PK for txn_history table Owner: cc
 --
@@ -265,38 +249,6 @@ CREATE SEQUENCE archive_row_seq
 ALTER TABLE archive_row_seq OWNER TO cc;
 ALTER SEQUENCE archive_row_seq OWNED BY archive.row_id;
 ALTER TABLE ONLY archive ALTER COLUMN row_id SET DEFAULT nextval('archive_row_seq'::regclass);
-
---
--- Name: violations_row_seq
--- Desc: Sequence used as PK for violations table Owner: cc
---
---CREATE SEQUENCE violations_row_seq
---    AS integer
---    START WITH 1
---    INCREMENT BY 1
---    NO MINVALUE
---    NO MAXVALUE
---    CACHE 1;
---
---ALTER TABLE violations_row_seq OWNER TO cc;
---ALTER SEQUENCE violations_row_seq OWNED BY violations.row_id;
---ALTER TABLE ONLY violations ALTER COLUMN row_id SET DEFAULT nextval('violations_row_seq'::regclass);
-
---
--- Name: records_row_seq
--- Desc: Sequence used as PK for records table Owner: cc
---
---CREATE SEQUENCE records_row_seq
---    AS integer
---    START WITH 1
---    INCREMENT BY 1
---    NO MINVALUE
---    NO MAXVALUE
---    CACHE 1;
---
---ALTER TABLE records_row_seq OWNER TO cc;
---ALTER SEQUENCE records_row_seq OWNED BY records.row_id;
---ALTER TABLE ONLY records ALTER COLUMN row_id SET DEFAULT nextval('records_row_seq'::regclass);
 
 -------------------------
 -- Triggers
