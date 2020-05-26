@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, make_response, request, session
 from flask_login import login_required
 from flask_principal import Permission, RoleNeed
 from pandas.io.json import json_normalize
+import driver, markdown, markdown.extensions.fenced_code
 
 from werkzeug.security import generate_password_hash
 from functools import wraps
@@ -358,9 +359,19 @@ def restore_record():
                                                             'Contact your admin to have it restored'), 404)
 
 
+<<<<<<< HEAD:kanabi/server.py
 @main_bp.route('/')
 def hello_world():
     return make_response(jsonify('Hello World'), 200)
+=======
+@app.route('/')
+def landing_page():
+    readme = open("README.md", "r")
+    md = markdown.markdown(
+        readme.read(), extensions=["fenced_code"]
+    )
+    return md
+>>>>>>> ab13ff2... Updated default / landing page to display markdown readme if endpoint is hit directly.:server.py
 
 
 @main_bp.route('/<path:path>', methods=["PUT", "POST", "GET"])
