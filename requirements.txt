@@ -4,6 +4,10 @@ pandas
 openpyxl
 psycopg2
 flask
+flask-login
+flask-principal
+flask-sqlalchemy
 flask-cors
+werkzeug
 jsonify
 response

@@ -2,20 +2,19 @@ import collections
 import os
 import sys
 import time
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 import psycopg2
 from openpyxl import load_workbook
-from pandas.io.json import json_normalize
 
-from db import connection as c
-from models.IntakeRow import ColNames, intake_headers
-from query_parser import QueryParser, RequestParseException
-from validation import validate_dataframe
+import kanabi.db.connection as c
+from kanabi.models.IntakeRow import ColNames, intake_headers
+from kanabi.query_parser import QueryParser, RequestParseException
+from kanabi.validation.intake_validation import validate_dataframe
 
 test_file = 'resources/sample.xlsx'
 primary_table = 'intake'
-db_tables = ['intake', 'txn_history', 'archive', 'metadata', 'violations', 'records']
 metadata_table = 'metadata'
 connection_error_msg = 'The connection to the database is closed and cannot be opened. Verify DB server is up.'
 
@@ -48,6 +47,7 @@ def reconnectDB():
             pgSqlCur, pgSqlConn = c.pg_connect()
             is_connected = True
             return is_connected
+        # TODO: specify the exceptions thrown here
         except:
             time.sleep(1)
             wait_time += 1
@@ -55,6 +55,27 @@ def reconnectDB():
             if wait_time >= 30:
                 return False
     return True
+
+
+def get_table_list():
+    """
+    Gets the database's active tables.
+    Returns [str]: list of table names
+    """
+    try:
+        pgSqlCur.execute("""
+        SELECT table_name 
+        FROM information_schema.tables
+        WHERE table_name 
+        NOT LIKE 'pg_%'
+            AND table_schema='public'; 
+        """)
+        return str([x[0] for x in pgSqlCur.fetchall()])
+    except psycopg2.Error as err:
+        sql_except(err)
+
+
+db_tables = get_table_list()
 
 
 def check_conn():
@@ -69,6 +90,7 @@ def check_conn():
     try:
         pgSqlCur.execute('SELECT 1')
         return True
+    # TODO: specify the exceptions thrown here
     except:
         return reconnectDB()
 
@@ -107,6 +129,7 @@ def fmt(s):
     return s
 
 
+# TODO: either remove this or update it
 def dump_tables():
     """
     Displays the contents of the tables in the database.
@@ -248,7 +271,6 @@ def read_metadata(f):
         f (str): the filename of the spreadsheet
     Returns (dict): the metadata collection
     """
-    headerMatches = 0
     data = {}
     workbook = load_workbook(f)
     file_data = workbook.properties.__dict__
@@ -351,24 +373,6 @@ def row_number_exists(cur, row_number, table=primary_table):
     return exists
 
 
-def get_table_list():
-    """
-    Gets the database's active tables.
-    Returns [str]: list of table names
-    """
-    try:
-        pgSqlCur.execute("""
-        SELECT table_name 
-        FROM information_schema.tables
-        WHERE table_name 
-        NOT LIKE 'pg_%'
-            AND table_schema='public'; 
-        """)
-        return str([x[0] for x in pgSqlCur.fetchall()])
-    except psycopg2.Error as err:
-        sql_except(err)
-
-
 def validate_row(json_item):
     """
     Preps a JSON input row and passes it to the data validator. Returns the validator's response.
@@ -381,7 +385,7 @@ def validate_row(json_item):
         json_item = collections.OrderedDict(json_item)
         json_item.update({'row': 999})
         json_item.move_to_end('row', last=False)
-    df = json_normalize(json_item)
+    df = pd.json_normalize(json_item)
     return validate_dataframe(df)
 
 
@@ -430,9 +434,6 @@ def insert_row(table, row, checked=False):
     except Exception as err:
         sql_except(err)
         failed_row = {
-            'submission_date': row[ColNames.SUBMISSION_DATE.value],
-            'entity': row[ColNames.ENTITY.value],
-            'dba': row[ColNames.DBA.value],
             'mrl': row[ColNames.MRL.value]
         }
         return 0, failed_row
@@ -561,6 +562,7 @@ def update_table(table, row, update_columns):
     return 1, 'Updated successfully'
 
 
+# TODO: either delete this or update it
 def test_driver():
     # Pre-insert query
     print('Dump tables -------------------------------------------------')
@@ -589,7 +591,3 @@ def test_driver():
     print("Closing connection to database.")
     c.pg_disconnect(pgSqlCur, pgSqlConn)
 
-
-if __name__ == '__main__':
-    test_driver()
-    print(get_table(primary_table, None))

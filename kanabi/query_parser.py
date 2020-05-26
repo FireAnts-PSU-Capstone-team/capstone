@@ -121,18 +121,23 @@ class QueryParser:
                 raise RequestParseException(invalid_table_msg(table))
 
             if table == 'intake':
-                from models import IntakeRow
+                from .models import IntakeRow
                 self.col_names = [x.name.lower() for x in IntakeRow.ColNames]
-            # TODO: uncomment once other tables have ColNames classes
-            # elif table == 'archive':
-            #     from models import ArchiveRow
-            #     self.col_names = [x.name.lower() for x in ArchiveRow.ColNames]
-            # elif table == 'metadata':
-            #     from models import MetadataRow
-            #     self.col_names = [x.name.lower() for x in MetadataRow.ColNames]
-            # elif table == 'txn_history':
-            #     from models import TxnHistoryRow
-            #     self.col_names = [x.name.lower() for x in TxnHistoryRow.ColNames]
+            elif table == 'archive':
+                from .models import ArchiveRow
+                self.col_names = [x.name.lower() for x in ArchiveRow.ColNames]
+            elif table == 'metadata':
+                from .models import MetadataRow
+                self.col_names = [x.name.lower() for x in MetadataRow.ColNames]
+            elif table == 'txn_history':
+                from .models import TxnHistoryRow
+                self.col_names = [x.name.lower() for x in TxnHistoryRow.ColNames]
+            elif table == 'reports':
+                from .models import ReportsRow
+                self.col_names = [x.name.lower() for x in ReportsRow.ColNames]
+            elif table == 'violations':
+                from .models import ViolationsRow
+                self.col_names = [x.name.lower() for x in ViolationsRow.ColNames]
             else:
                 raise RequestParseException("Requested table not found")
 

@@ -3,8 +3,9 @@ from datetime import datetime
 import pandas as pd
 import numpy as np
 import re as re
+import json
 
-from models.IntakeRow import ColNames
+from kanabi.models.IntakeRow import ColNames
 
 # addressRegex = r'^(\d+)\s([a-zA-Z]{1,2})\s([a-zA-Z0-9\-\.]+\s)+([a-zA-Z]+)(\.?)'
 # addressWithFacilityRegex = r'^(\d+)\s([a-zA-Z]{1,2})\s(([a-zA-Z1-9]+\s)+)([a-zA-Z]+)(\.?)(\,?)\s(#\d+)'
@@ -210,7 +211,10 @@ def validate_dataframe(df):
         if len(errorString) != 0:
             error_cols = ','.join(str(x) for x in errorString)
             df.at[i, ColNames.VALIDATION_ERRORS.name] = error_cols
-            msg[i] = error_cols
+            msg[i] = {
+                'failed_row_id': row[ColNames.ROW.value],
+                'failed_columns': error_cols
+            }
         i += 1
 
     # Regularize the following values:
