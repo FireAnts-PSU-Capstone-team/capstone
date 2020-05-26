@@ -243,6 +243,23 @@ def update_table():
         # succeed on updating
         return make_response(jsonify(result), 200)
 
+@app.route('/restore', methods = ['PUT'])
+def restore_record():
+    """
+    Restore a record from the archive table to its original table
+    Usage: /restore?row=<row_num>
+    Returns ({}): result of restoring the contents to the table.
+    """
+    row_num = request.args.get('row', '')
+    if row_num == '':
+        return make_response(jsonify('Row number not supplied.'), 400)
+    try:
+        row_num = str.split(row_num.strip(), ' ')
+        table_info_obj = driver.restor_row(row_num)
+        return make_response(jsonify(table_info_obj), 200)
+    except driver.InvalidRowException:
+        return make_response(jsonify('Row '.join(row_num) + ' could not be restored automatically. '
+                                                            'Contact your admin to have it restored'), 404)
 
 @app.route('/')
 def hello_world():

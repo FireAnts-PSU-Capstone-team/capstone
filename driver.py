@@ -5,9 +5,10 @@ import time
 import pandas as pd
 import numpy as np
 import psycopg2
-from psycopg2 import IntegrityError
+from json import dumps
 from openpyxl import load_workbook
-from pandas.io.json import json_normalize
+from pandas import json_normalize
+
 
 from db import connection as c
 from models.IntakeRow import ColNames, intake_headers
@@ -572,6 +573,23 @@ def update_table(table, row, update_columns):
     pgSqlConn.commit()
     return 1, 'Updated successfully'
 
+def restore_row(row_num):
+    if not check_conn():
+        return 0, connection_error_msg
+    else:
+        # get the archive row to be restored
+        try:
+            cmd = f'SELECT old_val FROM archive WHERE row_id = {row_num};'
+            cmd2 = f'insert into intake SELECT * from json_populate_record(NULL::intake, (SELECT old_val from archive where row_id={row_num}));'
+            pgSqlCur.execute(cmd)
+
+            return 1,"Thanks"
+        except psycopg2.Error as err:
+            sql_except(err)
+            return 0, str(err)
+
+        # insert the row
+
 
 def test_driver():
     # Pre-insert query
@@ -603,5 +621,6 @@ def test_driver():
 
 
 if __name__ == '__main__':
-    test_driver()
-    print(get_table(primary_table, None))
+    #test_driver()
+    #print(get_table(primary_table, None))
+    restore_row(1)

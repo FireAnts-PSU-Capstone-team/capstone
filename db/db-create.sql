@@ -47,7 +47,8 @@ ALTER FUNCTION change_fnc() OWNER TO cc;
 CREATE FUNCTION check_insertion_fnc()
     RETURNS TRIGGER
     LANGUAGE 'plpgsql'
-AS $BODY$BEGIN
+AS $BODY$
+BEGIN
 IF (SELECT count(*)
    FROM intake
    WHERE mrl = NEW.mrl) = 0
@@ -59,6 +60,41 @@ END IF;
 END;$BODY$;
 
 ALTER FUNCTION check_insertion_fnc() OWNER TO cc;
+
+--
+-- A function to restore a record from the archive table back to original table
+-- Name: restore_record
+--
+CREATE OR REPLACE FUNCTION restore_record(row_num integer)
+    RETURNS boolean
+    LANGUAGE 'plpgsql'
+AS $_$DECLARE
+tablename text;
+success integer;
+BEGIN
+SELECT t.tabname into tablename
+from txn_history as t join archive as a
+on t.archive_row = a.row_id
+WHERE a.row_id = row_num;
+IF NOT FOUND THEN
+	RETURN FALSE;
+END IF;
+EXECUTE
+format('INSERT INTO %I
+SELECT *
+FROM json_populate_record(NULL::%I, (SELECT old_val FROM archive WHERE row_id = $1))',tablename,tablename)
+USING row_num;
+GET DIAGNOSTICS success = ROW_COUNT;
+IF success = 1
+THEN
+RETURN TRUE;
+ELSE
+RETURN FALSE;
+END IF;
+END;$_$;
+
+ALTER FUNCTION restore_record(row_num integer) OWNER TO cc;
+
 
 -------------------------
 -- DB Parameters
