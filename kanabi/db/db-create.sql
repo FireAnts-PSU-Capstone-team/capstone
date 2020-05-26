@@ -44,28 +44,28 @@ ALTER FUNCTION change_fnc() OWNER TO cc;
 -- Name: check_insertion_fnc; Type: TRIGGER; Schema: public; Owner: cc
 --
 
-CREATE FUNCTION check_insertion_fnc()
-    RETURNS TRIGGER
-    LANGUAGE 'plpgsql'
-AS $BODY$
-BEGIN
-IF (SELECT count(*)
-   FROM intake
-   WHERE mrl = NEW.mrl) = 0
-THEN
-   RETURN NEW;
-ELSE
-   RETURN NULL;
-END IF;
-END;$BODY$;
-
-ALTER FUNCTION check_insertion_fnc() OWNER TO cc;
+--CREATE FUNCTION check_insertion_fnc()
+--    RETURNS TRIGGER
+--    LANGUAGE 'plpgsql'
+--AS $BODY$
+--BEGIN
+--IF (SELECT count(*)
+--   FROM intake
+--   WHERE mrl = NEW.mrl) = 0
+--THEN
+--   RETURN NEW;
+--ELSE
+--   RETURN NULL;
+--END IF;
+--END;$BODY$;
+--
+--ALTER FUNCTION check_insertion_fnc() OWNER TO cc;
 
 --
 -- A function to restore a record from the archive table back to original table
 -- Name: restore_record
 --
-CREATE OR REPLACE FUNCTION restore_record(row_num integer)
+CREATE OR REPLACE FUNCTION restore_row(row_num integer)
     RETURNS boolean
     LANGUAGE 'plpgsql'
 AS $_$DECLARE
@@ -93,7 +93,7 @@ RETURN FALSE;
 END IF;
 END;$_$;
 
-ALTER FUNCTION restore_record(row_num integer) OWNER TO cc;
+ALTER FUNCTION restore_row(row_num integer) OWNER TO cc;
 
 
 -------------------------
@@ -302,9 +302,9 @@ FOR EACH ROW EXECUTE FUNCTION change_fnc();
 -- Name: intake_check_insertion
 -- Desc: Monitor intake table, before any INSERT calls function check_insertion_to_intake_tri_fnc
 --
-CREATE TRIGGER intake_check_insertion
-BEFORE INSERT ON intake
-FOR EACH ROW EXECUTE FUNCTION check_insertion_fnc();
+--CREATE TRIGGER intake_check_insertion
+--BEFORE INSERT ON intake
+--FOR EACH ROW EXECUTE FUNCTION check_insertion_fnc();
 
 --
 -- Name: violations_transactions
@@ -321,6 +321,7 @@ FOR EACH ROW EXECUTE FUNCTION change_fnc();
 CREATE TRIGGER records_transactions
 BEFORE INSERT OR UPDATE OR DELETE ON records
 FOR EACH ROW EXECUTE FUNCTION change_fnc();
+
 -------------------------
 -- Groups
 -------------------------

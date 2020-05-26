@@ -339,7 +339,7 @@ def update_table():
         return make_response(jsonify(result), 200)
         
 
-@app.route('/restore', methods = ['PUT'])
+@main_bp.route('/restore', methods = ['PUT'])
 def restore_record():
     """
     Restore a record from the archive table to its original table
@@ -351,7 +351,7 @@ def restore_record():
         return make_response(jsonify('Row number not supplied.'), 400)
     try:
         row_num = str.split(row_num.strip(), ' ')
-        table_info_obj = driver.restor_row(row_num)
+        table_info_obj = driver.restore_row(row_num)
         return make_response(jsonify(table_info_obj), 200)
     except driver.InvalidRowException:
         return make_response(jsonify('Row '.join(row_num) + ' could not be restored automatically. '

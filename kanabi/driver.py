@@ -22,7 +22,7 @@ metadata_table = 'metadata'
 connection_error_msg = 'The connection to the database is closed and cannot be opened. Verify DB server is up.'
 seq_storage='row_seq_counts.ini'
 row_seq={"intake":1, "violations":1, "records":1}
-l.loadseqcounts(seq_storage, row_seq)
+row_seq = l.loadseqcounts(seq_storage, row_seq)
 
 
 # TODO: refactor to remove duplicated code
@@ -575,17 +575,20 @@ def update_table(table, row, update_columns):
     pgSqlConn.commit()
     return 1, 'Updated successfully'
 
+
 def restore_row(row_num):
     if not check_conn():
         return 0, connection_error_msg
     else:
         # get the archive row to be restored
         try:
-            cmd = f'SELECT old_val FROM archive WHERE row_id = {row_num};'
-            cmd2 = f'insert into intake SELECT * from json_populate_record(NULL::intake, (SELECT old_val from archive where row_id={row_num}));'
+            cmd = f'SELECT restore_row({row_num});'
             pgSqlCur.execute(cmd)
-
-            return 1,"Thanks"
+            success = str([x[0] for x in pgSqlCur.fetchall()])
+            if success == 'true':
+                return 1, 'Row Restored'
+            else:
+                return 0, 'Row unable to be restored'
         except psycopg2.Error as err:
             sql_except(err)
             return 0, str(err)
