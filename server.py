@@ -248,6 +248,9 @@ def update_table():
 def hello_world():
     return make_response(jsonify('Hello World'), 200)
 
+@app.route('/<path:path>')
+def catch_all(path):
+    return make_response(jsonify('The requested endpoint does not exist.'), 404)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=443, ssl_context=context, threaded=True, debug=True)
