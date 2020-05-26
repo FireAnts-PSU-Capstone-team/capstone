@@ -248,7 +248,7 @@ def update_table():
 def hello_world():
     return make_response(jsonify('Hello World'), 200)
 
-@app.route('/<path:path>')
+@app.route('/<path:path>', methods=["PUT", "POST", "GET"])
 def catch_all(path):
     return make_response(jsonify('The requested endpoint does not exist.'), 404)
 
