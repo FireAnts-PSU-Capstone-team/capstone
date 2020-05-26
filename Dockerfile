@@ -14,4 +14,4 @@ RUN cd /server && pip install -r requirements.txt
 
 EXPOSE 443
 
-CMD ["python3" ,"/server/server.py"]
+CMD ["python3" ,"/server/app.py"]
