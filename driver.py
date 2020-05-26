@@ -15,9 +15,26 @@ from validation import validate_dataframe
 
 test_file = 'resources/sample.xlsx'
 primary_table = 'intake'
-db_tables = ['intake', 'txn_history', 'archive', 'metadata', 'violations', 'records']
 metadata_table = 'metadata'
 connection_error_msg = 'The connection to the database is closed and cannot be opened. Verify DB server is up.'
+
+
+def get_table_list():
+    """
+    Gets the database's active tables.
+    Returns [str]: list of table names
+    """
+    try:
+        pgSqlCur.execute("""
+        SELECT table_name 
+        FROM information_schema.tables
+        WHERE table_name 
+        NOT LIKE 'pg_%'
+            AND table_schema='public'; 
+        """)
+        return str([x[0] for x in pgSqlCur.fetchall()])
+    except psycopg2.Error as err:
+        sql_except(err)
 
 
 # TODO: refactor to remove duplicated code
@@ -27,6 +44,7 @@ while not is_connected:
     try:
         pgSqlCur, pgSqlConn = c.pg_connect()
         is_connected = True
+        db_tables = get_table_list()
     except:
         time.sleep(1)
         wait_time += 1
@@ -183,8 +201,7 @@ def filter_table(request_body):
          status (int): the HTTP status code of the response
     """
     try:
-        table_names = get_table_list()
-        qp = QueryParser(table_names)
+        qp = QueryParser(db_tables)
         query = qp.build_query(request_body)
     except RequestParseException as e:
         return 'JSON could not be parsed', e.msg, 400
@@ -349,24 +366,6 @@ def row_number_exists(cur, row_number, table=primary_table):
         exists = False
 
     return exists
-
-
-def get_table_list():
-    """
-    Gets the database's active tables.
-    Returns [str]: list of table names
-    """
-    try:
-        pgSqlCur.execute("""
-        SELECT table_name 
-        FROM information_schema.tables
-        WHERE table_name 
-        NOT LIKE 'pg_%'
-            AND table_schema='public'; 
-        """)
-        return str([x[0] for x in pgSqlCur.fetchall()])
-    except psycopg2.Error as err:
-        sql_except(err)
 
 
 def validate_row(json_item):
