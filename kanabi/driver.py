@@ -10,7 +10,7 @@ from json import dumps
 from openpyxl import load_workbook
 from pandas import json_normalize
 
-
+import kanabi.loader as l
 import kanabi.db.connection as c
 from kanabi.models.IntakeRow import ColNames, intake_headers
 from kanabi.query_parser import QueryParser, RequestParseException
@@ -22,7 +22,8 @@ metadata_table = 'metadata'
 connection_error_msg = 'The connection to the database is closed and cannot be opened. Verify DB server is up.'
 seq_storage='row_seq_counts.ini'
 row_seq={"intake":1, "violations":1, "records":1}
-loadseqcounts(seq_storage, row_seq)
+l.loadseqcounts(seq_storage, row_seq)
+
 
 # TODO: refactor to remove duplicated code
 is_connected = False
@@ -440,7 +441,7 @@ def insert_row(table, row, checked=False):
             pgSqlConn.commit()
         if pgSqlCur.rowcount == 1:
             row_seq[table] = row_temp
-            writeseqcounts(seq_storage, row_seq)
+            l.writeseqcounts(seq_storage, row_seq)
             return 1, None
         else:
             raise psycopg2.Error

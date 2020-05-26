@@ -1,5 +1,6 @@
 from configparser import ConfigParser
 
+
 def loadseqcounts(filename, seqs):
 # create a parser
     parser = ConfigParser()
