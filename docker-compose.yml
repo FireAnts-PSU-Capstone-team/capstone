@@ -17,11 +17,11 @@ services:
         # volume to persistent data
         volumes:
             # <local/path/to/store/data>:<path/inside/container>
-            - ./pgdata:/var/lib/postgresql/data
-            - ./configs/cert.pem:/var/lib/postgresql/server.crt:ro
-            - ./configs/key.pem:/var/lib/postgresql/server.key:ro
-            - ./configs/pg_hba.conf:/var/lib/postgresql/pg_hba.conf:ro
-            - ./db/db-create.sql:/docker-entrypoint-initdb.d/init.sql
+            - ./kanabi/pgdata:/var/lib/postgresql/data
+            - ./kanabi/configs/cert.pem:/var/lib/postgresql/server.crt:ro
+            - ./kanabi/configs/key.pem:/var/lib/postgresql/server.key:ro
+            - ./kanabi/configs/pg_hba.conf:/var/lib/postgresql/pg_hba.conf:ro
+            - ./kanabi/db/db-create.sql:/docker-entrypoint-initdb.d/init.sql
 
         ports:
             # <local/port>:<container/exposing/port>

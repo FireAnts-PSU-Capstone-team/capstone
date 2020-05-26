@@ -9,7 +9,7 @@ db_container="capstone_db_1"
 web_container="capstone_web_1"
 server_port=443
 # defines dbname, user, password, port
-source <(grep = "db/database.ini")
+source <(grep = "kanabi/db/database.ini")
 
 if [[ $(dirname $0) != '.' ]]
 then
@@ -61,8 +61,8 @@ function run_test() {
     record_row=(9 29 38)
     prefixed_host='https://localhost'
     self_signed=' -k'
-    testing_spreadsheet='resources/sample-extension.xlsx'
-    test_row='resources/sample-row-1.json'
+    testing_spreadsheet='kanabi/resources/sample-extension.xlsx'
+    test_row='kanabi/resources/sample-row-1.json'
 
     if [[ -z $(psql postgresql://${user}:${password}@localhost:5432/postgres?sslmode=require -c '') ]]
     then
@@ -99,7 +99,7 @@ function run_test() {
 
     # check if server is working
     out=$(curl -s ${prefixed_host}:${server_port}${self_signed})
-    if [[ ${out} == "\"Hello World\"" ]]
+    if [[ ${out} =~ .*"Hello World".* ]]
     then
         echo "4. Web server is up."
     else
@@ -164,9 +164,9 @@ function run_test() {
 function run() {
 
     # change permissions of SSL config files
-    sudo chown -R 999:root configs/
-    sudo chmod 777 configs/
-    sudo chmod 600 configs/*
+    sudo chown -R 999:root kanabi/configs/
+    sudo chmod 777 kanabi/configs/
+    sudo chmod 600 kanabi/configs/*
 
     # if the image doesn't exist (or we've just deleted it), build it fresh
     sudo docker image inspect flask-server:v1 >/dev/null 2>&1
@@ -177,10 +177,11 @@ function run() {
 }
 
 function clean() {
-    sudo rm -rf pgdata
+    sudo rm -rf kanabi/pgdata
     sudo docker image rm flask-server:v1 >/dev/null 2>&1
 }
 
+# TODO: update so this works
 function backup() {
 
     out_file_path=''
@@ -198,8 +199,12 @@ function backup() {
         fi
     fi
 
-    sudo docker exec -it ${db_container} pg_dump -d postgresql://${user}:${password}@localhost:${server_port}/${dbname} > $out_file_path
-    echo "Backup successfully to file: ${out_file_path}"
+    sudo docker exec -it ${db_container} pg_dump -d postgresql://${user}:${password}@localhost:5432/${dbname} > $out_file_path
+    if [[ $? == 0 ]]; then
+        echo "Backup successful to file: ${out_file_path}"
+    else
+        echo "Backup failed"
+    fi
 }
 
 function restore() {
@@ -228,11 +233,11 @@ function restore() {
     echo "Restoring DB from file (${in_file_path})..."
 
     # remove current DB stuffs
-    psql postgresql://${user}:${password}@localhost:${server_port}/${dbname} < db/db-remove.sql
-    
+    psql postgresql://${user}:${password}@localhost:5432/${dbname} < db/db-remove.sql
+
     # execute backup .sql file
-    psql postgresql://${user}:${password}@localhost:${server_port}/${dbname} < ${in_file_path}
-    
+    psql postgresql://${user}:${password}@localhost:5432/${dbname} < ${in_file_path}
+
     [[ $? == 0 ]] && echo "Restored successfully."
 }
 
@@ -249,7 +254,7 @@ function backup-schedule() {
         cmd="0 0 1 * * ${cmd}"
         comment="Scheduled to backup every Month first day at 00:00 AM."
     else
-        # every day 
+        # every day
         cmd="0 0 * * * ${cmd}"
         comment="Scheduled to backup every day at 00:00 AM."
     fi
@@ -280,7 +285,7 @@ elif [[ $1 == "rebuild" ]]; then
     
 elif [[ $1 == "rebuild-db" ]]; then
     # clear DB data and re-run the program
-    sudo rm -r pgdata
+    sudo rm -r kanabi/pgdata
     run
 
 elif [[ $1 == "test" ]]; then
