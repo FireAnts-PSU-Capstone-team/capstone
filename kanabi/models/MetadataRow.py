@@ -12,10 +12,23 @@ class ColNames(Enum):
     ROWS = 7
     COLUMNS = 8
 
+
 class MetadataRow:
     """
     Represents a row of the Metadata table.
     """
+
+    __slots__ = [
+        'filename',
+        'creator',
+        'size',
+        'created_date',
+        'last_modified_date',
+        'last_modified_by',
+        'title',
+        'rows',
+        'columns'
+    ]
 
     def __init__(self, input_json):
         """
