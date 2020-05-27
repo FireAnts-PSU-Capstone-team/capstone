@@ -226,9 +226,9 @@ ALTER TABLE ONLY violations
     ADD CONSTRAINT violations_pkey PRIMARY KEY ("row");
 
 --
--- Name: records Type: table Schema: public Owner: cc
+-- Name: reports Type: table Schema: public Owner: cc
 --
-CREATE TABLE IF NOT EXISTS records
+CREATE TABLE IF NOT EXISTS reports
 (
     "row" integer NOT NULL,
     date date,
@@ -246,10 +246,10 @@ CREATE TABLE IF NOT EXISTS records
     additional_notes text,
     validation_errors text
 );
-ALTER TABLE records OWNER to cc;
-COMMENT ON TABLE records IS 'Table to hold all the information regarding violations.';
-ALTER TABLE ONLY records
-    ADD CONSTRAINT records_pkey PRIMARY KEY ("row");
+ALTER TABLE reports OWNER to cc;
+COMMENT ON TABLE reports IS 'Table to hold all the information regarding violations.';
+ALTER TABLE ONLY reports
+    ADD CONSTRAINT reports_pkey PRIMARY KEY ("row");
 -------------------------
 -- Sequences
 -------------------------
@@ -286,6 +286,7 @@ ALTER TABLE archive_row_seq OWNER TO cc;
 ALTER SEQUENCE archive_row_seq OWNED BY archive.row_id;
 ALTER TABLE ONLY archive ALTER COLUMN row_id SET DEFAULT nextval('archive_row_seq'::regclass);
 
+
 -------------------------
 -- Triggers
 -------------------------
@@ -315,11 +316,11 @@ BEFORE INSERT OR UPDATE OR DELETE ON violations
 FOR EACH ROW EXECUTE FUNCTION change_fnc();
 
 --
--- Name: records_transactions
--- Desc: Monitor records table, before any transaction calls function change_fnc
+-- Name: reports_transactions
+-- Desc: Monitor reports table, before any transaction calls function change_fnc
 --
-CREATE TRIGGER records_transactions
-BEFORE INSERT OR UPDATE OR DELETE ON records
+CREATE TRIGGER reports_transactions
+BEFORE INSERT OR UPDATE OR DELETE ON reports
 FOR EACH ROW EXECUTE FUNCTION change_fnc();
 
 -------------------------

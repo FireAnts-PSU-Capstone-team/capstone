@@ -177,12 +177,12 @@ def load_data():
             valid, error_msg = driver.validate_row(request.get_json(force=True))
             if not valid:
                 result = {'failed_row': error_msg}
-                return make_response(jsonify(result), 404)
+                return make_response(jsonify(result), 400)
             try:
                 row_data = IntakeRow(request.get_json(force=True)).value_array()
-            except (KeyError, ValueError) as err:
-                message = {'message': err}
-                return make_response(jsonify(message), 404)
+            except (KeyError, ValueError):
+                message = {'message': 'Error encountered while parsing input'}
+                return make_response(jsonify(message), 400)
 
             row_count, fail_row = driver.insert_row(table_name, row_data)
             if row_count == 1:
@@ -356,4 +356,15 @@ def restore_record():
     except driver.InvalidRowException:
         return make_response(jsonify('Row '.join(row_num) + ' could not be restored automatically. '
                                                             'Contact your admin to have it restored'), 404)
+
+
+@main_bp.route('/')
+def hello_world():
+    return make_response(jsonify('Hello World'), 200)
+
+
+@main_bp.route('/<path:path>', methods=["PUT", "POST", "GET"])
+def catch_all(path):
+    return make_response(jsonify('The requested endpoint does not exist.'), 404)
+
 

@@ -5,16 +5,22 @@
 CURRENT_FILE_FOLDER_PATH=$(dirname $(realpath $0))
 CURRENT_FILE_FOLDER_NAME=$(basename ${CURRENT_FILE_FOLDER_PATH})
 USER_CURRENT_PATH=$(pwd)
-db_container="capstone_db_1"
-web_container="capstone_web_1"
-server_port=443
-# defines dbname, user, password, port
-source <(grep = "kanabi/db/database.ini")
 
 if [[ $(dirname $0) != '.' ]]
 then
     cd $(dirname $0)
 fi
+
+db_container="${CURRENT_FILE_FOLDER_NAME}_db_1"
+web_container="${CURRENT_FILE_FOLDER_NAME}_web_1"
+
+# defines dbname, user, password, port
+source <(grep = "kanabi/db/database.ini")
+db_name=$dbname
+db_port=$port
+db_user=$user
+db_pass=$password
+server_port=443
 
 function usage() {
     echo "Usage: "
@@ -199,7 +205,7 @@ function backup() {
         fi
     fi
 
-    sudo docker exec -it ${db_container} pg_dump -d postgresql://${user}:${password}@localhost:5432/${dbname} > $out_file_path
+    sudo docker exec -it ${db_container} pg_dump -d postgresql://${db_user}:${db_pass}@localhost:${db_port}/${db_name} > $out_file_path
     if [[ $? == 0 ]]; then
         echo "Backup successful to file: ${out_file_path}"
     else
@@ -233,11 +239,11 @@ function restore() {
     echo "Restoring DB from file (${in_file_path})..."
 
     # remove current DB stuffs
-    psql postgresql://${user}:${password}@localhost:5432/${dbname} < db/db-remove.sql
-
+    psql postgresql://${db_user}:${db_pass}@localhost:${db_port}/${db_name} < ${CURRENT_FILE_FOLDER_PATH}/db/db-remove.sql
+    
     # execute backup .sql file
-    psql postgresql://${user}:${password}@localhost:5432/${dbname} < ${in_file_path}
-
+    psql postgresql://${db_user}:${db_pass}@localhost:${db_port}/${db_name} < ${in_file_path}
+    
     [[ $? == 0 ]] && echo "Restored successfully."
 }
 
