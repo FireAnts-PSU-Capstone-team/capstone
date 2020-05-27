@@ -337,3 +337,14 @@ def update_table():
     else:
         # succeed on updating
         return make_response(jsonify(result), 200)
+
+
+@main_bp.route('/')
+def hello_world():
+    return make_response(jsonify('Hello World'), 200)
+
+
+@main_bp.route('/<path:path>', methods=["PUT", "POST", "GET"])
+def catch_all(path):
+    return make_response(jsonify('The requested endpoint does not exist.'), 404)
+
