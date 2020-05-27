@@ -76,6 +76,9 @@ def create_app():
         from kanabi import server
         from kanabi import auth
 
+        for line in origin_list:
+            print('CORS: ACCEPTING REQUESTS FROM: {}'.format(line))
+
         # Apply CORS to Blueprints
         CORS(server.main_bp, origins=origin_list)
         CORS(auth.auth_bp, origins=origin_list)
