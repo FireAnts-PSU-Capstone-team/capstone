@@ -85,7 +85,7 @@ curl -k -X POST https://localhost:443/list -d @resources/test-query-and-1.json -
 
 **Post the `sample.xlsx` file to the `/load` endpoint:**
 ```
-curl -k --form -X POST "file=@resources/sample.xlsx" https://localhost:443/load
+curl -k -X POST --form "file=@resources/sample.xlsx" https://localhost:443/load
 ```
 
 **Add a single row, as contained in the `sample-row-1.json` file:**
