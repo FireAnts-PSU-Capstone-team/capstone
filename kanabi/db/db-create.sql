@@ -40,28 +40,6 @@ $$;
 ALTER FUNCTION change_fnc() OWNER TO cc;
 
 --
--- A TRIGGER for insert conflict strategy
--- Name: check_insertion_fnc; Type: TRIGGER; Schema: public; Owner: cc
---
-
---CREATE FUNCTION check_insertion_fnc()
---    RETURNS TRIGGER
---    LANGUAGE 'plpgsql'
---AS $BODY$
---BEGIN
---IF (SELECT count(*)
---   FROM intake
---   WHERE mrl = NEW.mrl) = 0
---THEN
---   RETURN NEW;
---ELSE
---   RETURN NULL;
---END IF;
---END;$BODY$;
---
---ALTER FUNCTION check_insertion_fnc() OWNER TO cc;
-
---
 -- A function to restore a record from the archive table back to original table
 -- Name: restore_record
 --
@@ -298,14 +276,6 @@ ALTER TABLE ONLY archive ALTER COLUMN row_id SET DEFAULT nextval('archive_row_se
 CREATE TRIGGER intake_transactions
 BEFORE INSERT OR UPDATE OR DELETE ON intake
 FOR EACH ROW EXECUTE FUNCTION change_fnc();
-
---
--- Name: intake_check_insertion
--- Desc: Monitor intake table, before any INSERT calls function check_insertion_to_intake_tri_fnc
---
---CREATE TRIGGER intake_check_insertion
---BEFORE INSERT ON intake
---FOR EACH ROW EXECUTE FUNCTION check_insertion_fnc();
 
 --
 -- Name: violations_transactions

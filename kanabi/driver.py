@@ -591,7 +591,11 @@ def update_table(table, row, update_columns):
 
 
 def restore_row(row_num):
-
+    """
+    Function to restore a row that was previously deleted from a table
+    Args:   row_num(int) - row number in the archive table of data to restore
+    Returns (bool/str):  Bool success or not, str contains process info
+    """
     restore_info={}
     if not check_conn():
         return 0, connection_error_msg
@@ -611,7 +615,10 @@ def restore_row(row_num):
                     pgSqlConn.commit()
                 else:
                     restore_info[f'Row {str(row)}'] = 'Failed to restore'
-            return 1, restore_info
+            return success[0], restore_info
+
+        except psycopg2.IntegrityError as err:
+            return 0, "Can't restore the row. This can be 1 of three reasons, Row already populated, MRL already exists or receipt Num is not unique to the table."
 
         except psycopg2.Error as err:
             sql_except(err)
