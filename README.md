@@ -124,7 +124,15 @@ curl -k "https://localhost:443/delete?table=intake&row=1+2"
 ```
 curl https://localhost/export?table=intake -o intake.csv
 ```
-&emsp; \
+&emsp; 
+> /restore
+
+**Restore a row 1 in the archive table back to the table it was delete from:**
+```
+curl -k -X PUT "https://localhost:443/restore?row=1"
+```
+&emsp;
+\
 &emsp; 
 ### Authentication
 > /signup
