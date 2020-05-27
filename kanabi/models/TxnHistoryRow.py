@@ -11,10 +11,22 @@ class ColNames(Enum):
     OLD_VAL = 6
     TABNAME = 7
 
+
 class TxnHistoryRow:
     """
     Represents a row of the Txn_History table.
     """
+
+    __slots__ = [
+        'id',
+        'tstamp',
+        'schemaname',
+        'operation',
+        'who',
+        'new_val',
+        'old_val',
+        'tabname'
+    ]
 
     def __init__(self, input_json):
         """

@@ -189,9 +189,9 @@ ALTER TABLE ONLY violations
     ADD CONSTRAINT violations_pkey PRIMARY KEY ("row");
 
 --
--- Name: records Type: table Schema: public Owner: cc
+-- Name: reports Type: table Schema: public Owner: cc
 --
-CREATE TABLE IF NOT EXISTS records
+CREATE TABLE IF NOT EXISTS reports
 (
     "row" integer NOT NULL,
     date date,
@@ -209,10 +209,10 @@ CREATE TABLE IF NOT EXISTS records
     additional_notes text,
     validation_errors text
 );
-ALTER TABLE records OWNER to cc;
-COMMENT ON TABLE records IS 'Table to hold all the information regarding violations.';
-ALTER TABLE ONLY records
-    ADD CONSTRAINT records_pkey PRIMARY KEY ("row");
+ALTER TABLE reports OWNER to cc;
+COMMENT ON TABLE reports IS 'Table to hold all the information regarding violations.';
+ALTER TABLE ONLY reports
+    ADD CONSTRAINT reports_pkey PRIMARY KEY ("row");
 -------------------------
 -- Sequences
 -------------------------
@@ -282,10 +282,10 @@ ALTER SEQUENCE violations_row_seq OWNED BY violations."row";
 ALTER TABLE ONLY violations ALTER COLUMN "row" SET DEFAULT nextval('violations_row_seq'::regclass);
 
 --
--- Name: records_row_seq
--- Desc: Sequence used as PK for records table Owner: cc
+-- Name: reports_row_seq
+-- Desc: Sequence used as PK for reports table Owner: cc
 --
-CREATE SEQUENCE records_row_seq
+CREATE SEQUENCE reports_row_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -293,9 +293,9 @@ CREATE SEQUENCE records_row_seq
     NO MAXVALUE
     CACHE 1;
 
-ALTER TABLE records_row_seq OWNER TO cc;
-ALTER SEQUENCE records_row_seq OWNED BY records."row";
-ALTER TABLE ONLY records ALTER COLUMN "row" SET DEFAULT nextval('records_row_seq'::regclass);
+ALTER TABLE reports_row_seq OWNER TO cc;
+ALTER SEQUENCE reports_row_seq OWNED BY reports."row";
+ALTER TABLE ONLY reports ALTER COLUMN "row" SET DEFAULT nextval('reports_row_seq'::regclass);
 
 -------------------------
 -- Triggers
@@ -326,11 +326,11 @@ BEFORE INSERT OR UPDATE OR DELETE ON violations
 FOR EACH ROW EXECUTE FUNCTION change_fnc();
 
 --
--- Name: records_transactions
--- Desc: Monitor records table, before any transaction calls function change_fnc
+-- Name: reports_transactions
+-- Desc: Monitor reports table, before any transaction calls function change_fnc
 --
-CREATE TRIGGER records_transactions
-BEFORE INSERT OR UPDATE OR DELETE ON records
+CREATE TRIGGER reports_transactions
+BEFORE INSERT OR UPDATE OR DELETE ON reports
 FOR EACH ROW EXECUTE FUNCTION change_fnc();
 -------------------------
 -- Groups
