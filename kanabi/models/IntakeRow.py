@@ -44,6 +44,37 @@ class IntakeRow:
     Represents a row of the intake table.
     """
 
+    __slots__ = [
+        'row',
+        'submission_date',
+        'entity',
+        'dba',
+        'facility_address',
+        'facility_suite',
+        'facility_zip',
+        'mailing_address',
+        'mrl',
+        'neighborhood_association',
+        'compliance_region',
+        'primary_contact_first_name',
+        'primary_contact_last_name',
+        'email',
+        'phone',
+        'endorse_type',
+        'license_type',
+        'repeat_license',
+        'app_complete',
+        'fee_schedule',
+        'receipt_num',
+        'cash_amount',
+        'check_amount',
+        'card_amount',
+        'check_num',
+        'mrl_num',
+        'notes',
+        'validation_errors'
+    ]
+
     def __init__(self, input_json):
         """
         Constructor from a JSON object. Any unsupplied data defaults to None
