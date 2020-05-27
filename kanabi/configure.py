@@ -76,6 +76,10 @@ def create_app():
         from kanabi import server
         from kanabi import auth
 
+        # Apply CORS to Blueprints
+        CORS(server.main_bp, origins=origin_list)
+        CORS(auth.auth_bp, origins=origin_list)
+
         # Register Blueprints
         app.register_blueprint(server.main_bp)
         app.register_blueprint(auth.auth_bp)
