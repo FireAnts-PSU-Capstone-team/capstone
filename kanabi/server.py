@@ -1,21 +1,118 @@
-from flask import Flask, request, jsonify, Response, make_response
-from flask_cors import CORS
-import driver
+from flask import Blueprint, jsonify, make_response, request, session
+from flask_login import login_required
+from flask_principal import Permission, RoleNeed
 from pandas.io.json import json_normalize
-from cors import cors_setup
-from models.IntakeRow import IntakeRow
+
+from werkzeug.security import generate_password_hash
+from functools import wraps
+from pandas import json_normalize
+
+from .models.IntakeRow import IntakeRow
+import kanabi.driver as driver
+from .responses import make_gui_response
+from .configure import db
+from .model import User
 
 UPLOAD_FOLDER = 'resources'
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
-context = ('./configs/cert.pem', './configs/key.pem')
-app = Flask(__name__)
+json_header = {"Content-Type": "application/json"}
 
-# Load the list of accepted origin domains from the "accepted_domains.ini" file.
-origin_list = cors_setup.load_domains_from_file()
-# Including this header is required when using POST with JSON across domains
-app.config['CORS_HEADERS'] = 'Content-Type'
-# Utilizes CORS with the list of origin strings and regex expressions to validate resource requests.
-CORS(app, origins=origin_list)
+main_bp = Blueprint('main_bp', __name__)
+
+# TODO: review permissions expectations given that most users will be 'editor'
+
+# Administrator permissions. The '@admin_permission.require()' decorator can be used on endpoints.
+# Additionally, 'with admin_permission.require():' can be used inside function definitions for conditionality.
+admin_permission = Permission(RoleNeed('admin'))
+
+# Editor permissions. Implemented the same as admin_permission via decorator, etc.
+edit_permission = Permission(RoleNeed('editor'))
+
+
+# Custom decorator that enforces read-only permissions and leaves input arguments untouched.
+# If user is not in read-only mode then it will execute the user's intended request.
+def write_permission(function):
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        msg = 'No Write-permissions. User is in read-only mode.'
+        if 'read_only_mode' in session:
+            return make_gui_response(json_header, 400, msg)
+        else:
+            return function(*args, **kwargs)
+
+    return wrapper
+
+
+@main_bp.route("/", methods=['GET'])
+def index():
+    return make_gui_response(json_header, 200, 'Hello World')
+
+
+# Admin tools endpoint. Uses decorators with flask principal to enforce role-related access
+# TODO: these are missing
+@main_bp.route("/admin")
+@admin_permission.require(http_exception=403)
+def admin_tools():
+    # ???
+    return make_gui_response(json_header, 200, 'OK')
+
+
+# Registers the first 'admin' account. Ignores all requests after 'admin' account has already been created.
+@main_bp.route("/makeadmin")
+def register_admin():
+    user = User.query.filter_by(name='admin', is_admin=True).first()
+    if user:
+        msg = 'An admin account has already been registered.'
+        return make_gui_response(json_header, 400, msg)
+    return make_gui_response(json_header, 200, 'OK')
+
+
+@main_bp.route("/usrhello")
+@login_required
+def usr_hello():
+    return make_gui_response(json_header, 200, 'OK')
+
+
+# Creates the 'admin' account in the database. Should be executed once and only once, immediately after project
+#   is created. This creates an admin-level user named 'admin' who can be used to conduct user setup
+@main_bp.route("/makeadmin", methods=['POST'])
+def register_admin_post():
+    user = User.query.filter_by(name='admin', is_admin=True).first()
+    if user:
+        msg = 'An admin account has already been created.'
+        return make_gui_response(json_header, 400, msg)
+    else:
+        password = request.form.get('password')
+        email = request.form.get('email')
+        new_user = User(email=email, password=generate_password_hash(password, method='sha256'), name='admin',
+                        is_admin=True, is_editor=True)
+        db.session.add(new_user)
+        db.session.commit()
+        return make_gui_response(json_header, 200, 'OK')
+
+
+# Places the user into read-only mode
+@main_bp.route("/enablereadonly")
+@login_required
+def enable_read_only():
+    session['read_only_mode'] = True
+    return make_gui_response(json_header, 200, 'OK')
+
+
+# Takes user out of read-only mode
+@main_bp.route("/disablereadonly")
+@login_required
+def disable_read_only():
+    session['read_only_mode'] = False
+    return make_gui_response(json_header, 200, 'OK')
+
+
+# Test to verify that the '@write_permission' decorator is enforcing read-only mode
+@main_bp.route('/writetest')
+@login_required
+@write_permission
+def test_read_only():
+    return make_gui_response(json_header, 200, 'OK')
 
 
 def allowed_file(filename):
@@ -29,7 +126,7 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-@app.route("/list", methods=["GET", "POST"])
+@main_bp.route("/list", methods=["GET", "POST"])
 def fetch_data():
     """
     Displays the contents of the table listed in the request.
@@ -40,7 +137,6 @@ def fetch_data():
     """
     if request.method == 'POST':
         query, response, status = driver.filter_table(request.json)
-        app.logger.info("Received query: " + str(query))
         return make_response(jsonify(response), status)
 
     if request.method == 'GET':
@@ -58,7 +154,7 @@ def fetch_data():
             return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
 
 
-@app.route("/load", methods=["PUT", "POST"])
+@main_bp.route("/load", methods=["PUT", "POST"])
 def load_data():
     """
     Load data into the database. PUT inserts a single row; POST uploads a file.
@@ -80,13 +176,13 @@ def load_data():
 
             valid, error_msg = driver.validate_row(request.get_json(force=True))
             if not valid:
-                result = {'message': error_msg}
-                return make_response(jsonify(result), 404)
+                result = {'failed_row': error_msg}
+                return make_response(jsonify(result), 400)
             try:
                 row_data = IntakeRow(request.get_json(force=True)).value_array()
-            except (KeyError, ValueError) as err:
-                message = {'message': err}
-                return make_response(jsonify(message), 404)
+            except (KeyError, ValueError):
+                message = {'message': 'Error encountered while parsing input'}
+                return make_response(jsonify(message), 400)
 
             row_count, fail_row = driver.insert_row(table_name, row_data)
             if row_count == 1:
@@ -138,7 +234,7 @@ def load_data():
     return make_response(jsonify(result), 404)
 
 
-@app.route('/metadata', methods=['GET'])
+@main_bp.route('/metadata', methods=['GET'])
 def show_metadata():
     """
     Display the contents of the metadata table.
@@ -148,7 +244,7 @@ def show_metadata():
     return make_response(response_body, 200)
 
 
-@app.route('/export', methods=['GET'])
+@main_bp.route('/export', methods=['GET'])
 def export_csv():
     """
     Returns CSV of the table listed in the request.
@@ -169,7 +265,7 @@ def export_csv():
             return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
 
 
-@app.route("/delete", methods=["GET"])
+@main_bp.route("/delete", methods=["GET"])
 def delete_row():
     """
     Delete a row of data from the specified table.
@@ -190,7 +286,7 @@ def delete_row():
         return make_response(jsonify('Row '.join(row_nums) + ' is invalid input.'), 404)
 
 
-@app.route('/update', methods=['POST'])
+@main_bp.route('/update', methods=['POST'])
 def update_table():
     """
     Update the contents of the intake table.
@@ -235,7 +331,6 @@ def update_table():
     # only update intake table now
     response_body = driver.update_table('intake', row, update_columns)
     result = {'message': response_body[1]}
-    app.logger.info(result)
     if response_body[0] == 0:
         # error on updating
         return make_response(jsonify(result), 400)
@@ -244,13 +339,12 @@ def update_table():
         return make_response(jsonify(result), 200)
 
 
-@app.route('/')
+@main_bp.route('/')
 def hello_world():
     return make_response(jsonify('Hello World'), 200)
 
-@app.route('/<path:path>', methods=["PUT", "POST", "GET"])
+
+@main_bp.route('/<path:path>', methods=["PUT", "POST", "GET"])
 def catch_all(path):
     return make_response(jsonify('The requested endpoint does not exist.'), 404)
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=443, ssl_context=context, threaded=True, debug=True)

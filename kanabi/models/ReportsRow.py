@@ -24,24 +24,23 @@ class ReportsRow:
     Represents a row of the reports table.
     """
 
-    def __init__(self):
-        """
-        Default constructor.
-        """
-        self.row = None
-        self.date = ''
-        self.method = ''
-        self.intake_person = ''
-        self.rp_name = ''
-        self.rp_contact_info = ''
-        self.concern = ''
-        self.location_name = ''
-        self.location_address = ''
-        self.mrl = ''
-        self.action_taken = ''
-        self.status = ''
-        self.status_date = ''
-        self.additional_notes = ''
+    __slots__ = [
+        'row',
+        'date',
+        'method',
+        'intake_person',
+        'rp_name',
+        'rp_contact_info',
+        'concern',
+        'location_name',
+        'location_address',
+        'mrl',
+        'action_taken',
+        'status',
+        'status_date',
+        'additional_notes',
+        'validation_errors'
+    ]
 
     def __init__(self, input_json):
         """

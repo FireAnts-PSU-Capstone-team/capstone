@@ -28,28 +28,27 @@ class ViolationsRow:
     Represents a row of the violations table.
     """
 
-    def __init__(self):
-        """
-        Default constructor.
-        """
-        self.row = None
-        self.dba = ''
-        self.address = ''
-        self.mrl = ''
-        self.license_type = ''
-        self.violation_sent_date = ''
-        self.original_violation_amount = ''
-        self.admin_rvw_decision_date = ''
-        self.admin_rvw_violation_amount = ''
-        self.certified_num = ''
-        self.certified_reciept_returned = ''
-        self.date_paid_waived = ''
-        self.receipt_no = ''
-        self.cash_amt = ''
-        self.check_amt = ''
-        self.card_amt = ''
-        self.check_num = ''
-        self.notes = ''
+    __slots__ = [
+        'row',
+        'dba',
+        'address',
+        'mrl',
+        'license_type',
+        'violation_sent_date',
+        'original_violation_amount',
+        'admin_rvw_decision_date',
+        'admin_rvw_violation_amount',
+        'certified_num',
+        'certified_reciept_returned',
+        'date_paid_waived',
+        'receipt_no',
+        'cash_amt',
+        'check_amt',
+        'card_amt',
+        'check_num',
+        'notes',
+        'validation_errors'
+    ]
 
     def __init__(self, input_json):
         """

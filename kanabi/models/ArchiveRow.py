@@ -7,10 +7,18 @@ class ColNames(Enum):
     WHO = 2
     OLD_VAL = 3
 
+
 class ArchiveRow:
     """
     Represents a row of the Archive table.
     """
+
+    __slots__ = [
+        'row',
+        'tstamp',
+        'who',
+        'old_val'
+    ]
 
     def __init__(self, input_json):
         """
@@ -22,5 +30,3 @@ class ArchiveRow:
         self.tstamp = input_json.get('tstamp')
         self.who = input_json.get('who')
         self.old_val = input_json.get('old_val')
-
-

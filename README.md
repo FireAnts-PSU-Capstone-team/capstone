@@ -124,3 +124,35 @@ curl -k "https://localhost:443/delete?table=intake&row=1+2"
 ```
 curl https://localhost/export?table=intake -o intake.csv
 ```
+&emsp; \
+&emsp; 
+### Authentication
+> /signup
+
+**Sign up as a new user:** 
+```
+curl -k -X POST https://localhost/signup -d "email=joseph@gmail.com&name=joseph&password=pwd"
+```
+&emsp; 
+> /login
+
+**Log in as an existing user:** 
+```
+curl -X POST https://localhost/login -k -d "email=a@gmail.com&password=pwd" -c a.cookie
+```
+Note that the cookie argument is required for the server to keep track of a user's login status. 
+
+In subsequent requests, this named cookie must be provided to the server every time using the `-b` and `-c` arguments, like so:
+```
+curl -X GET https://localhost/usrhello -k -b a.cookie -c a.cookie
+```
+`-b` uses the named cookie as input; `-c` saves any updates the server makes to that cookie. \
+&emsp; 
+
+> /logout
+
+**Log out:** 
+```
+curl -X GET https://localhost/logout -k -b a.cookie -c a.cookie
+```
+&emsp; 
