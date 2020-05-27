@@ -6,11 +6,9 @@ import time
 import numpy as np
 import pandas as pd
 import psycopg2
-from json import dumps
-from openpyxl import load_workbook
-from pandas import json_normalize
 
-import kanabi.loader as l
+from openpyxl import load_workbook
+
 import kanabi.db.connection as c
 from kanabi.models.IntakeRow import ColNames, intake_headers
 from kanabi.query_parser import QueryParser, RequestParseException
@@ -20,9 +18,8 @@ test_file = 'resources/sample.xlsx'
 primary_table = 'intake'
 metadata_table = 'metadata'
 connection_error_msg = 'The connection to the database is closed and cannot be opened. Verify DB server is up.'
-seq_storage='row_seq_counts.ini'
 row_seq={"intake":1, "violations":1, "records":1}
-row_seq = l.loadseqcounts(seq_storage, row_seq)
+
 
 
 # TODO: refactor to remove duplicated code
@@ -441,7 +438,6 @@ def insert_row(table, row, checked=False):
             pgSqlConn.commit()
         if pgSqlCur.rowcount == 1:
             row_seq[table] = row_temp
-            l.writeseqcounts(seq_storage, row_seq)
             return 1, None
         else:
             raise psycopg2.Error
@@ -577,18 +573,28 @@ def update_table(table, row, update_columns):
 
 
 def restore_row(row_num):
+
+    restore_info={}
     if not check_conn():
         return 0, connection_error_msg
     else:
+        try:
+            row_num = list(map(int, row_num))
+        except ValueError:
+            raise InvalidRowException
         # get the archive row to be restored
         try:
-            cmd = f'SELECT restore_row({row_num});'
-            pgSqlCur.execute(cmd)
-            success = str([x[0] for x in pgSqlCur.fetchall()])
-            if success == 'true':
-                return 1, 'Row Restored'
-            else:
-                return 0, 'Row unable to be restored'
+            for row in row_num:
+                cmd = f'SELECT restore_row({row});'
+                pgSqlCur.execute(cmd)
+                success = pgSqlCur.fetchone()
+                if success[0] == True:
+                    restore_info[f'Row {str(row)}'] = 'Successfully restored'
+                    pgSqlConn.commit()
+                else:
+                    restore_info[f'Row {str(row)}'] = 'Failed to restore'
+            return 1, restore_info
+
         except psycopg2.Error as err:
             sql_except(err)
             return 0, str(err)
