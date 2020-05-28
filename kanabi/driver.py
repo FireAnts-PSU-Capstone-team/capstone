@@ -12,7 +12,7 @@ from openpyxl import load_workbook
 import kanabi.db.connection as c
 from kanabi.models.IntakeRow import ColNames, intake_headers
 from kanabi.query_parser import QueryParser, RequestParseException
-from kanabi.validation.intake_validation import validate_dataframe
+from kanabi.validation.intake_validation import validate_intake
 
 test_file = 'resources/sample.xlsx'
 primary_table = 'intake'
@@ -22,24 +22,6 @@ row_seq={"intake":1, "violations":1, "records":1}
 
 
 
-def get_table_list():
-    """
-    Gets the database's active tables.
-    Returns [str]: list of table names
-    """
-    try:
-        pgSqlCur.execute("""
-        SELECT table_name 
-        FROM information_schema.tables
-        WHERE table_name 
-        NOT LIKE 'pg_%'
-            AND table_schema='public'; 
-        """)
-        return str([x[0] for x in pgSqlCur.fetchall()])
-    except psycopg2.Error as err:
-        sql_except(err)
-
-
 # TODO: refactor to remove duplicated code
 is_connected = False
 wait_time = 0
@@ -47,7 +29,6 @@ while not is_connected:
     try:
         pgSqlCur, pgSqlConn = c.pg_connect()
         is_connected = True
-        db_tables = get_table_list()
     except:
         time.sleep(1)
         wait_time += 1
@@ -308,6 +289,7 @@ def read_metadata(f):
     data['columns'] = sheet_data.max_column
 
     # adjust row count to account for header row, if necessary
+    # TODO: make this process account for various tables
     headerMatches = 0
     for cell in sheet_data[1]:
         if cell.value in intake_headers:
@@ -394,11 +376,12 @@ def row_number_exists(cur, row_number, table=primary_table):
     return exists
 
 
-def validate_row(json_item):
+def validate_row(json_item, table):
     """
     Preps a JSON input row and passes it to the data validator. Returns the validator's response.
     Args:
         json_item ({}): input JSON
+        table (str): table name
     Returns ((bool, str)): <whether row is valid>, <error message>
     """
     # If the incoming json object doesn't have a row associated with it, we add a temporary one for validation
@@ -407,7 +390,12 @@ def validate_row(json_item):
         json_item.update({'row': 999})
         json_item.move_to_end('row', last=False)
     df = pd.json_normalize(json_item)
-    return validate_dataframe(df)
+    if table == 'intake':
+        ret = validate_intake(df)
+    else:
+        # TODO: once other tables have validators, use them here
+        ret = True, None
+    return ret
 
 
 def insert_row(table, row, checked=False):
@@ -433,9 +421,6 @@ def insert_row(table, row, checked=False):
     if row[0] is not None:
         if row_number_exists(pgSqlCur, int(row[0])):
             failed_row = {
-                'submission_date': row[1],
-                'entity': row[2],
-                'dba': row[3],
                 'message': f'Row number {row[0]} already taken.'
             }
             return 0, failed_row
@@ -461,9 +446,15 @@ def insert_row(table, row, checked=False):
             raise psycopg2.Error
     except Exception as err:
         sql_except(err)
-        failed_row = {
-            'mrl': row[ColNames.MRL.value]
-        }
+        if table == 'intake':
+            failed_row = {
+                'mrl': row[ColNames.MRL.value]
+            }
+        else:
+            failed_row = {
+                # TODO: once other tables have PKs, use those here
+                'row': row[0]
+            }
         return 0, failed_row
 
 
@@ -481,7 +472,7 @@ def process_file(f):
         # read file content
         df = pd.read_excel(f)
         # Validate data frame
-        valid, error_msg = validate_dataframe(df)
+        valid, error_msg = validate_intake(df)
 
         # Write the data to the DB
         result_obj = write_info_data(df)
