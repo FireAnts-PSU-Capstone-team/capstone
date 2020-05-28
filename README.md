@@ -85,7 +85,7 @@ curl -k -X POST https://localhost:443/list -d @resources/test-query-and-1.json -
 
 **Post the `sample.xlsx` file to the `/load` endpoint:**
 ```
-curl -k --form -X POST "file=@resources/sample.xlsx" https://localhost:443/load
+curl -k -X POST --form "file=@resources/sample.xlsx" https://localhost:443/load
 ```
 
 **Add a single row, as contained in the `sample-row-1.json` file:**
@@ -124,7 +124,15 @@ curl -k "https://localhost:443/delete?table=intake&row=1+2"
 ```
 curl https://localhost/export?table=intake -o intake.csv
 ```
-&emsp; \
+&emsp; 
+> /restore
+
+**Restore a row 1 in the archive table back to the table it was delete from:**
+```
+curl -k -X PUT "https://localhost:443/restore?row=1"
+```
+&emsp;
+\
 &emsp; 
 ### Authentication
 > /signup
