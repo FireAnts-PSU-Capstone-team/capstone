@@ -128,3 +128,45 @@ class IntakeRow:
                 self.endorse_type, self.license_type,
                 self.repeat_license, self.app_complete, self.fee_schedule, self.receipt_num, self.cash_amount,
                 self.check_amount, self.card_amount, self.check_num, self.mrl_num, self.notes]
+
+
+def from_array(input_array: []) -> IntakeRow:
+    ret = {}
+    for i, h in enumerate(intake_headers):
+        ret[h] = input_array[i]
+    return IntakeRow(ret)
+
+
+if __name__ == '__main__':
+    row = {
+        "Submission date": "01/01/18",
+        "Entity": "The Greenhouse",
+        "DBA": "Boss Nass's",
+        "Facility Address": "197 N Electric Ave",
+        "Facility Suite #": "",
+        "Facility Zip": "97204",
+        "Mailing Address": "100 NE Tabor Dr",
+        "MRL": "MRL48",
+        "Neighborhood Association": "Arbor Lodge",
+        "Compliance Region": "SE",
+        "Primary Contact Name (first)": "Ashley",
+        "Primary Contact Name (last)": "Clark",
+        "Email": "ac@example.com",
+        "Phone": "971-245-0996",
+        "Endorse Type": "EX,CT",
+        "License Type": "MR",
+        "Repeat location?": "N",
+        "App complete?": "Y",
+        "Fee Schedule": "2020",
+        "Receipt No.": 67,
+        "Cash Amount": "$1500",
+        "Check Amount": "0",
+        "Card Amount": "",
+        "Check No. / Approval Code": "512",
+        "MRL#": "MRL48",
+        "Notes": ""
+    }
+    arr = IntakeRow(row).value_array()
+    r = from_array(arr)
+    for i in r.value_array():
+        print(i)
