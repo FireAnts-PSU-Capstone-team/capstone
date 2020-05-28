@@ -6,6 +6,7 @@ import time
 import numpy as np
 import pandas as pd
 import psycopg2
+
 from openpyxl import load_workbook
 
 import kanabi.db.connection as c
@@ -17,6 +18,8 @@ test_file = 'resources/sample.xlsx'
 primary_table = 'intake'
 metadata_table = 'metadata'
 connection_error_msg = 'The connection to the database is closed and cannot be opened. Verify DB server is up.'
+row_seq={"intake":1, "violations":1, "records":1}
+
 
 
 def get_table_list():
@@ -417,6 +420,9 @@ def insert_row(table, row, checked=False):
     Returns: (bool, dict) a bool indicate whether insertion is successful, a dict of failed row info
     """
     # Check flag for multi row insert, if false check to make sure that the connection is open and active
+    global row_seq
+    row_temp = row_seq[table]
+
     if not checked:
         if not check_conn():
             return 0, connection_error_msg
@@ -436,7 +442,10 @@ def insert_row(table, row, checked=False):
         else:
             cmd += str(row[0])
     else:
-        cmd += "DEFAULT"
+        #Loop through and update row seq to first available spot
+        while row_number_exists(pgSqlCur,row_temp):
+            row_temp+=1
+        cmd += f"{row_temp}"
 
     for i in range(1, len(row)):
         cmd += f", {fmt(row[i])}"
@@ -446,6 +455,7 @@ def insert_row(table, row, checked=False):
         if not checked:
             pgSqlConn.commit()
         if pgSqlCur.rowcount == 1:
+            row_seq[table] = row_temp
             return 1, None
         else:
             raise psycopg2.Error
@@ -578,6 +588,43 @@ def update_table(table, row, update_columns):
     # commit if no error
     pgSqlConn.commit()
     return 1, 'Updated successfully'
+
+
+def restore_row(row_num):
+    """
+    Function to restore a row that was previously deleted from a table
+    Args:   row_num(int) - row number in the archive table of data to restore
+    Returns (bool/str):  Bool success or not, str contains process info
+    """
+    restore_info={}
+    if not check_conn():
+        return 0, connection_error_msg
+    else:
+        try:
+            row_num = list(map(int, row_num))
+        except ValueError:
+            raise InvalidRowException
+        # get the archive row to be restored
+        try:
+            for row in row_num:
+                cmd = f'SELECT restore_row({row});'
+                pgSqlCur.execute(cmd)
+                success = pgSqlCur.fetchone()
+                if success[0] == True:
+                    restore_info[f'Row {str(row)}'] = 'Successfully restored'
+                    pgSqlConn.commit()
+                else:
+                    restore_info[f'Row {str(row)}'] = 'Failed to restore'
+            return success[0], restore_info
+
+        except psycopg2.IntegrityError as err:
+            return 0, "Can't restore the row. This can be 1 of three reasons, Row already populated, MRL already exists or receipt Num is not unique to the table."
+
+        except psycopg2.Error as err:
+            sql_except(err)
+            return 0, str(err)
+
+        # insert the row
 
 
 # TODO: either delete this or update it

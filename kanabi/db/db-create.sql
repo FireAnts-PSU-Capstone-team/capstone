@@ -40,24 +40,39 @@ $$;
 ALTER FUNCTION change_fnc() OWNER TO cc;
 
 --
--- A TRIGGER for insert conflict strategy
--- Name: check_insertion_fnc; Type: TRIGGER; Schema: public; Owner: cc
+-- A function to restore a record from the archive table back to original table
+-- Name: restore_record
 --
-CREATE FUNCTION check_insertion_fnc()
-    RETURNS TRIGGER
+CREATE OR REPLACE FUNCTION restore_row(row_num integer)
+    RETURNS boolean
     LANGUAGE 'plpgsql'
-AS $BODY$BEGIN
-IF (SELECT count(*)
-   FROM intake
-   WHERE mrl = NEW.mrl) = 0
-THEN
-   RETURN NEW;
-ELSE
-   RETURN NULL;
+AS $_$DECLARE
+tablename text;
+success integer;
+BEGIN
+SELECT t.tabname into tablename
+from txn_history as t join archive as a
+on t.archive_row = a.row_id
+WHERE a.row_id = row_num;
+IF NOT FOUND THEN
+	RETURN FALSE;
 END IF;
-END;$BODY$;
+EXECUTE
+format('INSERT INTO %I
+SELECT *
+FROM json_populate_record(NULL::%I, (SELECT old_val FROM archive WHERE row_id = $1))',tablename,tablename)
+USING row_num;
+GET DIAGNOSTICS success = ROW_COUNT;
+IF success = 1
+THEN
+RETURN TRUE;
+ELSE
+RETURN FALSE;
+END IF;
+END;$_$;
 
-ALTER FUNCTION check_insertion_fnc() OWNER TO cc;
+ALTER FUNCTION restore_row(row_num integer) OWNER TO cc;
+
 
 -------------------------
 -- DB Parameters
@@ -73,7 +88,7 @@ SET default_table_access_method = heap;
 --
 -- Name: metadata; Type: TABLE; Schema: public; Owner: cc
 --
-CREATE TABLE metadata (
+CREATE TABLE IF NOT EXISTS metadata (
     filename TEXT NOT NULL,
     creator TEXT,
     size INT,
@@ -99,7 +114,7 @@ CREATE TABLE intake (
     facility_suite text,
     facility_zip text,
     mailing_address text,
-    mrl character varying(10),
+    mrl character varying(10) UNIQUE,
     neighborhood_association character varying(30),
     compliance_region character varying(2),
     primary_contact_first_name text,
@@ -111,7 +126,7 @@ CREATE TABLE intake (
     repeat_location character(1),
     app_complete character varying(3),
     fee_schedule character varying(10),
-    receipt_num integer,
+    receipt_num integer UNIQUE,
     cash_amount text,
     check_amount text,
     card_amount text,
@@ -148,7 +163,7 @@ ALTER TABLE ONLY txn_history
 -- Name: archive; Type: TABLE; Schema: public; Owner: CC
 --
 CREATE TABLE archive (
-    "row" integer NOT NULL,
+    row_id integer NOT NULL,
     tstamp timestamp without time zone DEFAULT now(),
     who text DEFAULT CURRENT_USER,
     old_val json
@@ -156,7 +171,7 @@ CREATE TABLE archive (
 ALTER TABLE archive OWNER TO cc;
 COMMENT ON TABLE archive IS 'Table tracks the rows removed from the intake database table';
 ALTER TABLE ONLY archive
-    ADD CONSTRAINT archive_pkey PRIMARY KEY ("row");
+    ADD CONSTRAINT archive_pkey PRIMARY KEY (row_id);
 
 --
 -- Name: violations Type: table Schema: public Owner: cc
@@ -166,7 +181,7 @@ CREATE TABLE IF NOT EXISTS violations
     "row" integer NOT NULL,
     dba text,
     address text,
-    mrl_num text,
+    mrl_num text UNIQUE,
     license_type text,
     violation_sent_date date,
     original_violation_amount text,
@@ -175,7 +190,7 @@ CREATE TABLE IF NOT EXISTS violations
     certified_num text,
     certified_receipt_returned text,
     date_paid_waived date,
-    receipt_no text,
+    receipt_no text UNIQUE,
     cash_amount text,
     check_amount text,
     card_amount text,
@@ -202,7 +217,7 @@ CREATE TABLE IF NOT EXISTS reports
     concern text,
     location_name text,
     address text,
-    mrl_num text,
+    mrl_num text UNIQUE,
     action_taken text,
     status text,
     status_date date,
@@ -216,22 +231,6 @@ ALTER TABLE ONLY reports
 -------------------------
 -- Sequences
 -------------------------
-
---
--- Name: intake_row_seq
--- Desc: Sequence used as PK for intake table Owner: cc
---
-CREATE SEQUENCE intake_row_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-ALTER TABLE intake_row_seq OWNER TO cc;
-ALTER SEQUENCE intake_row_seq OWNED BY intake."row";
-ALTER TABLE ONLY intake ALTER COLUMN "row" SET DEFAULT nextval('intake_row_seq'::regclass);
 
 --
 -- Name: txn_history_id_seq
@@ -262,40 +261,9 @@ CREATE SEQUENCE archive_row_seq
     CACHE 1;
 
 ALTER TABLE archive_row_seq OWNER TO cc;
-ALTER SEQUENCE archive_row_seq OWNED BY archive."row";
-ALTER TABLE ONLY archive ALTER COLUMN "row" SET DEFAULT nextval('archive_row_seq'::regclass);
+ALTER SEQUENCE archive_row_seq OWNED BY archive.row_id;
+ALTER TABLE ONLY archive ALTER COLUMN row_id SET DEFAULT nextval('archive_row_seq'::regclass);
 
---
--- Name: violations_row_seq
--- Desc: Sequence used as PK for violations table Owner: cc
---
-CREATE SEQUENCE violations_row_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-ALTER TABLE violations_row_seq OWNER TO cc;
-ALTER SEQUENCE violations_row_seq OWNED BY violations."row";
-ALTER TABLE ONLY violations ALTER COLUMN "row" SET DEFAULT nextval('violations_row_seq'::regclass);
-
---
--- Name: reports_row_seq
--- Desc: Sequence used as PK for reports table Owner: cc
---
-CREATE SEQUENCE reports_row_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-ALTER TABLE reports_row_seq OWNER TO cc;
-ALTER SEQUENCE reports_row_seq OWNED BY reports."row";
-ALTER TABLE ONLY reports ALTER COLUMN "row" SET DEFAULT nextval('reports_row_seq'::regclass);
 
 -------------------------
 -- Triggers
@@ -308,14 +276,6 @@ ALTER TABLE ONLY reports ALTER COLUMN "row" SET DEFAULT nextval('reports_row_seq
 CREATE TRIGGER intake_transactions
 BEFORE INSERT OR UPDATE OR DELETE ON intake
 FOR EACH ROW EXECUTE FUNCTION change_fnc();
-
---
--- Name: intake_check_insertion
--- Desc: Monitor intake table, before any INSERT calls function check_insertion_to_intake_tri_fnc
---
-CREATE TRIGGER intake_check_insertion
-BEFORE INSERT ON intake
-FOR EACH ROW EXECUTE FUNCTION check_insertion_fnc();
 
 --
 -- Name: violations_transactions
@@ -332,6 +292,7 @@ FOR EACH ROW EXECUTE FUNCTION change_fnc();
 CREATE TRIGGER reports_transactions
 BEFORE INSERT OR UPDATE OR DELETE ON reports
 FOR EACH ROW EXECUTE FUNCTION change_fnc();
+
 -------------------------
 -- Groups
 -------------------------
