@@ -16,6 +16,14 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 # Utilizes CORS with the list of origin strings and regex expressions to validate resource requests.
 CORS(app, origins=origin_list)
 
+
+def check_table(table_name, admin):
+    if (table_name == 'archive' or table_name == 'txn_history') and admin == False:
+        msg = { "message": "Admin privelege needed for this request"}
+        return msg
+    else:
+        return None
+
 def allowed_file(filename):
     """
     Checks an input file for approved extensions.
@@ -27,6 +35,10 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def table_listing_post(request, admin=False):
+    valid_table = check_table(request.args.get('table'), admin)
+    if valid_table != None:
+        return make_response(jsonify(valid_table), 404)
+        
     query, response, status = driver.filter_table(request.json)
     app.logger.info("Received query: " + str(query))
     return make_response(jsonify(response), status)
@@ -35,6 +47,9 @@ def table_listing_get(request, admin=False):
     table_name = request.args.get('table')
     if table_name is None:
         return make_response(jsonify('Table name not supplied.'), 400)
+    valid_table = check_table(table_name, admin)
+    if valid_table != None:
+        return make_response(jsonify(valid_table), 404)
     try:
         # TODO: once authentication is in place, restrict the tables that can be listed here
         columns = request.args.get('column')
