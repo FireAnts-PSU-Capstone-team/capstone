@@ -43,16 +43,16 @@ def table_listing_post(request, admin=False):
     app.logger.info("Received query: " + str(query))
     return make_response(jsonify(response), status)
 
-def table_listing_get(request, admin=False):
-    table_name = request.args.get('table')
+
+def table_listing_get(req, admin=False):
+    table_name = req.args.get('table')
     if table_name is None:
         return make_response(jsonify('Table name not supplied.'), 400)
     valid_table = check_table(table_name, admin)
     if valid_table != None:
         return make_response(jsonify(valid_table), 404)
     try:
-        # TODO: once authentication is in place, restrict the tables that can be listed here
-        columns = request.args.get('column')
+        columns = req.args.get('column')
         if columns is not None:
             columns = str.split(columns.strip(), ' ')
         table_info_obj = driver.get_table(table_name, columns)
@@ -61,8 +61,8 @@ def table_listing_get(request, admin=False):
         return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
 
 
-#TODO:Update so it requires authentication?
-@app.route("/adminlist", methods=["GET","POST"])
+# TODO: Update so it requires authentication
+@app.route("/adminlist", methods=["GET", "POST"])
 def fetch_admin_data():
     """
     Displays the contents of the table listed in the request. 
@@ -75,6 +75,7 @@ def fetch_admin_data():
         return table_listing_post(request, True)
     if request.method == 'GET':
         return table_listing_get(request, True)
+
 
 @app.route("/list", methods=["GET", "POST"])
 def fetch_data():
