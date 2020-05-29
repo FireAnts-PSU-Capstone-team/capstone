@@ -57,16 +57,6 @@ def admin_tools():
     return make_gui_response(json_header, 200, 'OK')
 
 
-# Registers the first 'admin' account. Ignores all requests after 'admin' account has already been created.
-@main_bp.route("/makeadmin")
-def register_admin():
-    user = User.query.filter_by(name='admin', is_admin=True).first()
-    if user:
-        msg = 'An admin account has already been registered.'
-        return make_gui_response(json_header, 400, msg)
-    return make_gui_response(json_header, 200, 'OK')
-
-
 @main_bp.route("/usrhello")
 @login_required
 def usr_hello():
