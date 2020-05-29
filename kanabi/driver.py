@@ -13,7 +13,7 @@ from openpyxl import load_workbook
 import kanabi.db.connection as c
 from kanabi.models.IntakeRow import ColNames, intake_headers, IntakeRow
 from kanabi.query_parser import QueryParser, RequestParseException
-from kanabi.validation.intake_validation import validate_dataframe
+from kanabi.validation.intake_validation import validate_intake
 
 test_file = 'resources/sample.xlsx'
 primary_table = 'intake'
@@ -407,7 +407,7 @@ def validate_row(json_item):
         json_item.update({'row': 999})
         json_item.move_to_end('row', last=False)
     df = pd.json_normalize(json_item)
-    return validate_dataframe(df)
+    return validate_intake(df)
 
 
 def insert_row(table, row, checked=False):
@@ -433,18 +433,15 @@ def insert_row(table, row, checked=False):
     if row[0] is not None:
         if row_number_exists(pgSqlCur, int(row[0])):
             failed_row = {
-                'submission_date': row[1],
-                'entity': row[2],
-                'dba': row[3],
                 'message': f'Row number {row[0]} already taken.'
             }
             return 0, failed_row
         else:
             cmd += str(row[0])
     else:
-        #Loop through and update row seq to first available spot
+        # Loop through and update row seq to first available spot
         while row_number_exists(pgSqlCur,row_temp):
-            row_temp+=1
+            row_temp += 1
         cmd += f"{row_temp}"
 
     for i in range(1, len(row)):
@@ -481,7 +478,7 @@ def process_file(f):
         # read file content
         df = pd.read_excel(f)
         # Validate data frame
-        valid, error_msg = validate_dataframe(df)
+        valid, error_msg = validate_intake(df)
 
         # Write the data to the DB
         result_obj = write_info_data(df)
