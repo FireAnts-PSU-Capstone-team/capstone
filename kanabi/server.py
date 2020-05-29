@@ -43,6 +43,17 @@ def write_permission(function):
     return wrapper
 
 
+# Custom decorator that catches any server errors and return an appropriate response that includes CORS headers
+def error_catching(function):
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        try:
+            function(*args, **kwargs)
+        except Exception as e:
+            return make_gui_response(json_header, 500, 'Something went wrong with our server. Exception: ' + str(e))
+    return wrapper
+
+
 @main_bp.route("/", methods=['GET'])
 def index():
     return make_gui_response(json_header, 200, 'Hello World')
@@ -53,7 +64,6 @@ def index():
 @main_bp.route("/admin")
 @admin_permission.require(http_exception=403)
 def admin_tools():
-    # ???
     return make_gui_response(json_header, 200, 'OK')
 
 
@@ -155,6 +165,7 @@ def fetch_data():
 
 
 @main_bp.route("/load", methods=["PUT", "POST"])
+@error_catching
 def load_data():
     """
     Load data into the database. PUT inserts a single row; POST uploads a file.
