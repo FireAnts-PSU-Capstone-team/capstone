@@ -77,9 +77,11 @@ class IntakeRow:
 
     def __init__(self, input_json):
         """
-        Constructor from a JSON object. Any unsupplied data defaults to None
+        Constructor from a JSON object. Any unsupplied data results in a KeyError
         Args:
             input_json ({}): JSON object representing a row of the intake table
+        Raises:
+            KeyError: if required field is missing
         """
 
         def check_to_exist(json, field):
@@ -131,42 +133,14 @@ class IntakeRow:
 
 
 def from_array(input_array: []) -> IntakeRow:
+    """
+    Constructs an instance of this class from an array of values
+    Args:
+        input_array ([]): array of values corresponding to the key-value pairs for a row
+    Returns (IntakeRow): an instance of IntakeRow
+
+    """
     ret = {}
     for i, h in enumerate(intake_headers):
         ret[h] = input_array[i]
     return IntakeRow(ret)
-
-
-if __name__ == '__main__':
-    row = {
-        "Submission date": "01/01/18",
-        "Entity": "The Greenhouse",
-        "DBA": "Boss Nass's",
-        "Facility Address": "197 N Electric Ave",
-        "Facility Suite #": "",
-        "Facility Zip": "97204",
-        "Mailing Address": "100 NE Tabor Dr",
-        "MRL": "MRL48",
-        "Neighborhood Association": "Arbor Lodge",
-        "Compliance Region": "SE",
-        "Primary Contact Name (first)": "Ashley",
-        "Primary Contact Name (last)": "Clark",
-        "Email": "ac@example.com",
-        "Phone": "971-245-0996",
-        "Endorse Type": "EX,CT",
-        "License Type": "MR",
-        "Repeat location?": "N",
-        "App complete?": "Y",
-        "Fee Schedule": "2020",
-        "Receipt No.": 67,
-        "Cash Amount": "$1500",
-        "Check Amount": "0",
-        "Card Amount": "",
-        "Check No. / Approval Code": "512",
-        "MRL#": "MRL48",
-        "Notes": ""
-    }
-    arr = IntakeRow(row).value_array()
-    r = from_array(arr)
-    for i in r.value_array():
-        print(i)
