@@ -6,6 +6,7 @@ from pandas.io.json import json_normalize
 from werkzeug.security import generate_password_hash
 from functools import wraps
 from pandas import json_normalize
+from sqlite3 import DatabaseError
 
 from .models.IntakeRow import IntakeRow
 import kanabi.driver as driver
@@ -49,14 +50,65 @@ def index():
 
 
 # Admin tools endpoint. Uses decorators with flask principal to enforce role-related access
-# TODO: these are missing
-@main_bp.route("/admin")
+@main_bp.route("/admin/<mode>", methods=['POST'])
 @admin_permission.require(http_exception=403)
-def admin_tools():
-    # ???
+def admin_tools(mode):
+    """
+
+    Args:
+        mode:
+
+    Returns:
+
+    """
+    # user_name = request.form.get('name')
+    # if user_name is None:
+    #     make_gui_response(json_header, 400, 'Target user name not provided')
+    email = request.form.get('email')
+    user = User.query.filter_by(email=email).first()
+    if mode == 'makeadmin':
+        if email is None:
+            return make_gui_response(json_header, 400, 'Target user email not provided')
+        if user is None:
+            return make_gui_response(json_header, 400, 'Target user could not be found')
+        user.is_admin = True
+        db.session.commit()
+    elif mode == 'removeadmin':
+        if email is None:
+            return make_gui_response(json_header, 400, 'Target user email not provided')
+        if user is None:
+            return make_gui_response(json_header, 400, 'Target user could not be found')
+        user.is_admin = False
+        db.session.commit()
+    elif mode == 'listusers':
+        users = User.query.all()
+        ret = {}
+        for i, u in enumerate(users):
+            ret[i] = {
+                'email': u.email,
+                'is_admin': u.is_admin
+            }
+        return make_response(ret, 200)
+    elif mode == 'listadmins':
+        pass
+    else:
+        return make_gui_response(json_header, 400, 'Request did not include a recognized operation')
     return make_gui_response(json_header, 200, 'OK')
 
 
+'''
+curl -k -X POST https://localhost:443/makeadmin -d "email=a@gmail.com&password=xef"
+curl -X POST https://localhost/login -k -d "email=a@gmail.com&password=xef" -c a.cookie
+curl -X GET https://localhost/logout -k -b a.cookie -c a.cookie
+curl -k -X POST https://localhost/signup -d "email=joseph@gmail.com&name=joseph&password=pwd"
+curl -X POST https://localhost/login -k -d "email=joseph@gmail.com&password=pwd" -c joseph.cookie
+curl -X GET https://localhost/logout -k -b joseph.cookie -c joseph.cookie
+curl -X POST https://localhost/login -k -d "email=a@gmail.com&password=xef" -c a.cookie
+curl -X POST https://localhost/admin/makeadmin -k -d "email=joseph@gmail.com" -c a.cookie -b a.cookie
+'''
+
+
+# Simple validation that the user is logged in
 @main_bp.route("/usrhello")
 @login_required
 def usr_hello():
@@ -65,19 +117,23 @@ def usr_hello():
 
 # Creates the 'admin' account in the database. Should be executed once and only once, immediately after project
 #   is created. This creates an admin-level user named 'admin' who can be used to conduct user setup
+#   Though we're using a default username, we chose not to use 'admin' for some resistance to fuzzing attacks
 @main_bp.route("/makeadmin", methods=['POST'])
 def register_admin_post():
-    user = User.query.filter_by(name='admin', is_admin=True).first()
+    user = User.query.filter_by(name='capstone_user_1', is_admin=True).first()
     if user:
         msg = 'An admin account has already been created.'
         return make_gui_response(json_header, 400, msg)
     else:
         password = request.form.get('password')
         email = request.form.get('email')
-        new_user = User(email=email, password=generate_password_hash(password, method='sha256'), name='admin',
+        new_user = User(email=email, password=generate_password_hash(password, method='sha256'), name='capstone_user_1',
                         is_admin=True, is_editor=True)
-        db.session.add(new_user)
-        db.session.commit()
+        try:
+            db.session.add(new_user)
+            db.session.commit()
+        except DatabaseError as e:
+            return make_gui_response(json_header, 400, str(e))
         return make_gui_response(json_header, 200, 'OK')
 
 
