@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, make_response, request, session
 from flask_login import login_required
-from flask_principal import Permission, RoleNeed
+from flask_principal import Permission, RoleNeed, PermissionDenied
 from pandas.io.json import json_normalize
 
 from werkzeug.security import generate_password_hash
@@ -49,21 +49,8 @@ def index():
     return make_gui_response(json_header, 200, 'Hello World')
 
 
-# Admin tools endpoint. Uses decorators with flask principal to enforce role-related access
-@main_bp.route("/admin/<mode>", methods=['POST'])
-@admin_permission.require(http_exception=403)
-def admin_tools(mode):
-    """
-
-    Args:
-        mode:
-
-    Returns:
-
-    """
-    # user_name = request.form.get('name')
-    # if user_name is None:
-    #     make_gui_response(json_header, 400, 'Target user name not provided')
+@admin_permission.require()
+def user_admin(request, mode):
     email = request.form.get('email')
     user = User.query.filter_by(email=email).first()
     if mode == 'makeadmin':
@@ -94,6 +81,23 @@ def admin_tools(mode):
     else:
         return make_gui_response(json_header, 400, 'Request did not include a recognized operation')
     return make_gui_response(json_header, 200, 'OK')
+
+
+# Admin tools endpoint. Uses decorators with flask principal to enforce role-related access
+@main_bp.route("/admin/<mode>", methods=['POST'])
+def admin_tools(mode):
+    """
+
+    Args:
+        mode:
+
+    Returns:
+
+    """
+    try:
+        return user_admin(request, mode)
+    except PermissionDenied:
+        return make_gui_response(json_header, 403, 'User must be logged in as admin to access this resource')
 
 
 '''
