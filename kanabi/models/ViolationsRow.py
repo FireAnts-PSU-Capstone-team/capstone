@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class RowNames(Enum):
+class ColNames(Enum):
     ROW = 0
     DBA = 1
     ADDRESS = 2
@@ -20,6 +20,7 @@ class RowNames(Enum):
     CARD_AMT = 15
     CHECK_NUM = 16
     NOTES = 17
+    VALIDATION_ERRORS = 18
 
 
 class ViolationsRow:
@@ -27,28 +28,27 @@ class ViolationsRow:
     Represents a row of the violations table.
     """
 
-    def __init__(self):
-        """
-        Default constructor.
-        """
-        self.row_id = None
-        self.dba = ''
-        self.address = ''
-        self.mrl = ''
-        self.license_type = ''
-        self.violation_sent_date = ''
-        self.original_violation_amount = ''
-        self.admin_rvw_decision_date = ''
-        self.admin_rvw_violation_amount = ''
-        self.certified_num = ''
-        self.certified_reciept_returned = ''
-        self.date_paid_waived = ''
-        self.receipt_no = ''
-        self.cash_amt = ''
-        self.check_amt = ''
-        self.card_amt = ''
-        self.check_num = ''
-        self.notes = ''
+    __slots__ = [
+        'row',
+        'dba',
+        'address',
+        'mrl',
+        'license_type',
+        'violation_sent_date',
+        'original_violation_amount',
+        'admin_rvw_decision_date',
+        'admin_rvw_violation_amount',
+        'certified_num',
+        'certified_reciept_returned',
+        'date_paid_waived',
+        'receipt_no',
+        'cash_amt',
+        'check_amt',
+        'card_amt',
+        'check_num',
+        'notes',
+        'validation_errors'
+    ]
 
     def __init__(self, input_json):
         """
@@ -56,7 +56,7 @@ class ViolationsRow:
         Args:
             input_json ({}): JSON object representing a row of the intake table
         """
-        self.row_id = input_json.get('row_id')
+        self.row = input_json.get('row')
         self.dba = input_json.get('DBA')
         self.address = input_json.get('Address')
         self.mrl = input_json.get('MRL#')
@@ -80,7 +80,7 @@ class ViolationsRow:
         Order data into an array that can be consumed by the row insertion method.
         Returns ([]): array of data members
         """
-        return [self.row_id, self.dba, self.address, self.mrl, self.license_type, self.violation_sent_date,
+        return [self.row, self.dba, self.address, self.mrl, self.license_type, self.violation_sent_date,
                 self.original_violation_amount, self.admin_rvw_decision_date, self.admin_rvw_violation_amount,
                 self.certified_num, self.certified_reciept_returned,
                 self.date_paid_waived, self.receipt_no, self.cash_amt,

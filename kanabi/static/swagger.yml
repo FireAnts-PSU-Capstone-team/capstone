@@ -152,6 +152,111 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/responses/Standard500ErrorResponse'
+
+  /delete:
+    get:
+      summary: Delete a row
+      description: Delete specified row(s) from specified table
+      parameters:
+        - name: table
+          in: query
+          required: true
+          description: Name of the table to delete from
+          schema:
+            type: string
+        - name: row
+          in: query
+          required: true
+          description: Integer of row ID to be deleted. Multipe IDs are separated by '+', e.g. "row=1+2"
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Row(s) successfully deleted
+          content:
+            application/json: {}
+        400:
+          description: No table/row specified in query
+          content:
+            application/json: {}
+        404:
+          description: Table doesn't exist or row input invalid
+          content:
+            application/json: {}
+        500:
+          description: An unexpected error occured.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/Standard500ErrorResponse'
+
+  /export:
+    get:
+      summary: export data as csv
+      description: save a db tables data into a csv format
+      parameters:
+        - name: table
+          in: query
+          required: true
+          description: the name of the db table to be exported
+          schema:
+            type: string
+      responses:
+        200:
+          description: table contents in csv format
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/table'
+        400:
+          description: No table/row specified in query
+          content:
+            application/json: {}
+        404:
+          description: Table doesn't exist
+          content:
+            application/json: {}
+        500:
+          description: An unexpected error occured.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/Standard500ErrorResponse'
+
+  /update:
+    post:
+      summary: update record in table
+      description: Update the contents of the intake table.
+      parameters:
+        - name: conetent_type
+          in: header
+          required: true
+          description: string containing encoding structure
+          schema:
+            type: string
+          style: simple
+        - name: row
+          in: path
+          required: true
+          description: value of row to update
+          schema:
+            type: integer
+      responses:
+        200:
+          description: successful update of record
+          content:
+            application/json: {}
+        400:
+          description: No column/row specified, invalid data specified
+          content:
+            application/json: {}
+        500:
+          description: An unexpected error occured.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/Standard500ErrorResponse'
+
 components:
   schemas:
     query_request:
@@ -325,6 +430,85 @@ components:
         - modified
         - lastModifiedBy
         - title
+    violations:
+      type: object
+      description: row from violations table in database
+      properties:
+        row:
+          type: integer
+        dba:
+          type: string
+        address:
+          type: string
+        mrl_num:
+          type: string
+        license_type:
+          type: string
+        violation_sent_date:
+          type:  string
+          format: date-time
+        original_violation_amount:
+          type: string
+        admin_rvw_decision_date:
+          type: string
+          format: date-time
+        admin_rvw_violation_amount:
+          type: string
+        certified_num:
+          type: string
+        date_paid_waived:
+          type: string
+          format: date-time
+        receipt_no:
+          type: string
+        cash_amount:
+          type: string
+        check_amount:
+          type: string
+        card_amount:
+          type: string
+        check_num_appoval_code:
+          type: string
+        notes:
+          type: string
+        validation_errors:
+          type: string
+    reports:
+      type: object
+      description: row from reports table in database
+      properties:
+        row:
+          type: integer
+        date:
+          type: string
+          format: date-time
+        method:
+          type: string
+        intake_person:
+          type: string
+        rp_name:
+          type: string
+        rp_contact_info:
+          type: string
+        concern:
+          type: string
+        location_name:
+          type: string
+        address:
+          type: string
+        mrl_num:
+          type: string
+        action_taken:
+          type: string
+        status:
+          type: string
+        status_date:
+          type: string
+          format: date-time
+        additional_notes:
+          type: string
+        validation_errors:
+          type: string
   responses:
     Standard500ErrorResponse:
       description: An unexpected error occured.

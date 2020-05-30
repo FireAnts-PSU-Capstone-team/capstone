@@ -1,0 +1,1353 @@
+{
+	"info": {
+		"_postman_id": "3f45fc7e-aae9-4b67-820f-f70ddfbab422",
+		"name": "API-Tests",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Too Many Records",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "0866f138-5d98-45ee-9cd1-23c4750a6a0d",
+						"exec": [
+							"pm.test(\"Too Many Records Status Code\", function () {",
+							"    pm.response.to.have.status(400);",
+							"}",
+							")",
+							"pm.test(\"Too Many Records Response\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"Failed to decode JSON object\");",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    {\n\t\t\"Submission date\": \"01/01/20\",\n    \t\"Entity\": \"The Greenhouse1\",\n    \t\"DBA\": \"Boss Nass's1\",\n    \t\"Facility Address\": \"197 N Electric Ave\",\n    \t\"Facility Suite #\": \"\",\n    \t\"Facility Zip\": \"97202\",\n    \t\"Mailing Address\": \"101 NE Tabor Dr\",\n    \t\"MRL\": \"MRL48\",\n    \t\"Neighborhood Association\": \"Arbor Lodge\",\n    \t\"Compliance Region\": \"SE\",\n    \t\"Primary Contact First Name\": \"Ashley\",\n    \t\"Primary Contact Last Name\": \"Clark\",\n    \t\"Email\": \"ac@example.com\",\n    \t\"Phone\": \"971-245-0996\",\n    \t\"Endorse Type\": \"EX,CT\",\n    \t\"License Type\": \"MR\",\n    \t\"Repeat location?\": \"N\",\n    \t\"App complete?\": \"Y\",\n    \t\"Fee Schedule\": \"2020\",\n    \t\"Receipt No.\": 67,\n    \t\"Cash Amount\": \"$1500\",\n    \t\"Check Amount\": \"0\",\n    \t\"Card Amount\": \"\",\n    \t\"Check No. / Approval Code\": \"512\",\n    \t\"MRL#\": \"MRL48\",\n    \t\"Notes\": \"\"\n    },\n    {\n    \t\"Submission date\": \"01/01/20\",\n    \t\"Entity\": \"The Greenhouse2\",\n    \t\"DBA\": \"Boss Nass's2\",\n    \t\"Facility Address\": \"198 N Electric Ave\",\n    \t\"Facility Suite #\": \"\",\n    \t\"Facility Zip\": \"97201\",\n    \t\"Mailing Address\": \"102 NE Tabor Dr\",\n    \t\"MRL\": \"MRL49\",\n    \t\"Neighborhood Association\": \"Arbor Lodge\",\n    \t\"Compliance Region\": \"SE\",\n    \t\"Primary Contact First Name\": \"Ashley1\",\n    \t\"Primary Contact Last Name\": \"Clark1\",\n    \t\"Email\": \"ac@example22.com\",\n    \t\"Phone\": \"971-245-0995\",\n    \t\"Endorse Type\": \"EX,CT\",\n    \t\"License Type\": \"MR\",\n    \t\"Repeat location?\": \"N\",\n    \t\"App complete?\": \"Y\",\n    \t\"Fee Schedule\": \"2020\",\n    \t\"Receipt No.\": 67,\n\t    \"Cash Amount\": \"$1500\",\n\t    \"Check Amount\": \"0\",\n\t    \"Card Amount\": \"\",\n\t    \"Check No. / Approval Code\": \"512\",\n    \t\"MRL#\": \"MRL48\",\n\t    \"Notes\": \"\"\n    }\n}\n"
+				},
+				"url": {
+					"raw": "https://localhost/load?table=intake",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"load"
+					],
+					"query": [
+						{
+							"key": "table",
+							"value": "intake"
+						}
+					]
+				},
+				"description": "Update"
+			},
+			"response": []
+		},
+		{
+			"name": "Incomplete Intake Request",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "ad6c8cbf-b50b-466b-b39a-447aed066ba1",
+						"exec": [
+							"pm.test(\"Tncomplete Intake Status Code\", function () {",
+							"    pm.response.to.have.status(400);",
+							"}",
+							")",
+							"pm.test(\"Incomplete Intake Response\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"Failed to decode JSON object\");",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"Submission date\": \"01/01/18\",\n  \"Entity\": \"The invalid house\",\n  \"DBA\": \"invalid Boss Nass's\",\n  \"Facility Address\": \"197 N invalid Ave\",\n  \"Facility Suite #\": \"\",\n  \"Facility Zip\": \"97207\",\n  \"Mailing Address\": \"100 NE invalid Dr\",\n  \"MRL\": \"MRL48\",\n  \"Neighborhood Association\": \"invalid Lodge\",\n  \"Compliance Region\": \"SE\",\n  \"Primary Contact First Name\": \"Ashley-invalid\",\n  \"Primary Contact Last Name\": \"Clarks\",\n  \"Email\": \"ac@invalid.com\",\n  \"Phone\": \"971-111-0996\",\n  \"Endorse Type\": \"EX,CT\",\n  \"License Type\": \"MR\",\n  \"Repeat location?\": \"N\",\n  \"App complete?\": \"Y\",\n\"\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost/load?table=intake",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"load"
+					],
+					"query": [
+						{
+							"key": "table",
+							"value": "intake"
+						}
+					]
+				},
+				"description": "Invalid Intake, missing data"
+			},
+			"response": []
+		},
+		{
+			"name": "Empty Intake Request",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "488b6479-5ec6-4044-8f99-43ed427dd316",
+						"exec": [
+							"pm.test(\"Incomplete Intake Request\", function () {",
+							"    pm.response.to.have.status(500);",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost/load?table=intake",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"load"
+					],
+					"query": [
+						{
+							"key": "table",
+							"value": "intake"
+						}
+					]
+				},
+				"description": "Invalid Intake, missing data"
+			},
+			"response": []
+		},
+		{
+			"name": "Single Intake Request",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "c7fe0bf8-3951-4d8b-af0e-d00be5c9faa6",
+						"exec": [
+							"pm.test(\"Single Intake Request\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"PUT completed\");",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"row\": 222,\n  \"Submission date\": \"01/01/20\",\n  \"Entity\": \"The Greenhouse Gases\",\n  \"DBA\": \"Boss Nass's\",\n  \"Facility Address\": \"197 N Electric Ave\",\n  \"Facility Suite #\": \"\",\n  \"Facility Zip\": \"97204\",\n  \"Mailing Address\": \"100 NE Tabor Dr\",\n  \"MRL\": \"MRL51\",\n  \"Neighborhood Association\": \"Arbor Lodge\",\n  \"Compliance Region\": \"SE\",\n  \"Primary Contact Name (first)\": \"Ashley\",\n  \"Primary Contact Name (last)\": \"Clark\",\n  \"Email\": \"ac@example.com\",\n  \"Phone\": \"971-245-0996\",\n  \"Endorse Type\": \"EX,CT\",\n  \"License Type\": \"MR\",\n  \"Repeat location?\": \"N\",\n  \"App complete?\": \"Y\",\n  \"Fee Schedule\": \"2020\",\n  \"Receipt No.\": 22,\n  \"Cash Amount\": \"$1500\",\n  \"Check Amount\": \"0\",\n  \"Card Amount\": \"\",\n  \"Check No. / Approval Code\": \"512\",\n  \"MRL#\": \"MRL48\",\n  \"Notes\": \"\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost/load?table=intake",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"load"
+					],
+					"query": [
+						{
+							"key": "table",
+							"value": "intake"
+						}
+					]
+				},
+				"description": "Update"
+			},
+			"response": []
+		},
+		{
+			"name": "Duplicate Intake",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "a099a384-2391-49e1-8a5f-56049a77ce64",
+						"exec": [
+							"pm.test(\"Duplicate Intake Request\", function () {",
+							"    pm.expect(pm.response.json()).to.have.property('failed_row');",
+							"}",
+							");",
+							"pm.test(\"Duplicate Intake Status Code\", function () {",
+							"    pm.response.to.have.status(400);",
+							"}",
+							");"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"row\": 222,\n  \"Submission date\": \"01/01/20\",\n  \"Entity\": \"The Greenhouse Gases\",\n  \"DBA\": \"Boss Nass's\",\n  \"Facility Address\": \"197 N Electric Ave\",\n  \"Facility Suite #\": \"\",\n  \"Facility Zip\": \"97204\",\n  \"Mailing Address\": \"100 NE Tabor Dr\",\n  \"MRL\": \"MRL51\",\n  \"Neighborhood Association\": \"Arbor Lodge\",\n  \"Compliance Region\": \"SE\",\n  \"Primary Contact Name (first)\": \"Ashley\",\n  \"Primary Contact Name (last)\": \"Clark\",\n  \"Email\": \"ac@example.com\",\n  \"Phone\": \"971-245-0996\",\n  \"Endorse Type\": \"EX,CT\",\n  \"License Type\": \"MR\",\n  \"Repeat location?\": \"N\",\n  \"App complete?\": \"Y\",\n  \"Fee Schedule\": \"2020\",\n  \"Receipt No.\": 22,\n  \"Cash Amount\": \"$1500\",\n  \"Check Amount\": \"0\",\n  \"Card Amount\": \"\",\n  \"Check No. / Approval Code\": \"512\",\n  \"MRL#\": \"MRL48\",\n  \"Notes\": \"\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost/load?table=intake",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"load"
+					],
+					"query": [
+						{
+							"key": "table",
+							"value": "intake"
+						}
+					]
+				},
+				"description": "Update"
+			},
+			"response": []
+		},
+		{
+			"name": "Multi Intake",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "c1aabc1d-e27b-4c6a-8f4a-6ef7537f6dc9",
+						"exec": [
+							"var value = pm.environment.get(\"inc\");",
+							"",
+							"pm.environment.set(\"inc\", value+1);",
+							"",
+							"pm.test(\"Multi Intake Request\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"PUT completed\");",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "e84d4beb-81d2-46fc-be64-452345eeb71d",
+						"exec": [
+							"var inc = pm.environment.get(\"inc\");",
+							"",
+							"if( !inc) {",
+							"    pm.environment.set(\"inc\", 1);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"row\": {{inc}},\n  \"Submission date\": \"01/01/20\",\n  \"Entity\": \"The Greenhouse Gases{{inc}}\",\n  \"DBA\": \"Boss{{inc}}\",\n  \"Facility Address\": \"{{inc}} N Electric Ave\",\n  \"Facility Suite #\": \"\",\n  \"Facility Zip\": \"97{{inc}}\",\n  \"Mailing Address\": \"{{inc}} NE Tabor Dr\",\n  \"MRL\": \"MRL{{inc}}\",\n  \"Neighborhood Association\": \"Arbor Lodge\",\n  \"Compliance Region\": \"SE\",\n  \"Primary Contact Name (first)\": \"Ashley{{inc}}\",\n  \"Primary Contact Name (last)\": \"Clark{{inc}}\",\n  \"Email\": \"ac@example{{inc}}.com\",\n  \"Phone\": \"971-245-345{{inc}}\",\n  \"Endorse Type\": \"EX,CT\",\n  \"License Type\": \"MR\",\n  \"Repeat location?\": \"N\",\n  \"App complete?\": \"Y\",\n  \"Fee Schedule\": \"2020\",\n  \"Receipt No.\": \"{{inc}}\",\n  \"Cash Amount\": \"$1500\",\n  \"Check Amount\": \"0\",\n  \"Card Amount\": \"\",\n  \"Check No. / Approval Code\": \"{{inc}}\",\n  \"MRL#\": \"MRL{{inc}}\",\n  \"Notes\": \"\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost/load?table=intake",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"load"
+					],
+					"query": [
+						{
+							"key": "table",
+							"value": "intake"
+						}
+					]
+				},
+				"description": "Update"
+			},
+			"response": []
+		},
+		{
+			"name": "Invalid URL",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "4e0415ae-83ba-49c4-a665-1d4a02fdf29f",
+						"exec": [
+							"pm.test(\"Invalid URL Status Code\", function () {",
+							"    pm.response.to.have.status(404);",
+							"}",
+							")",
+							"pm.test(\"Invalid URL Response\", function () {",
+							"     pm.expect(pm.response.text()).to.include(\"The requested endpoint does not exist.\");",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"url": {
+					"raw": "https://localhost/foo",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"foo"
+					]
+				},
+				"description": "Tests for bad URL"
+			},
+			"response": []
+		},
+		{
+			"name": "File Intake",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2781f222-f7a9-4d71-8bd7-ec05cd748ffe",
+						"exec": [
+							"// This test requires POSTing the sample.xlsx file found in the source code repository's resources directory.",
+							"// The link to this file does not ship across export/import instances, and so will need to be",
+							"// set by the test client. In the Body tab, set the file argument to the sample.xlsx file in the repository,",
+							"// then uncomment the following tests.",
+							"",
+							"// pm.test(\"File Intake Status Code\", function () {",
+							"//     pm.response.to.have.status(200);",
+							"// }",
+							"// )",
+							"",
+							"// pm.test(\"File Intake Response\", function () {",
+							"//     pm.expect(pm.response.text()).to.include(\"File processed successfully\");",
+							"// }",
+							"// )",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "file",
+							"type": "file",
+							"src": "/home/connor/capstone/resources/sample.xlsx"
+						}
+					],
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost/load",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"load"
+					]
+				},
+				"description": "Update"
+			},
+			"response": []
+		},
+		{
+			"name": "Invalid URL",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "0af24c16-3a35-4b83-be78-0b7197d2fdcf",
+						"exec": [
+							"pm.test(\"Invalid URL Status Code\", function () {",
+							"    pm.response.to.have.status(404);",
+							"}",
+							")",
+							"pm.test(\"Invalid URL Response\", function () {",
+							"     pm.expect(pm.response.text()).to.include(\"The requested endpoint does not exist.\");",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "https://localhost/foo",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"foo"
+					]
+				},
+				"description": "Tests for bad URL"
+			},
+			"response": []
+		},
+		{
+			"name": "No File Provided",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "4093b07d-3be2-4a9b-affc-aaec19f0036f",
+						"exec": [
+							"pm.test(\"No File Status Code\", function () {",
+							"    pm.response.to.have.status(400);",
+							"}",
+							")",
+							"pm.test(\"No File Output\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"No file listed\");",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "https://localhost/load?file=",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"load"
+					],
+					"query": [
+						{
+							"key": "file",
+							"value": ""
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Test Query and 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "6ca2911e-802e-4092-99c7-f94db2cd0996",
+						"exec": [
+							"pm.test(\"Test Query and 1\", function () {",
+							"    pm.response.to.have.status(200);",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"table\": \"intake\",\n  \"columns\": [\n    \"dba\",\n    \"mrl\"\n  ],\n  \"where\": {\n    \"and\": [\n      {\n        \"column\": \"mrl\",\n        \"op\": \"=\",\n        \"operand\": \"MRL48\"\n      },\n      {\n        \"column\": \"row\",\n        \"op\": \"<\",\n        \"operand\": 5\n      }\n    ]\n  }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost/list",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"list"
+					]
+				},
+				"description": "Invalid Intake, missing data"
+			},
+			"response": []
+		},
+		{
+			"name": "Test Query Equals",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "b524f741-39e4-4a21-8f2c-b8197f55b600",
+						"exec": [
+							"pm.test(\"Test Query Equals\", function () {",
+							"    pm.response.to.have.status(200);",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"table\": \"intake\",\n  \"columns\": [\n    \"dba\",\n    \"mrl\"\n  ],\n  \"where\": {\n    \"column\": \"mrl\",\n    \"op\": \"=\",\n    \"operand\": \"MRL20\"\n  }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost/list",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"list"
+					]
+				},
+				"description": "Invalid Intake, missing data"
+			},
+			"response": []
+		},
+		{
+			"name": "Test Query Fail Columns Not Array",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "a8b3df46-90fe-4a4b-96aa-f095a04ada98",
+						"exec": [
+							"pm.test(\"Test Query Fail Columns Not Array\", function () {",
+							"    pm.response.to.have.status(400);",
+							"}",
+							")",
+							"",
+							"pm.test(\"Test Query Fail Columns Not Array Response\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"Error: Columns must be present as list in request body\");",
+							"})"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"table\": \"intake\",\n  \"columns\": \"dba\"\n} ",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost/list",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"list"
+					]
+				},
+				"description": "Invalid Intake, missing data"
+			},
+			"response": []
+		},
+		{
+			"name": "Test Query Fail Invalid and 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "464e3f89-2902-4ba6-8052-e9c928787a65",
+						"exec": [
+							"pm.test(\"Test Query Fail Invalid And 1\", function () {",
+							"    pm.response.to.have.status(400);",
+							"}",
+							")",
+							"",
+							"pm.test(\"Test Query Fail Invalid And 1 Response\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"Error: Found an AND or OR construct with invalid structure.\");",
+							"})"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"table\": \"intake\",\n  \"columns\": [\n    \"dba\",\n    \"mrl\"\n  ],\n  \"where\": {\n    \"and\": [\n      {\n        \"column\": \"mrl\",\n        \"op\": \"=\",\n        \"operand\": \"MRL20\"\n      }\n    ]\n  }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost/list",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"list"
+					]
+				},
+				"description": "Invalid Intake, missing data"
+			},
+			"response": []
+		},
+		{
+			"name": "Test Query Fail Invalid Table",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "7ac49697-8b20-48b6-92d9-e66c57ce688a",
+						"exec": [
+							"pm.test(\"Test Query Fail Invalid Table\", function () {",
+							"    pm.response.to.have.status(400);",
+							"}",
+							")",
+							"",
+							"pm.test(\"Test Query Fail Invalid Table Response\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"Error: Requested table not found\");",
+							"})"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"table\": \"x\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost/list",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"list"
+					]
+				},
+				"description": "Invalid Intake, missing data"
+			},
+			"response": []
+		},
+		{
+			"name": "Test Query Fail Invalid Where",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "bfcd80c0-cf75-4ed0-856f-fb83cdc45799",
+						"exec": [
+							"pm.test(\"Test Query Fail Invalid Where\", function () {",
+							"    pm.response.to.have.status(400);",
+							"}",
+							")",
+							"",
+							"pm.test(\"Test Query Fail Invalid Where Response\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"Error: No operation requested in block\");",
+							"})"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"table\": \"intake\",\n  \"columns\": [\n    \"dba\",\n    \"mrl\"\n  ],\n  \"where\": {\n    \"x\": 1\n  }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost/list",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"list"
+					]
+				},
+				"description": "Invalid Intake, missing data"
+			},
+			"response": []
+		},
+		{
+			"name": "Test Query Fail No Table",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "cbef50a3-f83d-4481-a5b5-3391fb43bfc0",
+						"exec": [
+							"pm.test(\"Test Query Fail No Table\", function () {",
+							"    pm.response.to.have.status(400);",
+							"}",
+							")",
+							"",
+							"pm.test(\"Test Query Fail No Table Response\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"Error: No table named in request\");",
+							"})"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"something\": \"x\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost/list",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"list"
+					]
+				},
+				"description": "Invalid Intake, missing data"
+			},
+			"response": []
+		},
+		{
+			"name": "Test Query Invalid Column",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "aa43a75e-17c5-468e-8ba3-68728826c9dc",
+						"exec": [
+							"pm.test(\"Test Query Invalid Column\", function () {",
+							"    pm.response.to.have.status(400);",
+							"}",
+							")",
+							"",
+							"pm.test(\"Test Query Fail Invalid Column Response\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"Error: Column x not in known list\");",
+							"})"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"table\": \"intake\",\n  \"columns\": [\n    \"dba\",\n    \"x\"\n  ]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost/list",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"list"
+					]
+				},
+				"description": "Invalid Intake, missing data"
+			},
+			"response": []
+		},
+		{
+			"name": "Test Query Only Table",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "3fedfc66-6713-49d6-b386-54501683af03",
+						"exec": [
+							"pm.test(\"Test Query Only Table\", function () {",
+							"    pm.response.to.have.status(200);",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"table\": \"intake\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost/list",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"list"
+					]
+				},
+				"description": "Invalid Intake, missing data"
+			},
+			"response": []
+		},
+		{
+			"name": "Test Query or 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "0384d78a-f38a-4358-af27-e2316f675abf",
+						"exec": [
+							"pm.test(\"Test Query or 1\", function () {",
+							"    pm.response.to.have.status(200);",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"table\": \"intake\",\n  \"columns\": [\n    \"entity\",\n    \"mrl\",\n    \"submission_date\"\n  ],\n  \"where\": {\n    \"or\": [\n      {\n        \"column\": \"mrl\",\n        \"op\": \"=\",\n        \"operand\": \"MRL20\"\n      },\n      {\n        \"column\": \"submission_date\",\n        \"op\": \">\",\n        \"operand\": \"1/1/2010\"\n      }\n    ]\n  }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost/list",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"list"
+					]
+				},
+				"description": "Invalid Intake, missing data"
+			},
+			"response": []
+		},
+		{
+			"name": "Test Query Table and Columns",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "b2bb3fc0-ca75-4a6c-a8c7-02c410f2bee5",
+						"exec": [
+							"pm.test(\"Test Query Table and Columns\", function () {",
+							"    pm.response.to.have.status(200);",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"table\": \"intake\",\n  \"columns\": [\n    \"submission_date\",\n    \"row\"\n  ]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost/list",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"list"
+					]
+				},
+				"description": "Invalid Intake, missing data"
+			},
+			"response": []
+		},
+		{
+			"name": "Invalid URL",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "0db58728-6674-4bda-9a4c-66c6dc7e1d75",
+						"exec": [
+							"pm.test(\"Invalid URL Status Code\", function () {",
+							"    pm.response.to.have.status(404);",
+							"}",
+							")",
+							"pm.test(\"Invalid URL Response\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"The requested endpoint does not exist.\");",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://localhost/foo",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"foo"
+					]
+				},
+				"description": "Tests for bad URL"
+			},
+			"response": []
+		},
+		{
+			"name": "Bad Table",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "9e9cf234-7ce2-48fa-9899-ce64b0c15132",
+						"exec": [
+							"pm.test(\"Bad Table Status Code\", function () {",
+							"    pm.response.to.have.status(404);",
+							"}",
+							")",
+							"pm.test(\"Bad Table Response\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"Table foo does not exist.\");",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://localhost/list?table=foo",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"list"
+					],
+					"query": [
+						{
+							"key": "table",
+							"value": "foo"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "List Metadata Table",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "562d4e53-3688-47ff-89ac-71a07b092dad",
+						"exec": [
+							"pm.test(\"Get Metadata\", function () {",
+							"    pm.response.to.have.status(200);",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://localhost/list?table=metadata",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"list"
+					],
+					"query": [
+						{
+							"key": "table",
+							"value": "metadata"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "List Intake Table",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "d92f017f-11b4-4c3e-88d6-4f6fec740e1a",
+						"exec": [
+							"pm.test(\"Get Intake\", function () {",
+							"    pm.response.to.have.status(200);",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost/list?table=intake",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"list"
+					],
+					"query": [
+						{
+							"key": "table",
+							"value": "intake"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Metadata Endpoint",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "7cadff28-ce52-4c53-8e99-442c2ea12987",
+						"exec": [
+							"pm.test(\"Get Metadata Endpont\", function () {",
+							"    pm.response.to.have.status(200);",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://localhost/metadata",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"metadata"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Base Endpoint",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "be246e54-8fc3-4029-ab01-59a53cefe44b",
+						"exec": [
+							"pm.test(\"Base Endpont\", function () {",
+							"    pm.response.to.have.status(200);",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://localhost",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"protocolProfileBehavior": {}
+}

@@ -2,22 +2,42 @@ import collections
 import os
 import sys
 import time
-import pandas as pd
-import numpy as np
-import psycopg2
-from openpyxl import load_workbook
-from pandas.io.json import json_normalize
 
-from db import connection as c
-from models.IntakeRow import ColNames, intake_headers
-from query_parser import QueryParser, RequestParseException
-from validation import validate_dataframe
+import numpy as np
+import pandas as pd
+import psycopg2
+
+from openpyxl import load_workbook
+
+import kanabi.db.connection as c
+from kanabi.models.IntakeRow import ColNames, intake_headers
+from kanabi.query_parser import QueryParser, RequestParseException
+from kanabi.validation.intake_validation import validate_dataframe
 
 test_file = 'resources/sample.xlsx'
 primary_table = 'intake'
-db_tables = ['intake', 'txn_history', 'archive', 'metadata', 'violations', 'records']
 metadata_table = 'metadata'
 connection_error_msg = 'The connection to the database is closed and cannot be opened. Verify DB server is up.'
+row_seq={"intake":1, "violations":1, "records":1}
+
+
+
+def get_table_list():
+    """
+    Gets the database's active tables.
+    Returns [str]: list of table names
+    """
+    try:
+        pgSqlCur.execute("""
+        SELECT table_name 
+        FROM information_schema.tables
+        WHERE table_name 
+        NOT LIKE 'pg_%'
+            AND table_schema='public'; 
+        """)
+        return str([x[0] for x in pgSqlCur.fetchall()])
+    except psycopg2.Error as err:
+        sql_except(err)
 
 
 # TODO: refactor to remove duplicated code
@@ -27,6 +47,7 @@ while not is_connected:
     try:
         pgSqlCur, pgSqlConn = c.pg_connect()
         is_connected = True
+        db_tables = get_table_list()
     except:
         time.sleep(1)
         wait_time += 1
@@ -48,6 +69,7 @@ def reconnectDB():
             pgSqlCur, pgSqlConn = c.pg_connect()
             is_connected = True
             return is_connected
+        # TODO: specify the exceptions thrown here
         except:
             time.sleep(1)
             wait_time += 1
@@ -55,6 +77,27 @@ def reconnectDB():
             if wait_time >= 30:
                 return False
     return True
+
+
+def get_table_list():
+    """
+    Gets the database's active tables.
+    Returns [str]: list of table names
+    """
+    try:
+        pgSqlCur.execute("""
+        SELECT table_name 
+        FROM information_schema.tables
+        WHERE table_name 
+        NOT LIKE 'pg_%'
+            AND table_schema='public'; 
+        """)
+        return str([x[0] for x in pgSqlCur.fetchall()])
+    except psycopg2.Error as err:
+        sql_except(err)
+
+
+db_tables = get_table_list()
 
 
 def check_conn():
@@ -69,6 +112,7 @@ def check_conn():
     try:
         pgSqlCur.execute('SELECT 1')
         return True
+    # TODO: specify the exceptions thrown here
     except:
         return reconnectDB()
 
@@ -97,7 +141,7 @@ def fmt(s):
         s: the input element
     Returns (str): a SQL-friendly string representation
     """
-    if s is None or str(s).lower() == 'nan':
+    if s is None or str(s).lower() == 'nan' or str(s) == '':
         s = "NULL"
     else:
         if type(s) is str:
@@ -107,6 +151,7 @@ def fmt(s):
     return s
 
 
+# TODO: either remove this or update it
 def dump_tables():
     """
     Displays the contents of the tables in the database.
@@ -163,6 +208,13 @@ class InvalidTableException(Exception):
     pass
 
 
+class InvalidRowException(Exception):
+    """
+    Thrown when the specified row is invalid.
+    """
+    pass
+
+
 def filter_table(request_body):
     """
     Return a JSON object representing the requested data from the table.
@@ -176,8 +228,7 @@ def filter_table(request_body):
          status (int): the HTTP status code of the response
     """
     try:
-        table_names = get_table_list()
-        qp = QueryParser(table_names)
+        qp = QueryParser(db_tables)
         query = qp.build_query(request_body)
     except RequestParseException as e:
         return 'JSON could not be parsed', e.msg, 400
@@ -241,7 +292,6 @@ def read_metadata(f):
         f (str): the filename of the spreadsheet
     Returns (dict): the metadata collection
     """
-    headerMatches = 0
     data = {}
     workbook = load_workbook(f)
     file_data = workbook.properties.__dict__
@@ -285,11 +335,14 @@ def write_info_data(df):
     row_array = np.ndenumerate(df.values).iter.base
     total_count = len(row_array)
     for row in row_array:
-        (re, failed_row) = insert_row(primary_table, row, True)
-        if re == 1:
-            success_count += 1
-        else:
-            failed_rows.append(failed_row)
+        try:
+            re, failed_row = insert_row(primary_table, row, True)  # TODO: need to replace so we can name a table
+            if re == 1:
+                success_count += 1
+            else:
+                failed_rows.append(failed_row)
+        except:
+            failed_rows.append(row)
 
     return {
         'insertions_attempted': total_count,
@@ -341,24 +394,6 @@ def row_number_exists(cur, row_number, table=primary_table):
     return exists
 
 
-def get_table_list():
-    """
-    Gets the database's active tables.
-    Returns [str]: list of table names
-    """
-    try:
-        pgSqlCur.execute("""
-        SELECT table_name 
-        FROM information_schema.tables
-        WHERE table_name 
-        NOT LIKE 'pg_%'
-            AND table_schema='public'; 
-        """)
-        return str([x[0] for x in pgSqlCur.fetchall()])
-    except psycopg2.Error as err:
-        sql_except(err)
-
-
 def validate_row(json_item):
     """
     Preps a JSON input row and passes it to the data validator. Returns the validator's response.
@@ -371,9 +406,8 @@ def validate_row(json_item):
         json_item = collections.OrderedDict(json_item)
         json_item.update({'row': 999})
         json_item.move_to_end('row', last=False)
-    df = json_normalize(json_item)
+    df = pd.json_normalize(json_item)
     return validate_dataframe(df)
-
 
 
 def insert_row(table, row, checked=False):
@@ -386,6 +420,9 @@ def insert_row(table, row, checked=False):
     Returns: (bool, dict) a bool indicate whether insertion is successful, a dict of failed row info
     """
     # Check flag for multi row insert, if false check to make sure that the connection is open and active
+    global row_seq
+    row_temp = row_seq[table]
+
     if not checked:
         if not check_conn():
             return 0, connection_error_msg
@@ -405,7 +442,10 @@ def insert_row(table, row, checked=False):
         else:
             cmd += str(row[0])
     else:
-        cmd += "DEFAULT"
+        #Loop through and update row seq to first available spot
+        while row_number_exists(pgSqlCur,row_temp):
+            row_temp+=1
+        cmd += f"{row_temp}"
 
     for i in range(1, len(row)):
         cmd += f", {fmt(row[i])}"
@@ -415,19 +455,16 @@ def insert_row(table, row, checked=False):
         if not checked:
             pgSqlConn.commit()
         if pgSqlCur.rowcount == 1:
+            row_seq[table] = row_temp
             return 1, None
         else:
-            failed_row = {
-                'submission_date': row[ColNames.SUBMISSION_DATE.value],
-                'entity': row[ColNames.ENTITY.value],
-                'dba': row[ColNames.DBA.value],
-                'mrl': row[ColNames.MRL.value]
-            }
-            return 0, failed_row
-
+            raise psycopg2.Error
     except Exception as err:
         sql_except(err)
-        return -1, None
+        failed_row = {
+            'mrl': row[ColNames.MRL.value]
+        }
+        return 0, failed_row
 
 
 def process_file(f):
@@ -445,8 +482,7 @@ def process_file(f):
         df = pd.read_excel(f)
         # Validate data frame
         valid, error_msg = validate_dataframe(df)
-        if not valid:
-            return False, {'status': 'invalid', 'error_msg': error_msg}
+
         # Write the data to the DB
         result_obj = write_info_data(df)
         # insert metadata into metadata table
@@ -457,11 +493,141 @@ def process_file(f):
 
         # commit execution
         pgSqlConn.commit()
-
+        if not valid:
+            result_obj['failed_rows'] = error_msg
         failed_insertions = result_obj['insertions_attempted'] - result_obj['insertions_successful']
         return failed_insertions == 0, result_obj
 
 
+def delete_row(table, row_nums):
+    """
+    Args:
+        table (str): table name to delete row from
+        row_nums ([int]): the rowId(s) to delete
+    Returns (bool, dict): Boolean is successful or not, dict contains processed info
+    """
+    success = False
+    delete_info = {}
+    if not check_conn():
+        return 0, connection_error_msg
+    else:
+        # verify table is within the db
+        if table not in db_tables:
+            raise InvalidTableException
+        # convert each row_num to digit;
+        try:
+            row_nums = list(map(int, row_nums))
+        except ValueError:
+            raise InvalidRowException
+        for row in row_nums:
+            if row <= 0:
+                delete_info[f'Row {str(row)}'] = 'Invalid row number'
+                continue
+            cmd = f'DELETE FROM {table} WHERE "row" = {row};'
+            try:
+                pgSqlCur.execute(cmd)
+                pgSqlConn.commit()
+                if pgSqlCur.rowcount == 1:
+                    success = True
+                    delete_info[f'Row {str(row)}'] = 'Successfully deleted'
+                else:
+                    delete_info[f'Row {str(row)}'] = 'Failed to delete'
+
+            except psycopg2.Error as err:
+                sql_except(err)
+        if success:
+            return 'Deletion successful', delete_info
+        else:
+            return 'Some/all deletions failed', delete_info
+
+
+def update_table(table, row, update_columns):
+    """
+    Update one row (multiple columns) for a target table
+    Args:
+        table (str): table name
+        row (str/int): row number
+        update_columns (dict): obj of {column_name: new value, ... }
+    Returns (bool, str): bool is successful or not, str includes processing info
+    """
+    col_str = ''
+    arg_str = ''
+    exe_arg_str = ''
+    arg_num = 1
+
+    for key in update_columns:
+        col_str += f', {key} = ${arg_num}'
+        if isinstance(update_columns[key], int):
+            arg_str += ',integer'
+            exe_arg_str += f",{update_columns[key]}"
+        else:
+            exe_arg_str += f",'{update_columns[key]}'"
+            arg_str += ',text'
+        arg_num += 1
+
+    col_str = col_str[1:]
+    arg_str = arg_str[1:]
+    exe_arg_str = exe_arg_str[1:]
+
+    try:
+        pgSqlCur.execute(f"deallocate all;\
+        prepare update_table({arg_str},integer) as \
+        update {table} \
+        set {col_str} \
+        where row = ${arg_num};")
+        pgSqlCur.execute(f'execute update_table({exe_arg_str},{row});')
+
+        if pgSqlCur.rowcount != 1:
+            # the target row is not updated
+            return 0, 'Update failed, please check if the row exists'
+
+    except psycopg2.Error as err:
+        sql_except(err)
+        return 0, str(err)
+
+    # commit if no error
+    pgSqlConn.commit()
+    return 1, 'Updated successfully'
+
+
+def restore_row(row_num):
+    """
+    Function to restore a row that was previously deleted from a table
+    Args:   row_num(int) - row number in the archive table of data to restore
+    Returns (bool/str):  Bool success or not, str contains process info
+    """
+    restore_info={}
+    if not check_conn():
+        return 0, connection_error_msg
+    else:
+        try:
+            row_num = list(map(int, row_num))
+        except ValueError:
+            raise InvalidRowException
+        # get the archive row to be restored
+        try:
+            for row in row_num:
+                cmd = f'SELECT restore_row({row});'
+                pgSqlCur.execute(cmd)
+                success = pgSqlCur.fetchone()
+                if success[0] == True:
+                    restore_info[f'Row {str(row)}'] = 'Successfully restored'
+                    pgSqlConn.commit()
+                else:
+                    restore_info[f'Row {str(row)}'] = 'Failed to restore'
+            return success[0], restore_info
+
+        except psycopg2.IntegrityError as err:
+            return 0, "Can't restore the row. This can be 1 of three reasons, Row already populated, MRL already exists or receipt Num is not unique to the table."
+
+        except psycopg2.Error as err:
+            sql_except(err)
+            return 0, str(err)
+
+        # insert the row
+
+
+# TODO: either delete this or update it
 def test_driver():
     # Pre-insert query
     print('Dump tables -------------------------------------------------')
@@ -490,7 +656,3 @@ def test_driver():
     print("Closing connection to database.")
     c.pg_disconnect(pgSqlCur, pgSqlConn)
 
-
-if __name__ == '__main__':
-    test_driver()
-    print(get_table({primary_table}, None))

@@ -1,7 +1,34 @@
+from enum import Enum
+
+
+class ColNames(Enum):
+    FILENAME = 0
+    CREATOR = 1
+    SIZE =2
+    CREATED_DATE = 3
+    LAST_MODIFIED_DATE = 4
+    LAST_MODIFIED_BY = 5
+    TITLE = 6
+    ROWS = 7
+    COLUMNS = 8
+
+
 class MetadataRow:
     """
     Represents a row of the Metadata table.
     """
+
+    __slots__ = [
+        'filename',
+        'creator',
+        'size',
+        'created_date',
+        'last_modified_date',
+        'last_modified_by',
+        'title',
+        'rows',
+        'columns'
+    ]
 
     def __init__(self, input_json):
         """

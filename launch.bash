@@ -2,22 +2,38 @@
 
 # This script is used to build, test, and run the container.
 
-CURRENT_FILE_FOLDER_NAME=$(basename $(dirname $(realpath $0)))
+CURRENT_FILE_FOLDER_PATH=$(dirname $(realpath $0))
+CURRENT_FILE_FOLDER_NAME=$(basename ${CURRENT_FILE_FOLDER_PATH})
+USER_CURRENT_PATH=$(pwd)
 
 if [[ $(dirname $0) != '.' ]]
 then
     cd $(dirname $0)
 fi
 
+db_container="${CURRENT_FILE_FOLDER_NAME}_db_1"
+web_container="${CURRENT_FILE_FOLDER_NAME}_web_1"
+
+# defines dbname, user, password, port
+source <(grep = "kanabi/db/database.ini")
+db_name=$dbname
+db_port=$port
+db_user=$user
+db_pass=$password
+server_port=443
+
 function usage() {
     echo "Usage: "
-    echo "  bash $0 clean          delete any existing version of the web server image"
-    echo "  bash $0 run            run the program"
-    echo "  bash $0 stop           stop the program"
-    echo "  bash $0 build          remove all data and rebuild the program"
-    echo "  bash $0 rebuild-db     remove only DB data and re-run the program"
-    echo "  bash $0 test           test the program (for a fresh/new built program)"
-
+    echo "  bash $0 clean                                     remove all data and project-specific Docker images"
+    echo "  bash $0 run                                       build and run the program"
+    echo "  bash $0 stop                                      stop the program"
+    echo "  bash $0 rebuild                                   remove all data and rebuild the program"
+    echo "  bash $0 rebuild-db                                remove only DB data and re-run the program"
+    echo "  bash $0 test                                      test the program (for a freshly built program)"
+    echo "  bash $0 backup <path/to/save>                     backup current DB to an external file"
+    echo "                                                    if path not provided, save in current directory as <current_date>.sql"
+    echo "  bash $0 restore <filename>                        restore DB from an external file"
+    echo "  bash $0 backup-schedule <month|week|day> [path]   schedule regular backups at specified time intervals"
 }
 
 # ctrl-c is used to abort a running container session. To keep the session self-contained by this script,
@@ -46,21 +62,15 @@ function count_rows() {
 function run_test() {
 
     # config variables
-    server_port='443'
     tables=('metadata' 'intake' 'txn_history' 'archive')
     primary_table='intake'
     record_row=(9 29 38)
     prefixed_host='https://localhost'
     self_signed=' -k'
-    testing_spreadsheet='resources/sample-extension.xlsx'
-    test_row='resources/sample-row-1.json'
-    # read from database.ini
-    source <(grep = "db/database.ini")
-    db_name=$dbname
-    db_user=$user
-    db_pass=$password
+    testing_spreadsheet='kanabi/resources/sample-extension.xlsx'
+    test_row='kanabi/resources/sample-row-1.json'
 
-    if [[ -z $(psql postgresql://${db_user}:${db_pass}@localhost:5432/postgres?sslmode=require -c '') ]]
+    if [[ -z $(psql postgresql://${user}:${password}@localhost:5432/postgres?sslmode=require -c '') ]]
     then
         echo "1. DB connection successful."
     else
@@ -69,18 +79,18 @@ function run_test() {
     fi
 
     # check if the target DB was created inside the postgres DB
-    out=$(psql postgresql://${db_user}:${db_pass}@localhost:5432/postgres?sslmode=require -lA | grep "${db_name}|")
+    out=$(psql postgresql://${user}:${password}@localhost:5432/postgres?sslmode=require -lA | grep "${dbname}|")
 
     if [[ -z ${out} ]]
     then
         echo "2. ERROR: DB not created."
         exit
     else
-        echo "2. DB \"${db_name}\" created."
+        echo "2. DB \"${dbname}\" created."
     fi
 
     # check if required tables created in the DB
-    out=$(psql postgresql://${db_user}:${db_pass}@localhost:5432/${db_name}?sslmode=require -Ac '\d')
+    out=$(psql postgresql://${user}:${password}@localhost:5432/${dbname}?sslmode=require -Ac '\d')
 
     for i in "${tables[@]}"
     do
@@ -95,7 +105,7 @@ function run_test() {
 
     # check if server is working
     out=$(curl -s ${prefixed_host}:${server_port}${self_signed})
-    if [[ ${out} == "\"Hello World\"" ]]
+    if [[ ${out} =~ .*"Hello World".* ]]
     then
         echo "4. Web server is up."
     else
@@ -160,22 +170,103 @@ function run_test() {
 function run() {
 
     # change permissions of SSL config files
-    sudo chown -R 999:root configs/
-    sudo chmod 777 configs/
-    sudo chmod 600 configs/*
+    sudo chown -R 999:root kanabi/configs/
+    sudo chmod 777 kanabi/configs/
+    sudo chmod 600 kanabi/configs/*
 
     # if the image doesn't exist (or we've just deleted it), build it fresh
     sudo docker image inspect flask-server:v1 >/dev/null 2>&1
     [[ $? != 0 ]] && echo "Image does not exist; building image" && sudo docker build -t flask-server:v1 .
 
-    # launch and check for 'port in use' error
     echo "Launching container"
     sudo docker-compose up
 }
 
 function clean() {
-    sudo rm -rf pgdata
+    sudo rm -rf kanabi/pgdata
     sudo docker image rm flask-server:v1 >/dev/null 2>&1
+}
+
+# TODO: update so this works
+function backup() {
+
+    out_file_path=''
+
+    if [[ -z $1 ]]
+    then
+        da=$(date +%Y%m%d%H%M%S)
+        out_file_path="${USER_CURRENT_PATH}/${da}.sql"
+    else
+        if [[ ${1:0:1} == '/' ]]
+        then
+            out_file_path="${1}"
+        else
+            out_file_path="${USER_CURRENT_PATH}/${1}"
+        fi
+    fi
+
+    sudo docker exec -it ${db_container} pg_dump -d postgresql://${db_user}:${db_pass}@localhost:${db_port}/${db_name} > $out_file_path
+    if [[ $? == 0 ]]; then
+        echo "Backup successful to file: ${out_file_path}"
+    else
+        echo "Backup failed"
+    fi
+}
+
+function restore() {
+    in_file_path=''
+
+    if [[ -z $1 ]]
+    then
+        echo "Error: please supply an external sql file."
+        exit
+    else
+        if [[ ${1:0:1} == '/' ]]
+        then
+            in_file_path=$1
+        else
+            in_file_path="${USER_CURRENT_PATH}/${1}"
+        fi
+
+        ls $in_file_path > /dev/null 2> /dev/null
+        if [[ $? != 0 ]]
+        then
+            echo "File ${in_file_path} does not exist."
+            exit 1
+        fi
+    fi
+
+    echo "Restoring DB from file (${in_file_path})..."
+
+    # remove current DB stuffs
+    psql postgresql://${db_user}:${db_pass}@localhost:${db_port}/${db_name} < ${CURRENT_FILE_FOLDER_PATH}/db/db-remove.sql
+    
+    # execute backup .sql file
+    psql postgresql://${db_user}:${db_pass}@localhost:${db_port}/${db_name} < ${in_file_path}
+    
+    [[ $? == 0 ]] && echo "Restored successfully."
+}
+
+function backup-schedule() {
+    cmd="bash ${CURRENT_FILE_FOLDER_PATH}/launch.bash backup ${2}"
+    comment=''
+
+    if [[ $1 == 'week' ]]
+    then
+        cmd="0 0 * * 0 ${cmd}"
+        comment="Scheduled to backup every week Sunday at 00:00 AM."
+    elif [[ $1 == 'month' ]]
+    then
+        cmd="0 0 1 * * ${cmd}"
+        comment="Scheduled to backup every Month first day at 00:00 AM."
+    else
+        # every day
+        cmd="0 0 * * * ${cmd}"
+        comment="Scheduled to backup every day at 00:00 AM."
+    fi
+
+    echo $comment
+    crontab -l | sed '/\/launch.bash backup/d' | { cat; echo "${cmd} # ${comment}"; } | crontab - > /dev/null
 }
 
 # accept an argument to perform action, print usage if nothing given
@@ -188,23 +279,33 @@ elif [[ $1 == "run" ]]; then
 
 elif [[ $1 == "stop" ]]; then
 
-    server_container="${CURRENT_FILE_FOLDER_NAME}_web_1" 
+    server_container="${CURRENT_FILE_FOLDER_NAME}_web_1"
     db_container="${CURRENT_FILE_FOLDER_NAME}_db_1"
 
     # stop the containers
     sudo docker stop ${server_container} ${db_container}
 
-elif [[ $1 == "build" ]]; then
+elif [[ $1 == "rebuild" ]]; then
     clean
     run
     
 elif [[ $1 == "rebuild-db" ]]; then
     # clear DB data and re-run the program
-    sudo rm -r pgdata
+    sudo rm -r kanabi/pgdata
     run
 
 elif [[ $1 == "test" ]]; then
     run_test
+
+elif [[ $1 == "backup" ]]; then
+    backup $2
+
+elif [[ $1 == "restore" ]]; then
+    restore $2
+
+elif [[ $1 == "backup-schedule" ]]; then
+    backup-schedule $2 $3
+
 else
     usage
     exit 0

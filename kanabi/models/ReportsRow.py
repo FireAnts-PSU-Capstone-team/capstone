@@ -1,8 +1,8 @@
 from enum import Enum
 
 
-class RowNames(Enum):
-    ROW_ID = 0
+class ColNames(Enum):
+    ROW = 0
     DATE = 1
     METHOD = 2
     INTAKE_PERSON = 3
@@ -16,6 +16,7 @@ class RowNames(Enum):
     STATUS = 11
     STATUS_DATE = 12
     ADDITIONAL_NOTES = 13
+    VALIDATION_ERRORS = 14
 
 
 class ReportsRow:
@@ -23,24 +24,23 @@ class ReportsRow:
     Represents a row of the reports table.
     """
 
-    def __init__(self):
-        """
-        Default constructor.
-        """
-        self.row_id = None
-        self.date = ''
-        self.method = ''
-        self.intake_person = ''
-        self.rp_name = ''
-        self.rp_contact_info = ''
-        self.concern = ''
-        self.location_name = ''
-        self.location_address = ''
-        self.mrl = ''
-        self.action_taken = ''
-        self.status = ''
-        self.status_date = ''
-        self.additional_notes = ''
+    __slots__ = [
+        'row',
+        'date',
+        'method',
+        'intake_person',
+        'rp_name',
+        'rp_contact_info',
+        'concern',
+        'location_name',
+        'location_address',
+        'mrl',
+        'action_taken',
+        'status',
+        'status_date',
+        'additional_notes',
+        'validation_errors'
+    ]
 
     def __init__(self, input_json):
         """
@@ -48,7 +48,7 @@ class ReportsRow:
         Args:
             input_json ({}): JSON object representing a row of the intake table
         """
-        self.row_id = input_json.get('row')
+        self.row = input_json.get('row')
         self.date = input_json.get('Date')
         self.method = input_json.get('Method')
         self.intake_person = input_json.get('Intake Person')
@@ -68,6 +68,6 @@ class ReportsRow:
         Order data into an array that can be consumed by the row insertion method.
         Returns ([]): array of data members
         """
-        return [self.row_id, self.date, self.method, self.intake_person, self.rp_name, self.rp_contact_info,
+        return [self.row, self.date, self.method, self.intake_person, self.rp_name, self.rp_contact_info,
                 self.concern, self.location_name, self.location_address, self.mrl, self.action_taken,
                 self.status, self.status_date, self.additional_notes]

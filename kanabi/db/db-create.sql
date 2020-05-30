@@ -40,42 +40,39 @@ $$;
 ALTER FUNCTION change_fnc() OWNER TO cc;
 
 --
--- A TRIGGER for insert conflict strategy
--- Name: check_insertion_fnc; Type: TRIGGER; Schema: public; Owner: cc
+-- A function to restore a record from the archive table back to original table
+-- Name: restore_record
 --
-
-CREATE FUNCTION check_insertion_fnc()
-    RETURNS TRIGGER
+CREATE OR REPLACE FUNCTION restore_row(row_num integer)
+    RETURNS boolean
     LANGUAGE 'plpgsql'
-AS $BODY$BEGIN
-CASE when NEW.dba IS NULL
-THEN
-IF (SELECT count(*)
-   FROM intake
-   WHERE submission_date = new.submission_date
-   AND entity = new.entity
-   AND mrl = NEW.mrl) = 0
-THEN
-   RETURN NEW;
-ELSE
-   RETURN NULL;
+AS $_$DECLARE
+tablename text;
+success integer;
+BEGIN
+SELECT t.tabname into tablename
+from txn_history as t join archive as a
+on t.archive_row = a.row_id
+WHERE a.row_id = row_num;
+IF NOT FOUND THEN
+	RETURN FALSE;
 END IF;
-ELSE
-IF (SELECT count(*)
-   FROM intake
-   WHERE submission_date = NEW.submission_date
-   AND entity = NEW.entity
-   AND dba = NEW.dba
-   AND mrl = NEW.mrl) = 0
+EXECUTE
+format('INSERT INTO %I
+SELECT *
+FROM json_populate_record(NULL::%I, (SELECT old_val FROM archive WHERE row_id = $1))',tablename,tablename)
+USING row_num;
+GET DIAGNOSTICS success = ROW_COUNT;
+IF success = 1
 THEN
-   RETURN NEW;
+RETURN TRUE;
 ELSE
-   RETURN NULL;
+RETURN FALSE;
 END IF;
-END CASE;
-END;$BODY$;
+END;$_$;
 
-ALTER FUNCTION check_insertion_fnc() OWNER TO cc;
+ALTER FUNCTION restore_row(row_num integer) OWNER TO cc;
+
 
 -------------------------
 -- DB Parameters
@@ -117,7 +114,7 @@ CREATE TABLE intake (
     facility_suite text,
     facility_zip text,
     mailing_address text,
-    mrl character varying(10),
+    mrl character varying(10) UNIQUE,
     neighborhood_association character varying(30),
     compliance_region character varying(2),
     primary_contact_first_name text,
@@ -129,13 +126,14 @@ CREATE TABLE intake (
     repeat_location character(1),
     app_complete character varying(3),
     fee_schedule character varying(10),
-    receipt_num integer,
+    receipt_num integer UNIQUE,
     cash_amount text,
     check_amount text,
     card_amount text,
     check_num_approval_code character varying(25),
     mrl_num character varying(10),
-    notes text
+    notes text,
+    validation_errors text 
 );
 ALTER TABLE intake OWNER TO cc;
 COMMENT ON TABLE intake IS 'Table to track all the data for cannabis program in city of portalnd';
@@ -180,10 +178,10 @@ ALTER TABLE ONLY archive
 --
 CREATE TABLE IF NOT EXISTS violations
 (
-    row_id integer NOT NULL,
+    "row" integer NOT NULL,
     dba text,
     address text,
-    mrl_num text,
+    mrl_num text UNIQUE,
     license_type text,
     violation_sent_date date,
     original_violation_amount text,
@@ -192,24 +190,25 @@ CREATE TABLE IF NOT EXISTS violations
     certified_num text,
     certified_receipt_returned text,
     date_paid_waived date,
-    receipt_no text,
+    receipt_no text UNIQUE,
     cash_amount text,
     check_amount text,
     card_amount text,
     check_num_approval_code text,
-    notes text
+    notes text,
+    validation_errors text 
 );
 ALTER TABLE violations OWNER to cc;
 COMMENT ON TABLE violations IS 'Table to hold all the information regarding violations.';
 ALTER TABLE ONLY violations
-    ADD CONSTRAINT violations_pkey PRIMARY KEY (row_id);
+    ADD CONSTRAINT violations_pkey PRIMARY KEY ("row");
 
 --
--- Name: records Type: table Schema: public Owner: cc
+-- Name: reports Type: table Schema: public Owner: cc
 --
-CREATE TABLE IF NOT EXISTS records
+CREATE TABLE IF NOT EXISTS reports
 (
-    row_id integer NOT NULL,
+    "row" integer NOT NULL,
     date date,
     method text,
     intake_person text,
@@ -218,35 +217,20 @@ CREATE TABLE IF NOT EXISTS records
     concern text,
     location_name text,
     address text,
-    mrl_num text,
+    mrl_num text UNIQUE,
     action_taken text,
     status text,
     status_date date,
-    additional_notes text
+    additional_notes text,
+    validation_errors text
 );
-ALTER TABLE records OWNER to cc;
-COMMENT ON TABLE records IS 'Table to hold all the information regarding violations.';
-ALTER TABLE ONLY records
-    ADD CONSTRAINT records_pkey PRIMARY KEY (row_id);
+ALTER TABLE reports OWNER to cc;
+COMMENT ON TABLE reports IS 'Table to hold all the information regarding violations.';
+ALTER TABLE ONLY reports
+    ADD CONSTRAINT reports_pkey PRIMARY KEY ("row");
 -------------------------
 -- Sequences
 -------------------------
-
---
--- Name: intake_row_seq
--- Desc: Sequence used as PK for intake table Owner: cc
---
-CREATE SEQUENCE intake_row_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-ALTER TABLE intake_row_seq OWNER TO cc;
-ALTER SEQUENCE intake_row_seq OWNED BY intake."row";
-ALTER TABLE ONLY intake ALTER COLUMN "row" SET DEFAULT nextval('intake_row_seq'::regclass);
 
 --
 -- Name: txn_history_id_seq
@@ -280,37 +264,6 @@ ALTER TABLE archive_row_seq OWNER TO cc;
 ALTER SEQUENCE archive_row_seq OWNED BY archive.row_id;
 ALTER TABLE ONLY archive ALTER COLUMN row_id SET DEFAULT nextval('archive_row_seq'::regclass);
 
---
--- Name: violations_row_seq
--- Desc: Sequence used as PK for violations table Owner: cc
---
-CREATE SEQUENCE violations_row_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-ALTER TABLE violations_row_seq OWNER TO cc;
-ALTER SEQUENCE violations_row_seq OWNED BY violations.row_id;
-ALTER TABLE ONLY violations ALTER COLUMN row_id SET DEFAULT nextval('violations_row_seq'::regclass);
-
---
--- Name: records_row_seq
--- Desc: Sequence used as PK for records table Owner: cc
---
-CREATE SEQUENCE records_row_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-ALTER TABLE records_row_seq OWNER TO cc;
-ALTER SEQUENCE records_row_seq OWNED BY records.row_id;
-ALTER TABLE ONLY records ALTER COLUMN row_id SET DEFAULT nextval('records_row_seq'::regclass);
 
 -------------------------
 -- Triggers
@@ -325,14 +278,6 @@ BEFORE INSERT OR UPDATE OR DELETE ON intake
 FOR EACH ROW EXECUTE FUNCTION change_fnc();
 
 --
--- Name: intake_check_insertion
--- Desc: Monitor intake table, before any INSERT calls function check_insertion_to_intake_tri_fnc
---
-CREATE TRIGGER intake_check_insertion
-BEFORE INSERT ON intake
-FOR EACH ROW EXECUTE FUNCTION check_insertion_fnc();
-
---
 -- Name: violations_transactions
 -- Desc: Monitor violations table, before any transaction calls function change_fnc
 --
@@ -341,12 +286,13 @@ BEFORE INSERT OR UPDATE OR DELETE ON violations
 FOR EACH ROW EXECUTE FUNCTION change_fnc();
 
 --
--- Name: records_transactions
--- Desc: Monitor records table, before any transaction calls function change_fnc
+-- Name: reports_transactions
+-- Desc: Monitor reports table, before any transaction calls function change_fnc
 --
-CREATE TRIGGER records_transactions
-BEFORE INSERT OR UPDATE OR DELETE ON records
+CREATE TRIGGER reports_transactions
+BEFORE INSERT OR UPDATE OR DELETE ON reports
 FOR EACH ROW EXECUTE FUNCTION change_fnc();
+
 -------------------------
 -- Groups
 -------------------------
