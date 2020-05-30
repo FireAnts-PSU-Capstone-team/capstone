@@ -51,6 +51,15 @@ def index():
 
 @admin_permission.require()
 def user_admin(request: {}, mode: str) -> Response:
+    """
+    Handles user management, such as changing permissions levels or updating user information.
+    Requires the user to be logged in as an admin.
+    Args:
+        request ({form}): the request object
+        mode (str): the operation desired
+    Returns (Response): status message
+
+    """
     email = request.form.get('email')
     if email is None:
         return make_gui_response(json_header, 400, 'Target user email not provided')
@@ -86,6 +95,13 @@ def user_admin(request: {}, mode: str) -> Response:
 
 @admin_permission.require()
 def list_users(mode: str) -> Response:
+    """
+    Allows a user with admin credentials to list active users and admins.
+    Args:
+        mode (str): selector for which list to retrieve
+    Returns (Response): status and requested data
+
+    """
     ret = {}
     if mode == 'listusers':
         users = User.query.all()
