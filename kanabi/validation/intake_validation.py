@@ -142,7 +142,7 @@ def validate_monetary_amount(amt):
         return False
 
 
-def validate_dataframe(df):
+def validate_intake(df):
 
     i = 0
     msg = {}
