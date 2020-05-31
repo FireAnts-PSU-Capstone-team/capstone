@@ -358,6 +358,11 @@ def restore_record():
                                                             'Contact your admin to have it restored'), 404)
 
 
+@main_bp.route('/tester', methods=['GET'])
+def tester():
+    message = driver.create_db_user()
+    return make_response(jsonify(message),200)
+
 @main_bp.route('/')
 def hello_world():
     return make_response(jsonify('Hello World'), 200)

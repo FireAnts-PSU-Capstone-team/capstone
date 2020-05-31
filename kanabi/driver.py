@@ -8,6 +8,7 @@ import pandas as pd
 import psycopg2
 
 from openpyxl import load_workbook
+from psycopg2 import extensions as pe
 
 import kanabi.db.connection as c
 from kanabi.models.IntakeRow import ColNames, intake_headers
@@ -627,6 +628,20 @@ def restore_row(row_num):
         # insert the row
 
 
+def create_db_user():
+    """
+    Function to create the new user in the database when they are created on webserver
+    :return:
+    """
+    name = 'tester'
+    password = 'password'
+    admin = True
+    cmd = f'SELECT create_user({name}, {password}, {admin});'
+    pgSqlCur.execute("CREATE USER %s WITH PASSWORD %s", (pe.AsIs(name), pe.QuotedString(password)))
+
+    # message = pgSqlCur.fetchall()
+    pgSqlConn.commit()
+    return 1
 # TODO: either delete this or update it
 def test_driver():
     # Pre-insert query
