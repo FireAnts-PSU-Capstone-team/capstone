@@ -70,7 +70,7 @@ def create_app():
             if current_user.is_admin:
                 identity.provides.add(RoleNeed('admin'))
 
-    from .model import User
+    from .user import User
 
     with app.app_context():
         from kanabi import server

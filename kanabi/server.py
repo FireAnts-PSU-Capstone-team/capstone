@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, make_response, request, session, Response
-from flask_login import login_required
-from flask_principal import Permission, RoleNeed, PermissionDenied
+from flask_login import login_required, current_user
+from flask_principal import Permission, RoleNeed
 from pandas.io.json import json_normalize
 
 from werkzeug.security import generate_password_hash
@@ -12,7 +12,8 @@ from .models.IntakeRow import IntakeRow
 import kanabi.driver as driver
 from .responses import make_gui_response
 from .configure import db
-from .model import User
+from .user import User
+from .auth import logout
 
 UPLOAD_FOLDER = 'resources'
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
@@ -49,7 +50,6 @@ def index():
     return make_gui_response(json_header, 200, 'Hello World')
 
 
-@admin_permission.require()
 def user_admin(request: {}, mode: str) -> Response:
     """
     Handles user management, such as changing permissions levels or updating user information.
@@ -76,24 +76,30 @@ def user_admin(request: {}, mode: str) -> Response:
     elif mode == 'removeeditor':
         user.is_editor = False
     elif mode == 'changepassword':
-        password = request.form.get('password')
+        password = request.form.get('new_password')
         if password is None:
             return make_gui_response(json_header, 400, 'Password change request received, but password not provided')
         user.password = generate_password_hash(password, method='sha256')
     elif mode == 'changename':
-        name = request.form.get('name')
+        name = request.form.get('new_name')
         if name is None:
             return make_gui_response(json_header, 400, 'Name change request received, but name not provided')
         user.name = name
     elif mode == 'changeemail':
+        email = request.form.get('new_email')
+        if email is None:
+            return make_gui_response(json_header, 400, 'Email change request received, but new email not provided')
         user.email = email
     elif mode == 'removeuser':
         db.session.delete(user)
+        if user == current_user:
+            db.session.commit()
+            return logout()
+
     db.session.commit()
     return make_gui_response(json_header, 200, 'OK')
 
 
-@admin_permission.require()
 def list_users(mode: str) -> Response:
     """
     Allows a user with admin credentials to list active users and admins.
@@ -126,15 +132,16 @@ def list_users(mode: str) -> Response:
 @main_bp.route("/admin/<mode>", methods=['GET', 'POST'])
 def admin_tools(mode: str) -> Response:
     """
-    Wrapper for admin-only tools. Wrapping allows the 403 exception to be caught and handled with a response
-    that matches the pattern of successful requests, rather than the default text/HTML format
+    Wrapper for admin-only tools.
     Args:
         mode (str): specifies the operation to be performed
     Returns (Response): containing status message/code and any requested data
     """
     user_admin_operations = ['makeadmin', 'removeadmin', 'makeeditor', 'removeeditor',
                              'changepassword', 'changename', 'changeemail', 'removeuser']
-    try:
+    if not session['is_admin']:
+        return make_gui_response(json_header, 403, 'User must be logged in as admin to access this resource')
+    else:
         if mode in user_admin_operations:
             if request.method == 'POST':
                 return user_admin(request, mode)
@@ -147,8 +154,25 @@ def admin_tools(mode: str) -> Response:
                 return make_gui_response(json_header, 400, 'This resource only supports GET method')
         else:
             return make_gui_response(json_header, 400, 'Unrecognized operation requested')
-    except PermissionDenied:
-        return make_gui_response(json_header, 403, 'User must be logged in as admin to access this resource')
+
+
+@main_bp.route("/edituser/<mode>", methods=['POST'])
+@login_required
+def edit_self_user(mode):
+    """
+    Allow a user to change some of their own settings.
+    Returns (Response): status message
+    """
+    allowed_operations = ['changepassword', 'changename', 'changeemail', 'removeuser']
+    email = request.form.get('email')
+    user = User.query.filter_by(email=email).one()
+    if current_user != user and not session['is_admin']:
+        return make_gui_response(json_header, 403, 'Editing other users requires admin permissions')
+    else:
+        if mode not in allowed_operations:
+            return make_gui_response(json_header, 400, 'Requested operation not available')
+        else:
+            return user_admin(request, mode)
 
 
 # Simple litmus test that the user is logged in

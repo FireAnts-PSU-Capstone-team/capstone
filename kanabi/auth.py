@@ -2,7 +2,7 @@ from flask import Blueprint, request, current_app, session
 from flask_login import login_user, login_required, logout_user
 from flask_principal import Identity, AnonymousIdentity, identity_changed
 from werkzeug.security import generate_password_hash, check_password_hash
-from .model import User
+from .user import User
 from .configure import db
 from .responses import make_gui_response
 
