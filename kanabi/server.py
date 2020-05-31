@@ -303,21 +303,24 @@ def load_data():
 
             row_count, fail_row = driver.insert_row(table_name, row_data)
             if row_count == 1:
+                status = 200
                 result = {
                     'message': 'PUT completed',
                     'rows_affected': row_count
                 }
             elif row_count == -1:
+                status = 400
                 result = {
                     'message': 'PUT failed',
                     'cause': 'duplicate row number'
                 }
             else:
+                status = 400
                 result = {
                     'message': 'PUT failed',
                     'fail_row': fail_row
                 }
-            return make_response(jsonify(result), 200)
+            return make_response(jsonify(result), status)
 
     elif request.method == 'POST':
         if 'file' not in request.files:
