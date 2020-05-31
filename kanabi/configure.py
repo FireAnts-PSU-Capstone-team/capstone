@@ -45,7 +45,7 @@ def create_app():
     # Including this header is required when using POST with JSON across domains
     app.config['CORS_HEADERS'] = 'Content-Type'
     # Utilizes CORS with the list of origin strings and regex expressions to validate resource requests.
-    CORS(app, origins=o_list)
+    CORS(app, origins=o_list, supports_credentials=True)
 
     # Uses flask-login to load user by their id. Receives an id, returns a user object.
     @login_manager.user_loader
@@ -81,8 +81,8 @@ def create_app():
             print('CORS: ACCEPTING REQUESTS FROM: {}'.format(line))
 
         # Apply CORS to Blueprints
-        CORS(server.main_bp, origins=o_list)
-        CORS(auth.auth_bp, origins=o_list)
+        CORS(server.main_bp, origins=o_list, supports_credentials=True)
+        CORS(auth.auth_bp, origins=o_list, supports_credentials=True)
 
         # Register Blueprints
         app.register_blueprint(server.main_bp)

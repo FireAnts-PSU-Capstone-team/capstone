@@ -53,7 +53,6 @@ def make_gui_response(headers, return_code, status_msg):
 
     response_body = {'return_msg': status_msg, 'user': user_dict}
     response = make_response(jsonify(response_body), return_code)
-    response.headers['Access-Control-Allow-Credentials'] = True
     return response
 
 # Loads the domain whitelist from file and provides access to origin_list through import functionality.

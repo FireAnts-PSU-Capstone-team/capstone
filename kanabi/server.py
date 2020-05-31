@@ -48,7 +48,7 @@ def error_catching(function):
     @wraps(function)
     def wrapper(*args, **kwargs):
         try:
-            function(*args, **kwargs)
+            return function(*args, **kwargs)
         except Exception as e:
             return make_gui_response(json_header, 500, 'Something went wrong with our server. Exception: ' + str(e))
     return wrapper
