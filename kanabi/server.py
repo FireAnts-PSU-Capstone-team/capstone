@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, make_response, request, session
 from flask_login import login_required
 from flask_principal import Permission, RoleNeed
 from pandas.io.json import json_normalize
-import driver, markdown, markdown.extensions.fenced_code
+import markdown, markdown.extensions.fenced_code
 
 from werkzeug.security import generate_password_hash
 from functools import wraps
@@ -358,9 +358,9 @@ def restore_record():
         return make_response(jsonify('Row '.join(row_num) + ' could not be restored automatically. '
                                                             'Contact your admin to have it restored'), 404)
 
-@app.route('/')
+@main_bp.route('/')
 def landing_page():
-    readme = open("README.md", "r")
+    readme = open("../README.md", "r")
     md = markdown.markdown(
         readme.read(), extensions=["fenced_code"]
     )
