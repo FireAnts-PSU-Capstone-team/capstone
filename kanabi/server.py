@@ -50,7 +50,6 @@ def index():
 
 
 # Admin tools endpoint. Uses decorators with flask principal to enforce role-related access
-# TODO: these are missing
 @main_bp.route("/admin")
 @admin_permission.require(http_exception=403)
 def admin_tools():
@@ -141,16 +140,11 @@ def fetch_data():
         if table is None:
             return make_response(jsonify('Table name not supplied.'), 400)
 
-        # if table is admin-only, wrap request with a permission requirement
-        if table in admin_only_tables:
-            try:
-                with admin_permission.require():
-                    query, response, status = driver.filter_table(request.json)
-            except PermissionDenied:
-                return make_response()
-        else:
-            query, response, status = driver.filter_table(request.json)
+        # if table is admin-only, require admin status
+        if table in admin_only_tables and not session['is_admin']:
+            return make_response(jsonify('User must be logged in as admin to access this resource'), 403)
 
+        query, response, status = driver.filter_table(request.json)
         return make_response(jsonify(response), status)
 
     if request.method == 'GET':
@@ -162,16 +156,11 @@ def fetch_data():
             if columns is not None:
                 columns = str.split(columns.strip(), ' ')
 
-            # if table is admin-only, wrap request with a permission requirement
-            if table_name in admin_only_tables:
-                try:
-                    with admin_permission.require():
-                        table_info_obj = driver.get_table(table_name, columns)
-                except PermissionDenied:
-                    return make_response(jsonify('User must be logged in as admin to access this resource'), 403)
-            else:
-                table_info_obj = driver.get_table(table_name, columns)
+            # if table is admin-only, require admin status
+            if table_name in admin_only_tables and not session['is_admin']:
+                return make_response(jsonify('User must be logged in as admin to access this resource'), 403)
 
+            table_info_obj = driver.get_table(table_name, columns)
             return make_response(jsonify(table_info_obj), 200)
         except driver.InvalidTableException:
             return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
