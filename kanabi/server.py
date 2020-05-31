@@ -78,6 +78,10 @@ def register_admin_post():
         db.session.commit()
         return make_gui_response(json_header, 200, 'OK')
 
+@main_bp.route("/usrhello")
+@login_required
+def usr_hello():
+    return make_gui_response(json_header, 200, 'OK')
 
 # Places the user into read-only mode
 @main_bp.route("/enablereadonly")
