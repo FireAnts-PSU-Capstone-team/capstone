@@ -61,6 +61,11 @@ def register_admin():
         return make_gui_response(json_header, 400, msg)
     return make_gui_response(json_header, 200, 'OK')
 
+@main_bp.route("/usrhello")
+@login_required
+def usr_hello():
+    return make_gui_response(json_header, 200, 'OK')
+
 # Creates the 'admin' account in the database. Should be executed once and only once, immediately after project
 #   is created. This creates an admin-level user named 'admin' who can be used to conduct user setup
 @main_bp.route("/makeadmin", methods=['POST'])
@@ -77,11 +82,6 @@ def register_admin_post():
         db.session.add(new_user)
         db.session.commit()
         return make_gui_response(json_header, 200, 'OK')
-
-@main_bp.route("/usrhello")
-@login_required
-def usr_hello():
-    return make_gui_response(json_header, 200, 'OK')
 
 # Places the user into read-only mode
 @main_bp.route("/enablereadonly")
