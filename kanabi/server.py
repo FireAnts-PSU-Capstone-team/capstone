@@ -358,12 +358,6 @@ def restore_record():
         return make_response(jsonify('Row '.join(row_num) + ' could not be restored automatically. '
                                                             'Contact your admin to have it restored'), 404)
 
-
-<<<<<<< HEAD:kanabi/server.py
-@main_bp.route('/')
-def hello_world():
-    return make_response(jsonify('Hello World'), 200)
-=======
 @app.route('/')
 def landing_page():
     readme = open("README.md", "r")
@@ -371,8 +365,6 @@ def landing_page():
         readme.read(), extensions=["fenced_code"]
     )
     return md
->>>>>>> ab13ff2... Updated default / landing page to display markdown readme if endpoint is hit directly.:server.py
-
 
 @main_bp.route('/<path:path>', methods=["PUT", "POST", "GET"])
 def catch_all(path):
