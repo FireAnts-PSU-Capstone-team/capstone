@@ -43,12 +43,6 @@ def write_permission(function):
 
     return wrapper
 
-
-@main_bp.route("/", methods=['GET'])
-def index():
-    return make_gui_response(json_header, 200, 'Hello World')
-
-
 # Admin tools endpoint. Uses decorators with flask principal to enforce role-related access
 # TODO: these are missing
 @main_bp.route("/admin")
@@ -66,13 +60,6 @@ def register_admin():
         msg = 'An admin account has already been registered.'
         return make_gui_response(json_header, 400, msg)
     return make_gui_response(json_header, 200, 'OK')
-
-
-@main_bp.route("/usrhello")
-@login_required
-def usr_hello():
-    return make_gui_response(json_header, 200, 'OK')
-
 
 # Creates the 'admin' account in the database. Should be executed once and only once, immediately after project
 #   is created. This creates an admin-level user named 'admin' who can be used to conduct user setup
@@ -360,7 +347,7 @@ def restore_record():
 
 @main_bp.route('/')
 def landing_page():
-    readme = open("../README.md", "r")
+    readme = open("./README.md", "r")
     md = markdown.markdown(
         readme.read(), extensions=["fenced_code"]
     )
