@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import psycopg2
 
+from flask_principal import Identity
 from openpyxl import load_workbook
 from psycopg2 import extensions as pe
 
@@ -625,20 +626,33 @@ def restore_row(row_num):
         # insert the row
 
 
-def create_db_user():
+def create_db_user(name, password, admin):
     """
     Function to create the new user in the database when they are created on webserver
     :return:
     """
-    name = 'tester'
-    password = 'password'
-    admin = True
-    cmd = f'SELECT create_user({name}, {password}, {admin});'
-    pgSqlCur.execute("CREATE USER %s WITH PASSWORD %s", (pe.AsIs(name), pe.QuotedString(password)))
+    uname = name
+    upassword = password
+    # admin = True
+    try:
+        if admin:
+            cmd = f'CREATE USER "{uname}" WITH PASSWORD \'{upassword}\' IN GROUP adminaccess;'
+        else:
+            cmd = f'CREATE USER "{uname}" WITH PASSWORD \'{upassword}\' IN GROUP writeaccess;'
+        pgSqlCur.execute(cmd)
+        success = pgSqlCur.statusmessage
+        if success == "CREATE ROLE":
+            pgSqlConn.commit()
+            return 1,f'User {uname} created in the postgresDB'
+        else:
+            return 0, f'User {uname} could not be added to the postgresDB'
 
-    # message = pgSqlCur.fetchall()
-    pgSqlConn.commit()
-    return 1
+    except psycopg2.Error as err:
+        sql_except(err)
+        return 0, str(err)
+
+
+
 # TODO: either delete this or update it
 def test_driver():
     # Pre-insert query

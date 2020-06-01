@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from .model import User
 from .configure import db
 from .responses import make_gui_response
-
+from .driver import create_db_user
 auth_bp = Blueprint('auth_bp', __name__)
 json_header = {"Content-Type": "application/json"}
 
@@ -58,6 +58,8 @@ def signup_post():
     # add the new user to the database
     db.session.add(new_user)
     db.session.commit()
+    #add new user into the postgres database
+    create_db_user(email, password, new_user.is_admin)
     return make_gui_response(json_header, 200, 'OK')
 
 
