@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, make_response, request, session
-from flask_login import login_required
+from flask_login import login_required, current_user
 from flask_principal import Permission, RoleNeed
 from pandas.io.json import json_normalize
 
@@ -184,7 +184,7 @@ def load_data():
                 message = {'message': 'Error encountered while parsing input'}
                 return make_response(jsonify(message), 400)
 
-            row_count, fail_row = driver.insert_row(table_name, row_data)
+            row_count, fail_row = driver.insert_row(table_name, row_data, current_user)
             if row_count == 1:
                 status = 200
                 result = {

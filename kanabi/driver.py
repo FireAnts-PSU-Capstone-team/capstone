@@ -412,7 +412,7 @@ def validate_row(json_item):
     return validate_intake(df)
 
 
-def insert_row(table, row, checked=False):
+def insert_row(table, row, current_user, checked=False):
     """
     Insert an array of values into the specified table.
     Args:
@@ -424,46 +424,89 @@ def insert_row(table, row, checked=False):
     # Check flag for multi row insert, if false check to make sure that the connection is open and active
     global row_seq
     row_temp = row_seq[table]
+    user = current_user
+    email = user.email
+    password = user.password
+    conn = psycopg2.connect(dbname="capstone", user=email, password=password, host = "localhost")
+    cur = conn.cursor()
 
-    if not checked:
-        if not check_conn():
-            return 0, connection_error_msg
+    # if not checked:
+    #     if not check_conn():
+    #         return 0, connection_error_msg
+    try:
+        cur.execute('SELECT 1')
+        cmd = f"INSERT INTO {table} VALUES ("
 
-    cmd = f"INSERT INTO {table} VALUES ("
+        # Determine whether to insert at a specific row number or use default
+        if row[0] is not None:
+            if row_number_exists(cur, int(row[0])):
+                failed_row = {
+                    'message': f'Row number {row[0]} already taken.'
+                }
+                return 0, failed_row
+            else:
+                cmd += str(row[0])
+        else:
+            # Loop through and update row seq to first available spot
+            while row_number_exists(cur, row_temp):
+                row_temp += 1
+            cmd += f"{row_temp}"
 
-    # Determine whether to insert at a specific row number or use default
-    if row[0] is not None:
-        if row_number_exists(pgSqlCur, int(row[0])):
+        for i in range(1, len(row)):
+            cmd += f", {fmt(row[i])}"
+        cmd += ")"
+        try:
+            cur.execute(cmd)
+            if not checked:
+                conn.commit()
+            if cur.rowcount == 1:
+                row_seq[table] = row_temp
+                return 1, None
+            else:
+                raise psycopg2.Error
+        except Exception as err:
+            sql_except(err)
             failed_row = {
-                'message': f'Row number {row[0]} already taken.'
+                'mrl': row[ColNames.MRL.value]
             }
             return 0, failed_row
-        else:
-            cmd += str(row[0])
-    else:
-        # Loop through and update row seq to first available spot
-        while row_number_exists(pgSqlCur,row_temp):
-            row_temp += 1
-        cmd += f"{row_temp}"
-
-    for i in range(1, len(row)):
-        cmd += f", {fmt(row[i])}"
-    cmd += ")"
-    try:
-        pgSqlCur.execute(cmd)
-        if not checked:
-            pgSqlConn.commit()
-        if pgSqlCur.rowcount == 1:
-            row_seq[table] = row_temp
-            return 1, None
-        else:
-            raise psycopg2.Error
-    except Exception as err:
-        sql_except(err)
-        failed_row = {
-            'mrl': row[ColNames.MRL.value]
-        }
-        return 0, failed_row
+    except:
+        return "Can't connect to DB"
+    # cmd = f"INSERT INTO {table} VALUES ("
+    #
+    # # Determine whether to insert at a specific row number or use default
+    # if row[0] is not None:
+    #     if row_number_exists(pgSqlCur, int(row[0])):
+    #         failed_row = {
+    #             'message': f'Row number {row[0]} already taken.'
+    #         }
+    #         return 0, failed_row
+    #     else:
+    #         cmd += str(row[0])
+    # else:
+    #     # Loop through and update row seq to first available spot
+    #     while row_number_exists(pgSqlCur,row_temp):
+    #         row_temp += 1
+    #     cmd += f"{row_temp}"
+    #
+    # for i in range(1, len(row)):
+    #     cmd += f", {fmt(row[i])}"
+    # cmd += ")"
+    # try:
+    #     pgSqlCur.execute(cmd)
+    #     if not checked:
+    #         pgSqlConn.commit()
+    #     if pgSqlCur.rowcount == 1:
+    #         row_seq[table] = row_temp
+    #         return 1, None
+    #     else:
+    #         raise psycopg2.Error
+    # except Exception as err:
+    #     sql_except(err)
+    #     failed_row = {
+    #         'mrl': row[ColNames.MRL.value]
+    #     }
+    #     return 0, failed_row
 
 
 def process_file(f):
@@ -623,29 +666,26 @@ def restore_row(row_num):
             sql_except(err)
             return 0, str(err)
 
-        # insert the row
-
 
 def create_db_user(name, password, admin):
     """
     Function to create the new user in the database when they are created on webserver
-    :return:
+    Args:   name(str) - username for new user
+            password(str) - password for new user
+            admin(bool) - flag if new user should be added to admin group
     """
-    uname = name
-    upassword = password
-    # admin = True
     try:
         if admin:
-            cmd = f'CREATE USER "{uname}" WITH PASSWORD \'{upassword}\' IN GROUP adminaccess;'
+            cmd = f'CREATE USER "{name}" WITH PASSWORD \'{password}\' IN GROUP adminaccess;'
         else:
-            cmd = f'CREATE USER "{uname}" WITH PASSWORD \'{upassword}\' IN GROUP writeaccess;'
+            cmd = f'CREATE USER "{name}" WITH PASSWORD \'{password}\' IN GROUP writeaccess;'
         pgSqlCur.execute(cmd)
         success = pgSqlCur.statusmessage
         if success == "CREATE ROLE":
             pgSqlConn.commit()
-            return 1,f'User {uname} created in the postgresDB'
+            return 1, f'User {name} created in the postgresDB'
         else:
-            return 0, f'User {uname} could not be added to the postgresDB'
+            return 0, f'User {name} could not be added to the postgresDB'
 
     except psycopg2.Error as err:
         sql_except(err)

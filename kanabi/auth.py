@@ -59,7 +59,7 @@ def signup_post():
     db.session.add(new_user)
     db.session.commit()
     #add new user into the postgres database
-    create_db_user(email, password, new_user.is_admin)
+    create_db_user(email, new_user.password, new_user.is_admin)
     return make_gui_response(json_header, 200, 'OK')
 
 
