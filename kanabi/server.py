@@ -263,7 +263,7 @@ def load_data():
                     return make_response(jsonify(result_obj.get('error_msg')), 400)
                 result = {
                     'message': 'File processed, but with failed rows:',
-                    'result': result_obj.__str__()
+                    'result': result_obj
                 }
                 return make_response(jsonify(result), 400)
 

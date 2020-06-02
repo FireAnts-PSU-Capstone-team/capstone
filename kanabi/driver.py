@@ -19,7 +19,7 @@ test_file = 'resources/sample.xlsx'
 primary_table = 'intake'
 metadata_table = 'metadata'
 connection_error_msg = 'The connection to the database is closed and cannot be opened. Verify DB server is up.'
-row_seq = { "intake": 1, "violations": 1, "records": 1 }
+row_seq = { "intake": 1, "violations": 1, "records": 1, "reports": 1 }
 
 
 # TODO: refactor to remove duplicated code
@@ -460,7 +460,7 @@ def insert_row(table, row, checked=False):
 
         # if first column is not row#, then almost this is the title
         # after add a row#, add this first column as string
-        if (isinstance(row[0], str)):
+        if not (isinstance(row[0], int)):
             cmd += ",'" + str(row[0]) + "'"
 
 
