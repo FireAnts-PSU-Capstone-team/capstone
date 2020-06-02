@@ -613,49 +613,84 @@ def process_file(f, current_user):
     #     return failed_insertions == 0, result_obj
 
 
-def delete_row(table, row_nums):
+def delete_row(table, row_nums, current_user):
     """
     Args:
         table (str): table name to delete row from
         row_nums ([int]): the rowId(s) to delete
+        current_user (User): info of sessions user making funciton call, used to create db connection
     Returns (bool, dict): Boolean is successful or not, dict contains processed info
     """
     success = False
     delete_info = {}
-    if not check_conn():
-        return 0, connection_error_msg
-    else:
-        # verify table is within the db
-        if table not in db_tables:
-            raise InvalidTableException
-        # convert each row_num to digit;
+    try:
+        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=current_user.email, password=current_user.password, host="localhost")
+        cur = conn.cursor()
+        conn.commit()
+    except (Exception, psycopg2.DatabaseError) as error:
+        return connection_error_msg, 404
+    # verify table is within the db
+    if table not in db_tables:
+        raise InvalidTableException
+    # convert each row_num to digit;
+    try:
+        row_nums = list(map(int, row_nums))
+    except ValueError:
+        raise InvalidRowException
+    for row in row_nums:
+        if row <= 0:
+            delete_info[f'Row {str(row)}'] = 'Invalid row number'
+            continue
+        cmd = f'DELETE FROM {table} WHERE "row" = {row};'
         try:
-            row_nums = list(map(int, row_nums))
-        except ValueError:
-            raise InvalidRowException
-        for row in row_nums:
-            if row <= 0:
-                delete_info[f'Row {str(row)}'] = 'Invalid row number'
-                continue
-            cmd = f'DELETE FROM {table} WHERE "row" = {row};'
-            try:
-                pgSqlCur.execute(cmd)
-                pgSqlConn.commit()
-                if pgSqlCur.rowcount == 1:
-                    success = True
-                    delete_info[f'Row {str(row)}'] = 'Successfully deleted'
-                else:
-                    delete_info[f'Row {str(row)}'] = 'Failed to delete'
+            cur.execute(cmd)
+            conn.commit()
+            if cur.rowcount == 1:
+                success = True
+                delete_info[f'Row {str(row)}'] = 'Successfully deleted'
+            else:
+                delete_info[f'Row {str(row)}'] = 'Failed to delete'
 
-            except psycopg2.Error as err:
-                sql_except(err)
-        if success:
-            return 'Deletion successful', delete_info
-        else:
-            return 'Some/all deletions failed', delete_info
+        except psycopg2.Error as err:
+            sql_except(err)
+    if success:
+        return 'Deletion successful', delete_info
+    else:
+        return 'Some/all deletions failed', delete_info
+    # if not check_conn():
+    #     return 0, connection_error_msg
+    # else:
+    #     # verify table is within the db
+    #     if table not in db_tables:
+    #         raise InvalidTableException
+    #     # convert each row_num to digit;
+    #     try:
+    #         row_nums = list(map(int, row_nums))
+    #     except ValueError:
+    #         raise InvalidRowException
+    #     for row in row_nums:
+    #         if row <= 0:
+    #             delete_info[f'Row {str(row)}'] = 'Invalid row number'
+    #             continue
+    #         cmd = f'DELETE FROM {table} WHERE "row" = {row};'
+    #         try:
+    #             pgSqlCur.execute(cmd)
+    #             pgSqlConn.commit()
+    #             if pgSqlCur.rowcount == 1:
+    #                 success = True
+    #                 delete_info[f'Row {str(row)}'] = 'Successfully deleted'
+    #             else:
+    #                 delete_info[f'Row {str(row)}'] = 'Failed to delete'
+    #
+    #         except psycopg2.Error as err:
+    #             sql_except(err)
+    #     if success:
+    #         return 'Deletion successful', delete_info
+    #     else:
+    #         return 'Some/all deletions failed', delete_info
 
 
-def update_table(table, row, update_columns):
+def update_table(table, row, update_columns, user):
     """
     Update one row (multiple columns) for a target table
     Args:
@@ -664,6 +699,12 @@ def update_table(table, row, update_columns):
         update_columns (dict): obj of {column_name: new value, ... }
     Returns (bool, str): bool is successful or not, str includes processing info
     """
+    try:
+        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password, host="localhost")
+        cur = conn.cursor()
+        conn.commit()
+    except (Exception, psycopg2.DatabaseError) as error:
+        return connection_error_msg, 404
     col_str = ''
     arg_str = ''
     exe_arg_str = ''
@@ -684,14 +725,14 @@ def update_table(table, row, update_columns):
     exe_arg_str = exe_arg_str[1:]
 
     try:
-        pgSqlCur.execute(f"deallocate all;\
+        cur.execute(f"deallocate all;\
         prepare update_table({arg_str},integer) as \
         update {table} \
         set {col_str} \
         where row = ${arg_num};")
-        pgSqlCur.execute(f'execute update_table({exe_arg_str},{row});')
+        cur.execute(f'execute update_table({exe_arg_str},{row});')
 
-        if pgSqlCur.rowcount != 1:
+        if cur.rowcount != 1:
             # the target row is not updated
             return 0, 'Update failed, please check if the row exists'
 
@@ -700,7 +741,7 @@ def update_table(table, row, update_columns):
         return 0, str(err)
 
     # commit if no error
-    pgSqlConn.commit()
+    conn.commit()
     return 1, 'Updated successfully'
 
 

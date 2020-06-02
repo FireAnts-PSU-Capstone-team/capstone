@@ -281,7 +281,7 @@ def delete_row():
         return make_response(jsonify('Table name or row number not supplied.'), 400)
     try:
         row_nums = str.split(row_nums.strip(), ' ')
-        table_info_obj = driver.delete_row(table_name, row_nums)
+        table_info_obj = driver.delete_row(table_name, row_nums, current_user)
         return make_response(jsonify(table_info_obj), 200)
     except driver.InvalidTableException:
         return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
@@ -332,7 +332,7 @@ def update_table():
         return make_response(jsonify(result), 400)
 
     # only update intake table now
-    response_body = driver.update_table('intake', row, update_columns)
+    response_body = driver.update_table('intake', row, update_columns, current_user)
     result = {'message': response_body[1]}
     if response_body[0] == 0:
         # error on updating
