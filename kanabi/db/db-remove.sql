@@ -14,8 +14,6 @@ DROP FUNCTION IF EXISTS change_fnc;
 
 DROP FUNCTION IF EXISTS check_insertion_fnc;
 
-DROP SEQUENCE IF EXISTS public.intake_row_seq CASCADE;
-
 DROP SEQUENCE IF EXISTS public.txn_history_id_seq CASCADE;
 
 DROP SEQUENCE IF EXISTS public.archive_row_seq CASCADE;

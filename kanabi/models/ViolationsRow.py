@@ -39,7 +39,7 @@ class ViolationsRow:
         'admin_rvw_decision_date',
         'admin_rvw_violation_amount',
         'certified_num',
-        'certified_reciept_returned',
+        'certified_receipt_returned',
         'date_paid_waived',
         'receipt_no',
         'cash_amt',
@@ -66,7 +66,7 @@ class ViolationsRow:
         self.admin_rvw_decision_date = input_json.get('Admin Rvw Decision Date')
         self.admin_rvw_violation_amount = input_json.get('Admin Rvw Violation Amount')
         self.certified_num = input_json.get('Certified #')
-        self.certified_reciept_returned = input_json.get('Certified receipt returned')
+        self.certified_receipt_returned = input_json.get('Certified receipt returned')
         self.date_paid_waived = input_json.get('Date paid/ Waived')
         self.receipt_no = input_json.get('Receipt No.')
         self.cash_amt = input_json.get('Cash Amount')
@@ -82,6 +82,6 @@ class ViolationsRow:
         """
         return [self.row, self.dba, self.address, self.mrl, self.license_type, self.violation_sent_date,
                 self.original_violation_amount, self.admin_rvw_decision_date, self.admin_rvw_violation_amount,
-                self.certified_num, self.certified_reciept_returned,
+                self.certified_num, self.certified_receipt_returned,
                 self.date_paid_waived, self.receipt_no, self.cash_amt,
                 self.check_amt, self.card_amt, self.check_num, self.notes]

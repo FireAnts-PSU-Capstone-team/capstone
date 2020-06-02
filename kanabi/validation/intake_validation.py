@@ -113,7 +113,9 @@ def validate_license_type(lic):
 
 
 def validate_receipt_num(receiptNo):
+
     return str(receiptNo).isdigit()
+
 
 
 def validate_mrl(mrl):
@@ -124,7 +126,7 @@ def validate_mrl(mrl):
         m = mrl.upper().split('-')[0]
         if m[0:3] != "MRL" or not m[3:].isdigit() or m in seen_mrls:
             return False
-        seen_mrls[m] = 1
+        #seen_mrls[m] = 1
         return True
     except (ValueError, AttributeError):
         return False
