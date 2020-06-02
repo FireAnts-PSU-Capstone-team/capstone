@@ -88,6 +88,8 @@ def register_admin_post():
                         is_admin=True, is_editor=True)
         db.session.add(new_user)
         db.session.commit()
+        # add new user into the postgres database with admin access
+        driver.create_db_user(email, new_user.password, new_user.is_admin)
         return make_gui_response(json_header, 200, 'OK')
 
 
@@ -354,7 +356,7 @@ def restore_record():
         return make_response(jsonify('Row number not supplied.'), 400)
     try:
         row_num = str.split(row_num.strip(), ' ')
-        table_info_obj = driver.restore_row(row_num)
+        table_info_obj = driver.restore_row(row_num, current_user)
         return make_response(jsonify(table_info_obj), 200)
     except driver.InvalidRowException:
         return make_response(jsonify('Row '.join(row_num) + ' could not be restored automatically. '

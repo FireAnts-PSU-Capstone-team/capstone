@@ -745,39 +745,69 @@ def update_table(table, row, update_columns, user):
     return 1, 'Updated successfully'
 
 
-def restore_row(row_num):
+def restore_row(row_num, user):
     """
     Function to restore a row that was previously deleted from a table
     Args:   row_num(int) - row number in the archive table of data to restore
     Returns (bool/str):  Bool success or not, str contains process info
     """
+    try:
+        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password, host="localhost")
+        cur = conn.cursor()
+        conn.commit()
+    except (Exception, psycopg2.DatabaseError) as error:
+        return connection_error_msg, 404
     restore_info={}
-    if not check_conn():
-        return 0, connection_error_msg
-    else:
-        try:
-            row_num = list(map(int, row_num))
-        except ValueError:
-            raise InvalidRowException
-        # get the archive row to be restored
-        try:
-            for row in row_num:
-                cmd = f'SELECT restore_row({row});'
-                pgSqlCur.execute(cmd)
-                success = pgSqlCur.fetchone()
-                if success[0] == True:
-                    restore_info[f'Row {str(row)}'] = 'Successfully restored'
-                    pgSqlConn.commit()
-                else:
-                    restore_info[f'Row {str(row)}'] = 'Failed to restore'
-            return success[0], restore_info
 
-        except psycopg2.IntegrityError as err:
-            return 0, "Can't restore the row. This can be 1 of three reasons, Row already populated, MRL already exists or receipt Num is not unique to the table."
+    try:
+        row_num = list(map(int, row_num))
+    except ValueError:
+        raise InvalidRowException
+    # get the archive row to be restored
+    try:
+        for row in row_num:
+            cmd = f'SELECT restore_row({row});'
+            cur.execute(cmd)
+            success = cur.fetchone()
+            if success[0] == True:
+                restore_info[f'Row {str(row)}'] = 'Successfully restored'
+                conn.commit()
+            else:
+                restore_info[f'Row {str(row)}'] = 'Failed to restore'
+        return success[0], restore_info
 
-        except psycopg2.Error as err:
-            sql_except(err)
-            return 0, str(err)
+    except psycopg2.IntegrityError as err:
+        return 0, "Can't restore the row. This can be 1 of three reasons, Row already populated, MRL already exists or receipt Num is not unique to the table."
+
+    except psycopg2.Error as err:
+        sql_except(err)
+        return 0, str(err)
+    # if not check_conn():
+    #     return 0, connection_error_msg
+    # else:
+    #     try:
+    #         row_num = list(map(int, row_num))
+    #     except ValueError:
+    #         raise InvalidRowException
+    #     # get the archive row to be restored
+    #     try:
+    #         for row in row_num:
+    #             cmd = f'SELECT restore_row({row});'
+    #             pgSqlCur.execute(cmd)
+    #             success = pgSqlCur.fetchone()
+    #             if success[0] == True:
+    #                 restore_info[f'Row {str(row)}'] = 'Successfully restored'
+    #                 pgSqlConn.commit()
+    #             else:
+    #                 restore_info[f'Row {str(row)}'] = 'Failed to restore'
+    #         return success[0], restore_info
+    #
+    #     except psycopg2.IntegrityError as err:
+    #         return 0, "Can't restore the row. This can be 1 of three reasons, Row already populated, MRL already exists or receipt Num is not unique to the table."
+    #
+    #     except psycopg2.Error as err:
+    #         sql_except(err)
+    #         return 0, str(err)
 
 
 def create_db_user(name, password, admin):
