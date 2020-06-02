@@ -131,7 +131,7 @@ function run_test() {
 
         echo "5. Loading spreadsheet \"${testing_spreadsheet}\""
         
-        out=$(curl -X POST -s --form "file=@${testing_spreadsheet}" ${prefixed_host}:${server_port}/load?table=intake ${self_signed})
+        out=$(curl -X POST -s --form "file=@${testing_spreadsheet}" ${prefixed_host}:${server_port}/load?table=${primary_table} ${self_signed})
         echo ${out} | grep "File processed successfully" > /dev/null
         if [[ $? == 0 ]]
         then

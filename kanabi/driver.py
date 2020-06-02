@@ -145,13 +145,15 @@ def fmt(s):
         s: the input element
     Returns (str): a SQL-friendly string representation
     """
-    if s is None or str(s).lower() == 'nan' or str(s) == '':
+    if s is None or str(s) == '':
         s = "NULL"
     else:
         if type(s) is str:
             s = "'" + str(s).replace('"', '').replace("'", "") + "'"  # strip quotation marks
+        elif str(s).lower() == 'nan' or str(s).lower() == 'nat':      # s MUST not be str
+            s = "NULL"
         else:
-            s = str(s)
+            s = "'" + str(s) + "'"
     return s
 
 
@@ -438,8 +440,8 @@ def insert_row(table, row, checked=False):
     cmd = f"INSERT INTO {table} VALUES ("
 
     # Determine whether to insert at a specific row number or use default
-    if row[0] is not None:
-        if row_number_exists(pgSqlCur, int(row[0])):
+    if (row[0] is not None) and (isinstance(row[0], int)):
+        if row_number_exists(pgSqlCur, int(row[0]), table):
             failed_row = {
                 # 'submission_date': row[1],
                 # 'entity': row[2],
@@ -452,9 +454,15 @@ def insert_row(table, row, checked=False):
             cmd += str(row[0])
     else:
         # Loop through and update row seq to first available spot
-        while row_number_exists(pgSqlCur,row_temp):
+        while row_number_exists(pgSqlCur,row_temp,table):
             row_temp += 1
         cmd += f"{row_temp}"
+
+        # if first column is not row#, then almost this is the title
+        # after add a row#, add this first column as string
+        if (isinstance(row[0], str)):
+            cmd += ",'" + str(row[0]) + "'"
+
 
     for i in range(1, len(row)):
         cmd += f", {fmt(row[i])}"
@@ -486,34 +494,34 @@ def process_file(table, file):
     # check to make sure that the connection is open and active
     if not check_conn():
         return 0, connection_error_msg
-    
-    if table not in db_tables:
-        raise InvalidTableException
     else:
+        if table not in db_tables:
+            raise InvalidTableException
+
         # read file content
-        df = pd.read_excel(f)
-        # Validate data frame
-        valid, error_msg = validate_intake(df)
+        df = pd.read_excel(file)
 
-    # read file content
-    df = pd.read_excel(file)
-    # Validate data frame
-    valid, error_msg = validate_dataframe(df)
+        if(table == primary_table):
+            # Validate data frame
+            valid, error_msg = validate_intake(df)
+        else:
+            # not validating other table than primary table for now
+            valid = True
 
-    # Write the data to the DB
-    result_obj = write_info_data(df, table)
-    # insert metadata into metadata table
-    # should add version and revision to this schema, but don't know types yet
-    metadata = read_metadata(file)
+        # Write the data to the DB
+        result_obj = write_info_data(df, table)
+        # insert metadata into metadata table
+        # should add version and revision to this schema, but don't know types yet
+        metadata = read_metadata(file)
 
-    write_metadata(metadata)
+        write_metadata(metadata)
 
-    # commit execution
-    pgSqlConn.commit()
-    if not valid:
-        result_obj['failed_rows'] = error_msg
-    failed_insertions = result_obj['insertions_attempted'] - result_obj['insertions_successful']
-    return failed_insertions == 0, result_obj
+        # commit execution
+        pgSqlConn.commit()
+        if not valid:
+            result_obj['failed_rows'] = error_msg
+        failed_insertions = result_obj['insertions_attempted'] - result_obj['insertions_successful']
+        return failed_insertions == 0, result_obj
 
 
 def delete_row(table, row_nums):
@@ -601,7 +609,7 @@ def update_table(table, row, update_columns):
         # validate inserted row
         pgSqlCur.execute(f"select * from {table} where row = {row}")
         new_row = pgSqlCur.fetchall()
-        (valid, error_msg) = validate_dataframe(pd.json_normalize(table_rows_to_dict(new_row)), 1)
+        (valid, error_msg) = validate_intake(pd.json_normalize(table_rows_to_dict(new_row)), 1)
         if not valid:
             pgSqlCur.execute("ROLLBACK")
             return (0, error_msg)

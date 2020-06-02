@@ -188,7 +188,7 @@ def fetch_data():
 
 
 @main_bp.route("/load", methods=["PUT", "POST"])
-@error_catching
+# @error_catching
 def load_data():
     """
     Load data into the database. PUT inserts a single row; POST uploads a file.
@@ -291,7 +291,7 @@ def load_data():
                     return make_response(jsonify(result_obj.get('error_msg')), 400)
                 result = {
                     'message': 'File processed, but with failed rows:',
-                    'result': result_obj
+                    'result': result_obj.__str__()
                 }
                 return make_response(jsonify(result), 400)
 
