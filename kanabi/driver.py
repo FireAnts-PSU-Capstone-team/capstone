@@ -460,7 +460,7 @@ def insert_row(table, row, checked=False):
 
         # if first column is not row#, then almost this is the title
         # after add a row#, add this first column as string
-        if not (isinstance(row[0], int)):
+        if not (isinstance(row[0], int)) and (row[0] is not None):
             cmd += ",'" + str(row[0]) + "'"
 
 
@@ -612,6 +612,7 @@ def update_table(table, row, update_columns):
         (valid, error_msg) = validate_intake(pd.json_normalize(table_rows_to_dict(new_row)), 1)
         if not valid:
             pgSqlCur.execute("ROLLBACK")
+            pgSqlConn.commit()
             return (0, error_msg)
 
     except psycopg2.Error as err:

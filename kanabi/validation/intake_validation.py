@@ -81,7 +81,7 @@ intake_db_columns = {
 
 def validateEndorsement(endorsementList):
     # validates that each of the involved substrings are one of the endorse types and none are repeated.
-    stringEndorsement = str(endorsementList).upper()
+    stringEndorsement = str(endorsementList).upper().strip()
     if len(stringEndorsement) == 0 or stringEndorsement.lower() == 'nan':  # This is a valid outcome
         return True
     splitEndorse = stringEndorsement.split(',')
@@ -160,7 +160,7 @@ def validatePhoneNumber(phone):
 def validate_monetary_amount(amt):
     try:
         s = str(amt)
-        if len(s) == 0 or s.upper() == 'NAN':
+        if len(s) == 0 or s.upper() == 'NAN' or s == 'None':
             return True
         if s[0] == '$':
             s = s[1:]
@@ -179,17 +179,23 @@ def validate_intake(df, is_db = 0):
 
     for row in df.itertuples(index=False):
         errorString = []
+       
         # Submission Date: parseable into a datetime
         try:
-            pd.to_datetime(row[ColNames.SUBMISSION_DATE.value], format='%m/%d/%y', errors="raise")
+            if(is_db):
+                pd.to_datetime(row[ColNames.SUBMISSION_DATE.value], format='%Y-%m-%d', errors="raise")
+            else:
+                pd.to_datetime(row[ColNames.SUBMISSION_DATE.value], format='%m/%d/%y', errors="raise")
         except ValueError:
             errorString.append(ColNames.SUBMISSION_DATE.name)
+       
         # Fields that shouldn't be null but aren't subject to other validation
         non_nulls = [ColNames.ENTITY, ColNames.FACILITY_ADDRESS, ColNames.MAILING_ADDRESS,
                      ColNames.PRIMARY_CONTACT_FIRST_NAME, ColNames.PRIMARY_CONTACT_LAST_NAME]
         for field in non_nulls:
             if row[field.value] == np.nan:
                 errorString.append(field.name)
+        
         # Facility Zip: 5-digit number
         try:
             valid_zip = 0 <= int(row[ColNames.FACILITY_ZIP.value]) < 100000
@@ -197,45 +203,57 @@ def validate_intake(df, is_db = 0):
             valid_zip = False
         if not valid_zip:
             errorString.append(ColNames.FACILITY_ZIP.name)
+        
         # MRL
         if not validate_mrl(row[ColNames.MRL.value]):
             errorString.append(ColNames.MRL.name)
+        
         # Neighborhood Association: in approved list
         if not row[ColNames.NEIGHBORHOOD_ASSOCIATION.value] in validNeighborhoods:
             errorString.append(ColNames.NEIGHBORHOOD_ASSOCIATION.name)
+        
         # Compliance Region
         if not row[ColNames.COMPLIANCE_REGION.value] in valid_compliance_regions:
             errorString.append(ColNames.COMPLIANCE_REGION.name)
+        
         # Email - matches regex
         try:
             if not re.match(emailRegex, row[ColNames.EMAIL.value]):
                 errorString.append(ColNames.EMAIL.name)
         except:  # any error, honestly
             errorString.append(ColNames.EMAIL.name)
+        
         # Phone: coerceable into a 10-digit number
         if not validatePhoneNumber(row[ColNames.PHONE.value]):
             errorString.append(ColNames.PHONE.name)
+
         # Endorsement: combination from approved list
         if not validateEndorsement(row[ColNames.ENDORSE_TYPE.value]):
             errorString.append(ColNames.ENDORSE_TYPE.name)
+        
         # License Type: matches expected values
         if not validate_license_type(row[ColNames.LICENSE_TYPE.value]):
             errorString.append(ColNames.LICENSE_TYPE.name)
+        
         # Repeat location: not checked
         # App complete: not checked
         # Fee schedule: not checked
         # Receipt num: numeric value with no repeats
         if not validate_receipt_num(row[ColNames.RECEIPT_NUM.value]):
             errorString.append(ColNames.RECEIPT_NUM.name)
+        
         # Cash amount: number, possibly preceded by '$'
         if not validate_monetary_amount(row[ColNames.CASH_AMOUNT.value]):
             errorString.append(ColNames.CASH_AMOUNT.name)
+        
         # Check amount: number, possibly preceded by '$'
         if not validate_monetary_amount(row[ColNames.CHECK_AMOUNT.value]):
             errorString.append(ColNames.CHECK_AMOUNT.name)
+        
         # Card amount: number, possibly preceded by '$'
         if not validate_monetary_amount(row[ColNames.CARD_AMOUNT.value]):
             errorString.append(ColNames.CARD_AMOUNT.name)
+        
         # Check No./Approval Code: no validation
         # MRL num: not checked
         if len(errorString) != 0:
