@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, make_response, request, session
 from flask_login import login_required
-from flask_principal import Permission, RoleNeed
+from flask_principal import Permission, RoleNeed, PermissionDenied
 from pandas.io.json import json_normalize
 
 from werkzeug.security import generate_password_hash
@@ -16,6 +16,7 @@ from .model import User
 UPLOAD_FOLDER = 'resources'
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
 json_header = {"Content-Type": "application/json"}
+admin_only_tables = ['archive', 'txn_history']
 
 main_bp = Blueprint('main_bp', __name__)
 
@@ -60,7 +61,6 @@ def index():
 
 
 # Admin tools endpoint. Uses decorators with flask principal to enforce role-related access
-# TODO: these are missing
 @main_bp.route("/admin")
 @admin_permission.require(http_exception=403)
 def admin_tools():
@@ -146,6 +146,14 @@ def fetch_data():
     Returns ({}): JSON object of table data
     """
     if request.method == 'POST':
+        table = request.json.get('table')
+        if table is None:
+            return make_response(jsonify('Table name not supplied.'), 400)
+
+        # if table is admin-only, require admin status
+        if table in admin_only_tables and not session['is_admin']:
+            return make_response(jsonify('User must be logged in as admin to access this resource'), 403)
+
         query, response, status = driver.filter_table(request.json)
         return make_response(jsonify(response), status)
 
@@ -154,10 +162,14 @@ def fetch_data():
         if table_name is None:
             return make_response(jsonify('Table name not supplied.'), 400)
         try:
-            # TODO: once authentication is in place, restrict the tables that can be listed here
             columns = request.args.get('column')
             if columns is not None:
                 columns = str.split(columns.strip(), ' ')
+
+            # if table is admin-only, require admin status
+            if table_name in admin_only_tables and not session['is_admin']:
+                return make_response(jsonify('User must be logged in as admin to access this resource'), 403)
+
             table_info_obj = driver.get_table(table_name, columns)
             return make_response(jsonify(table_info_obj), 200)
         except driver.InvalidTableException:
@@ -351,9 +363,9 @@ def update_table():
     else:
         # succeed on updating
         return make_response(jsonify(result), 200)
-        
 
-@main_bp.route('/restore', methods = ['PUT'])
+
+@main_bp.route('/restore', methods=['PUT'])
 def restore_record():
     """
     Restore a record from the archive table to its original table
@@ -380,5 +392,3 @@ def hello_world():
 @main_bp.route('/<path:path>', methods=["PUT", "POST", "GET"])
 def catch_all(path):
     return make_response(jsonify('The requested endpoint does not exist.'), 404)
-
-
