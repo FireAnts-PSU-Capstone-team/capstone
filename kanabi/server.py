@@ -1,7 +1,8 @@
 from flask import Blueprint, jsonify, make_response, request, session
 from flask_login import login_required
-from flask_principal import Permission, RoleNeed
+from flask_principal import Permission, RoleNeed, PermissionDenied
 from pandas.io.json import json_normalize
+import markdown, markdown.extensions.fenced_code
 
 from werkzeug.security import generate_password_hash
 from functools import wraps
@@ -16,6 +17,7 @@ from .model import User
 UPLOAD_FOLDER = 'resources'
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
 json_header = {"Content-Type": "application/json"}
+admin_only_tables = ['archive', 'txn_history']
 
 main_bp = Blueprint('main_bp', __name__)
 
@@ -42,7 +44,7 @@ def write_permission(function):
 
     return wrapper
 
-
+  
 # Custom decorator that catches any server errors and return an appropriate response that includes CORS headers
 def error_catching(function):
     @wraps(function)
@@ -58,9 +60,8 @@ def error_catching(function):
 def index():
     return make_gui_response(json_header, 200, 'Hello World')
 
-
+  
 # Admin tools endpoint. Uses decorators with flask principal to enforce role-related access
-# TODO: these are missing
 @main_bp.route("/admin")
 @admin_permission.require(http_exception=403)
 def admin_tools():
@@ -76,12 +77,10 @@ def register_admin():
         return make_gui_response(json_header, 400, msg)
     return make_gui_response(json_header, 200, 'OK')
 
-
 @main_bp.route("/usrhello")
 @login_required
 def usr_hello():
     return make_gui_response(json_header, 200, 'OK')
-
 
 # Creates the 'admin' account in the database. Should be executed once and only once, immediately after project
 #   is created. This creates an admin-level user named 'admin' who can be used to conduct user setup
@@ -99,7 +98,6 @@ def register_admin_post():
         db.session.add(new_user)
         db.session.commit()
         return make_gui_response(json_header, 200, 'OK')
-
 
 # Places the user into read-only mode
 @main_bp.route("/enablereadonly")
@@ -146,6 +144,14 @@ def fetch_data():
     Returns ({}): JSON object of table data
     """
     if request.method == 'POST':
+        table = request.json.get('table')
+        if table is None:
+            return make_response(jsonify('Table name not supplied.'), 400)
+
+        # if table is admin-only, require admin status
+        if table in admin_only_tables and not session['is_admin']:
+            return make_response(jsonify('User must be logged in as admin to access this resource'), 403)
+
         query, response, status = driver.filter_table(request.json)
         return make_response(jsonify(response), status)
 
@@ -154,10 +160,14 @@ def fetch_data():
         if table_name is None:
             return make_response(jsonify('Table name not supplied.'), 400)
         try:
-            # TODO: once authentication is in place, restrict the tables that can be listed here
             columns = request.args.get('column')
             if columns is not None:
                 columns = str.split(columns.strip(), ' ')
+
+            # if table is admin-only, require admin status
+            if table_name in admin_only_tables and not session['is_admin']:
+                return make_response(jsonify('User must be logged in as admin to access this resource'), 403)
+
             table_info_obj = driver.get_table(table_name, columns)
             return make_response(jsonify(table_info_obj), 200)
         except driver.InvalidTableException:
@@ -351,9 +361,9 @@ def update_table():
     else:
         # succeed on updating
         return make_response(jsonify(result), 200)
-        
 
-@main_bp.route('/restore', methods = ['PUT'])
+
+@main_bp.route('/restore', methods=['PUT'])
 def restore_record():
     """
     Restore a record from the archive table to its original table
@@ -371,14 +381,14 @@ def restore_record():
         return make_response(jsonify('Row '.join(row_num) + ' could not be restored automatically. '
                                                             'Contact your admin to have it restored'), 404)
 
-
 @main_bp.route('/')
-def hello_world():
-    return make_response(jsonify('Hello World'), 200)
-
+def landing_page():
+    readme = open("./README.md", "r")
+    md = markdown.markdown(
+        readme.read(), extensions=["fenced_code"]
+    )
+    return md
 
 @main_bp.route('/<path:path>', methods=["PUT", "POST", "GET"])
 def catch_all(path):
     return make_response(jsonify('The requested endpoint does not exist.'), 404)
-
-
