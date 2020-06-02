@@ -75,6 +75,17 @@ def get_post_param():
         return make_response(jsonify(result), 400)
 
     return request_param
+    
+
+# Custom decorator that catches any server errors and return an appropriate response that includes CORS headers
+def error_catching(function):
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        try:
+            return function(*args, **kwargs)
+        except Exception as e:
+            return make_gui_response(json_header, 500, 'Something went wrong with our server. Exception: ' + str(e))
+    return wrapper
 
 
 @main_bp.route("/", methods=['GET'])
@@ -87,7 +98,6 @@ def index():
 @main_bp.route("/admin")
 @admin_permission.require(http_exception=403)
 def admin_tools():
-    # ???
     return make_gui_response(json_header, 200, 'OK')
 
 
@@ -178,6 +188,7 @@ def fetch_data():
 
 
 @main_bp.route("/load", methods=["PUT", "POST"])
+@error_catching
 def load_data():
     """
     Load data into the database. PUT inserts a single row; POST uploads a file.
@@ -219,11 +230,41 @@ def load_data():
                 'cause': 'duplicate row number'
             }
         else:
-            result = {
-                'message': 'PUT failed',
-                'fail_row': fail_row
-            }
-        return make_response(jsonify(result), 200)
+            try:
+                driver.get_table(table_name, None)
+            except driver.InvalidTableException:
+                return make_response(jsonify(f"Table {table_name} does not exist."), 404)
+
+            valid, error_msg = driver.validate_row(request.get_json(force=True))
+            if not valid:
+                result = {'failed_row': error_msg}
+                return make_response(jsonify(result), 400)
+            try:
+                row_data = IntakeRow(request.get_json(force=True)).value_array()
+            except (KeyError, ValueError):
+                message = {'message': 'Error encountered while parsing input'}
+                return make_response(jsonify(message), 400)
+
+            row_count, fail_row = driver.insert_row(table_name, row_data)
+            if row_count == 1:
+                status = 200
+                result = {
+                    'message': 'PUT completed',
+                    'rows_affected': row_count
+                }
+            elif row_count == -1:
+                status = 400
+                result = {
+                    'message': 'PUT failed',
+                    'cause': 'duplicate row number'
+                }
+            else:
+                status = 400
+                result = {
+                    'message': 'PUT failed',
+                    'fail_row': fail_row
+                }
+            return make_response(jsonify(result), status)
 
     elif request.method == 'POST':
         # return make_response(get_post_param())
@@ -349,3 +390,34 @@ def update_table():
     else:
         # succeed on updating
         return make_response(jsonify(result), 200)
+        
+
+@main_bp.route('/restore', methods = ['PUT'])
+def restore_record():
+    """
+    Restore a record from the archive table to its original table
+    Usage: /restore?row=<row_num>
+    Returns ({}): result of restoring the contents to the table.
+    """
+    row_num = request.args.get('row', '')
+    if row_num == '':
+        return make_response(jsonify('Row number not supplied.'), 400)
+    try:
+        row_num = str.split(row_num.strip(), ' ')
+        table_info_obj = driver.restore_row(row_num)
+        return make_response(jsonify(table_info_obj), 200)
+    except driver.InvalidRowException:
+        return make_response(jsonify('Row '.join(row_num) + ' could not be restored automatically. '
+                                                            'Contact your admin to have it restored'), 404)
+
+
+@main_bp.route('/')
+def hello_world():
+    return make_response(jsonify('Hello World'), 200)
+
+
+@main_bp.route('/<path:path>', methods=["PUT", "POST", "GET"])
+def catch_all(path):
+    return make_response(jsonify('The requested endpoint does not exist.'), 404)
+
+
