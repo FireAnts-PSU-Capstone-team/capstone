@@ -1,4 +1,5 @@
 import collections
+import json
 import os
 import sys
 import time
@@ -10,34 +11,15 @@ import psycopg2
 from openpyxl import load_workbook
 
 import kanabi.db.connection as c
-from kanabi.models.IntakeRow import ColNames, intake_headers
+from kanabi.models.IntakeRow import ColNames, intake_headers, IntakeRow
 from kanabi.query_parser import QueryParser, RequestParseException
-from kanabi.validation.intake_validation import validate_dataframe
+from kanabi.validation.intake_validation import validate_intake
 
 test_file = 'resources/sample.xlsx'
 primary_table = 'intake'
 metadata_table = 'metadata'
 connection_error_msg = 'The connection to the database is closed and cannot be opened. Verify DB server is up.'
-row_seq={"intake":1, "violations":1, "records":1}
-
-
-
-def get_table_list():
-    """
-    Gets the database's active tables.
-    Returns [str]: list of table names
-    """
-    try:
-        pgSqlCur.execute("""
-        SELECT table_name 
-        FROM information_schema.tables
-        WHERE table_name 
-        NOT LIKE 'pg_%'
-            AND table_schema='public'; 
-        """)
-        return str([x[0] for x in pgSqlCur.fetchall()])
-    except psycopg2.Error as err:
-        sql_except(err)
+row_seq = { "intake": 1, "violations": 1, "records": 1 }
 
 
 # TODO: refactor to remove duplicated code
@@ -47,11 +29,10 @@ while not is_connected:
     try:
         pgSqlCur, pgSqlConn = c.pg_connect()
         is_connected = True
-        db_tables = get_table_list()
     except:
         time.sleep(1)
         wait_time += 1
-        sys.stdout.write(f'\rConnecting to DB ... {wait_time}')
+        sys.stdout.write(f'\rConnecting to DB ... {wait_time}\n')
 
 
 def reconnectDB():
@@ -73,7 +54,7 @@ def reconnectDB():
         except:
             time.sleep(1)
             wait_time += 1
-            sys.stdout.write(f'\rConnecting to DB ... {wait_time}')
+            sys.stdout.write(f'\rConnecting to DB ... {wait_time}\n')
             if wait_time >= 30:
                 return False
     return True
@@ -215,7 +196,7 @@ class InvalidRowException(Exception):
     pass
 
 
-def filter_table(request_body):
+def filter_table(request_body: json) -> (str, json, int):
     """
     Return a JSON object representing the requested data from the table.
     Built to take a JSON request, which is parsed in order to construct a SQL query; returns the result of that query.
@@ -233,8 +214,27 @@ def filter_table(request_body):
     except RequestParseException as e:
         return 'JSON could not be parsed', e.msg, 400
     try:
+        # get our query results
         pgSqlCur.execute(query)
-        return query, pgSqlCur.fetchall(), 200
+        results = pgSqlCur.fetchall()
+        # get our column names
+        table = request_body['table']
+        col_names = request_body.get('columns')
+        if col_names is None:
+            if table == 'intake':
+                col_names = IntakeRow.__slots__
+            else:
+                return None, f"Querying table {table} is not supported", 400
+        # we need an array of objects where the keys are column names
+        ret = []
+        # results are in arrays, ordered by table index
+        num_results = len([x for x in results])
+        for row_num in range(num_results):
+            row_result = {}
+            for i, n in enumerate(col_names):
+                row_result[n] = results[row_num][i]
+            ret.append(row_result)
+        return query, ret, 200
     except psycopg2.Error as err:
         sql_except(err)
         return None, str(err), 400
@@ -407,7 +407,7 @@ def validate_row(json_item):
         json_item.update({'row': 999})
         json_item.move_to_end('row', last=False)
     df = pd.json_normalize(json_item)
-    return validate_dataframe(df)
+    return validate_intake(df)
 
 
 def insert_row(table, row, checked=False):
@@ -433,18 +433,15 @@ def insert_row(table, row, checked=False):
     if row[0] is not None:
         if row_number_exists(pgSqlCur, int(row[0])):
             failed_row = {
-                'submission_date': row[1],
-                'entity': row[2],
-                'dba': row[3],
                 'message': f'Row number {row[0]} already taken.'
             }
             return 0, failed_row
         else:
             cmd += str(row[0])
     else:
-        #Loop through and update row seq to first available spot
+        # Loop through and update row seq to first available spot
         while row_number_exists(pgSqlCur,row_temp):
-            row_temp+=1
+            row_temp += 1
         cmd += f"{row_temp}"
 
     for i in range(1, len(row)):
@@ -481,7 +478,7 @@ def process_file(f):
         # read file content
         df = pd.read_excel(f)
         # Validate data frame
-        valid, error_msg = validate_dataframe(df)
+        valid, error_msg = validate_intake(df)
 
         # Write the data to the DB
         result_obj = write_info_data(df)
