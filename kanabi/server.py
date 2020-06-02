@@ -1,23 +1,26 @@
+from functools import wraps
+from sqlite3 import DatabaseError
+
+import markdown
+import markdown.extensions.fenced_code
 from flask import Blueprint, jsonify, make_response, request, session, Response
 from flask_login import login_required, current_user
 from flask_principal import Permission, RoleNeed
-from pandas.io.json import json_normalize
-
-from werkzeug.security import generate_password_hash
-from functools import wraps
 from pandas import json_normalize
-from sqlite3 import DatabaseError
+from pandas.io.json import json_normalize
+from werkzeug.security import generate_password_hash
 
-from .models.IntakeRow import IntakeRow
 import kanabi.driver as driver
-from .responses import make_gui_response
-from .configure import db
-from .user import User
 from .auth import logout
+from .configure import db
+from .models.IntakeRow import IntakeRow
+from .responses import make_gui_response
+from .user import User
 
 UPLOAD_FOLDER = 'resources'
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
 json_header = {"Content-Type": "application/json"}
+admin_only_tables = ['archive', 'txn_history']
 
 main_bp = Blueprint('main_bp', __name__)
 
@@ -42,6 +45,17 @@ def write_permission(function):
         else:
             return function(*args, **kwargs)
 
+    return wrapper
+
+
+# Custom decorator that catches any server errors and return an appropriate response that includes CORS headers
+def error_catching(function):
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        try:
+            return function(*args, **kwargs)
+        except Exception as e:
+            return make_gui_response(json_header, 500, 'Something went wrong with our server. Exception: ' + str(e))
     return wrapper
 
 
@@ -253,6 +267,14 @@ def fetch_data():
     Returns ({}): JSON object of table data
     """
     if request.method == 'POST':
+        table = request.json.get('table')
+        if table is None:
+            return make_response(jsonify('Table name not supplied.'), 400)
+
+        # if table is admin-only, require admin status
+        if table in admin_only_tables and not session['is_admin']:
+            return make_response(jsonify('User must be logged in as admin to access this resource'), 403)
+
         query, response, status = driver.filter_table(request.json)
         return make_response(jsonify(response), status)
 
@@ -261,10 +283,14 @@ def fetch_data():
         if table_name is None:
             return make_response(jsonify('Table name not supplied.'), 400)
         try:
-            # TODO: once authentication is in place, restrict the tables that can be listed here
             columns = request.args.get('column')
             if columns is not None:
                 columns = str.split(columns.strip(), ' ')
+
+            # if table is admin-only, require admin status
+            if table_name in admin_only_tables and not session['is_admin']:
+                return make_response(jsonify('User must be logged in as admin to access this resource'), 403)
+
             table_info_obj = driver.get_table(table_name, columns)
             return make_response(jsonify(table_info_obj), 200)
         except driver.InvalidTableException:
@@ -272,6 +298,7 @@ def fetch_data():
 
 
 @main_bp.route("/load", methods=["PUT", "POST"])
+@error_catching
 def load_data():
     """
     Load data into the database. PUT inserts a single row; POST uploads a file.
@@ -479,8 +506,12 @@ def restore_record():
 
 
 @main_bp.route('/')
-def hello_world():
-    return make_response(jsonify('Hello World'), 200)
+def landing_page():
+    readme = open("./README.md", "r")
+    md = markdown.markdown(
+        readme.read(), extensions=["fenced_code"]
+    )
+    return md
 
 
 @main_bp.route('/<path:path>', methods=["PUT", "POST", "GET"])
