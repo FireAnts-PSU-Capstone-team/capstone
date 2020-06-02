@@ -1,1 +1,1 @@
-__all__ = ['auth', 'configure', 'driver', 'model', 'responses', 'server', 'intake_validation.py']
+__all__ = ['auth', 'configure', 'driver', 'user.py', 'responses', 'server', 'intake_validation.py']
