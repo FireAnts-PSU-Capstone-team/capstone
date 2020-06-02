@@ -76,6 +76,29 @@ def reconnectDB():
     return True
 
 
+def table_rows_to_dict(rows, columns=None):
+    result = []
+    column_names = []
+
+    for col in pgSqlCur.description:
+        column_names.append(col.name)
+
+    for row in rows:
+        a_row = {}
+        i = 0
+        for col in column_names:
+            if columns:
+                if col in columns:
+                    a_row[col] = row[i]
+            else:
+                a_row[col] = row[i]
+            i += 1
+
+        result.append(a_row)
+
+    return result
+
+
 def get_table_list():
     """
     Gets the database's active tables.
@@ -246,7 +269,6 @@ def get_table(table_name, columns):
     Returns ([str]): an object-notated dump of the table
     """
     result = []
-    column_names = []
 
     # check to make sure that the connection is open and active
     if not check_conn():
@@ -260,22 +282,8 @@ def get_table(table_name, columns):
         pgSqlCur.execute(f"select * from {table_name}")
         rows = pgSqlCur.fetchall()
 
-        for col in pgSqlCur.description:
-            column_names.append(col.name)
+        result = table_rows_to_dict(rows, columns)
 
-        for row in rows:
-            a_row = {}
-            i = 0
-            for col in column_names:
-                if columns:
-                    if col in columns:
-                        a_row[col] = row[i]
-                else:
-                    a_row[col] = row[i]
-                i += 1
-
-            result.append(a_row)
-            
     except Exception as err:
         sql_except(err)
 
@@ -317,7 +325,7 @@ def read_metadata(f):
     return data
 
 
-def write_info_data(df):
+def write_info_data(df, table):
     """
     Write data from spreadsheet to the information table.
     Args:
@@ -333,7 +341,7 @@ def write_info_data(df):
     total_count = len(row_array)
     for row in row_array:
         try:
-            re, failed_row = insert_row(primary_table, row, True)  # TODO: need to replace so we can name a table
+            re, failed_row = insert_row(table, row, True)  # TODO: need to replace so we can name a table
             if re == 1:
                 success_count += 1
             else:
@@ -427,9 +435,10 @@ def insert_row(table, row, checked=False):
     if row[0] is not None:
         if row_number_exists(pgSqlCur, int(row[0])):
             failed_row = {
-                'submission_date': row[1],
-                'entity': row[2],
-                'dba': row[3],
+                # 'submission_date': row[1],
+                # 'entity': row[2],
+                # 'dba': row[3],
+                'row': row[0],
                 'message': f'Row number {row[0]} already taken.'
             }
             return 0, failed_row
@@ -457,7 +466,7 @@ def insert_row(table, row, checked=False):
         return 0, failed_row
 
 
-def process_file(f):
+def process_file(table, file):
     """
     Read an Excel file; put info data into info table, metadata into metadata table
     Args:
@@ -467,26 +476,29 @@ def process_file(f):
     # check to make sure that the connection is open and active
     if not check_conn():
         return 0, connection_error_msg
-    else:
-        # read file content
-        df = pd.read_excel(f)
-        # Validate data frame
-        valid, error_msg = validate_dataframe(df)
+    
+    if table not in db_tables:
+        raise InvalidTableException
 
-        # Write the data to the DB
-        result_obj = write_info_data(df)
-        # insert metadata into metadata table
-        # should add version and revision to this schema, but don't know types yet
-        metadata = read_metadata(f)
+    # read file content
+    df = pd.read_excel(file)
+    # Validate data frame
+    valid, error_msg = validate_dataframe(df)
 
-        write_metadata(metadata)
+    # Write the data to the DB
+    result_obj = write_info_data(df, table)
+    # insert metadata into metadata table
+    # should add version and revision to this schema, but don't know types yet
+    metadata = read_metadata(file)
 
-        # commit execution
-        pgSqlConn.commit()
-        if not valid:
-            result_obj['failed_rows'] = error_msg
-        failed_insertions = result_obj['insertions_attempted'] - result_obj['insertions_successful']
-        return failed_insertions == 0, result_obj
+    write_metadata(metadata)
+
+    # commit execution
+    pgSqlConn.commit()
+    if not valid:
+        result_obj['failed_rows'] = error_msg
+    failed_insertions = result_obj['insertions_attempted'] - result_obj['insertions_successful']
+    return failed_insertions == 0, result_obj
 
 
 def delete_row(table, row_nums):
@@ -569,7 +581,15 @@ def update_table(table, row, update_columns):
 
         if pgSqlCur.rowcount != 1:
             # the target row is not updated
-            return 0, 'Update failed, please check if the row exists'
+            return (0, 'Update failed, please check if the row exists')
+
+        # validate inserted row
+        pgSqlCur.execute(f"select * from {table} where row = {row}")
+        new_row = pgSqlCur.fetchall()
+        (valid, error_msg) = validate_dataframe(pd.json_normalize(table_rows_to_dict(new_row)), 1)
+        if not valid:
+            pgSqlCur.execute("ROLLBACK")
+            return (0, error_msg)
 
     except psycopg2.Error as err:
         sql_except(err)
@@ -577,7 +597,7 @@ def update_table(table, row, update_columns):
 
     # commit if no error
     pgSqlConn.commit()
-    return 1, 'Updated successfully'
+    return (1, 'Updated successfully')
 
 
 # TODO: either delete this or update it

@@ -35,6 +35,34 @@ valid_endorsements = ["CT", "ED", "EX", "TO"]
 license_types = ['MD', 'MR', 'MC', 'MW', 'MP', 'MU']
 seen_mrls = {}
 
+intake_db_columns = {
+    'Submission date': ('Submission date', 'submission_date'),
+    'Entity': ('Entity', 'entity'),
+    'DBA': ('DBA', 'dba'),
+    'Facility Address': ('Facility Address', 'facility_address'),
+    'Facility Suite #': ('Facility Suite #', 'facility_suite'),
+    'Facility Zip': ('Facility Zip', 'facility_zip'),
+    'Mailing Address': ('Mailing Address', 'mailing_address'),
+    'MRL': ('MRL', 'mrl'),
+    'Neighborhood Association': ('Neighborhood Association', 'neighborhood_association'),
+    'Compliance Region': ('Compliance Region', 'compliance_region'),
+    'Primary Contact Name (first)': ('Primary Contact Name (first)','primary_contact_first_name'),
+    'Primary Contact Name (last)': ('Primary Contact Name (last)', 'primary_contact_last_name'),
+    'Email': ('Email','email'),
+    'Phone': ('Phone', 'phone'),
+    'Endorse Type': ('Endorse Type', 'endorse_type'),
+    'License Type': ('License Type', 'license_type'),
+    'Repeat location?': ('Repeat location?', 'repeat_license'),
+    'App complete?': ('App complete?','app_complete'),
+    'Fee Schedule':	('Fee Schedule'	,'fee_schedule'),
+    'Receipt No.': ('Receipt No.','receipt_num'),
+    'Cash Amount': ('Cash Amount','cash_amount'),
+    'Check Amount': ('Check Amount'	,'check_amount'),
+    'Card Amount': ('Card Amount','card_amount'),
+    'Check No. / Approval Code': ('Check No. / Approval Code', 'check_num'),
+    'MRL#': ('MRL#','mrl_num'),
+    'Notes': ('Notes','notes'),
+}
 
 # def validate_suite_number(x):
 #     try:
@@ -140,7 +168,7 @@ def validate_monetary_amount(amt):
         return False
 
 
-def validate_dataframe(df):
+def validate_dataframe(df, is_db = 0):
 
     i = 0
     msg = {}
@@ -218,19 +246,19 @@ def validate_dataframe(df):
         i += 1
 
     # Regularize the following values:
-    df['Submission date'] = df['Submission date'].apply(
+    df[intake_db_columns['Submission date'][is_db]] = df[intake_db_columns['Submission date'][is_db]].apply(
         lambda x: x.strftime('%m/%d/%y') if isinstance(x, datetime) else x
     )
     # Facility Address
-    df['Facility Address'] = df['Facility Address'].str.title()
+    df[intake_db_columns['Facility Address'][is_db]] = df[intake_db_columns['Facility Address'][is_db]].str.title()
     # Suite number
-    df['Facility Suite #'] = df['Facility Suite #'].str.strip()
+    df[intake_db_columns['Facility Suite #'][is_db]] = df[intake_db_columns['Facility Suite #'][is_db]].str.strip()
     # MRL
-    df['MRL'] = df['MRL'].str.strip()
+    df[intake_db_columns['MRL'][is_db]] = df[intake_db_columns['MRL'][is_db]].str.strip()
     # Phone numbers
-    df['Phone'] = df['Phone'].apply(replacePhoneNumber)
+    df[intake_db_columns['Phone'][is_db]] = df[intake_db_columns['Phone'][is_db]].apply(replacePhoneNumber)
     # Endorsement types
-    df['Endorse Type'] = df['Endorse Type'].apply(lambda x: str(x).strip())
+    df[intake_db_columns['Endorse Type'][is_db]] = df[intake_db_columns['Endorse Type'][is_db]].apply(lambda x: str(x).strip())
 
     # If dictionary is empty
     if not msg:
