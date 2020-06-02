@@ -243,7 +243,7 @@ def show_metadata():
     Display the contents of the metadata table.
     Returns ({}): response object containing the contents of the table.
     """
-    response_body = jsonify(driver.get_table('metadata', None))
+    response_body = jsonify(driver.get_table('metadata', None, current_user))
     return make_response(response_body, 200)
 
 
@@ -260,7 +260,7 @@ def export_csv():
         if table_name is None:
             return make_response(jsonify('Table name not supplied.'), 400)
         try:
-            table_output = driver.get_table(table_name, None)
+            table_output = driver.get_table(table_name, None, current_user)
             df = json_normalize(table_output)
             table_info_obj = df.to_csv(index=False)
             return make_response(table_info_obj, 200)
