@@ -77,9 +77,11 @@ class IntakeRow:
 
     def __init__(self, input_json):
         """
-        Constructor from a JSON object. Any unsupplied data defaults to None
+        Constructor from a JSON object. Any unsupplied data results in a KeyError
         Args:
             input_json ({}): JSON object representing a row of the intake table
+        Raises:
+            KeyError: if required field is missing
         """
 
         def check_to_exist(json, field):
@@ -128,3 +130,17 @@ class IntakeRow:
                 self.endorse_type, self.license_type,
                 self.repeat_license, self.app_complete, self.fee_schedule, self.receipt_num, self.cash_amount,
                 self.check_amount, self.card_amount, self.check_num, self.mrl_num, self.notes]
+
+
+def from_array(input_array: []) -> IntakeRow:
+    """
+    Constructs an instance of this class from an array of values
+    Args:
+        input_array ([]): array of values corresponding to the key-value pairs for a row
+    Returns (IntakeRow): an instance of IntakeRow
+
+    """
+    ret = {}
+    for i, h in enumerate(intake_headers):
+        ret[h] = input_array[i]
+    return IntakeRow(ret)

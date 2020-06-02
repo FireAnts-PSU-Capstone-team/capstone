@@ -43,12 +43,28 @@ def write_permission(function):
 
     return wrapper
 
+  
+# Custom decorator that catches any server errors and return an appropriate response that includes CORS headers
+def error_catching(function):
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        try:
+            return function(*args, **kwargs)
+        except Exception as e:
+            return make_gui_response(json_header, 500, 'Something went wrong with our server. Exception: ' + str(e))
+    return wrapper
+
+
+@main_bp.route("/", methods=['GET'])
+def index():
+    return make_gui_response(json_header, 200, 'Hello World')
+
+  
 # Admin tools endpoint. Uses decorators with flask principal to enforce role-related access
 # TODO: these are missing
 @main_bp.route("/admin")
 @admin_permission.require(http_exception=403)
 def admin_tools():
-    # ???
     return make_gui_response(json_header, 200, 'OK')
 
 
@@ -147,6 +163,7 @@ def fetch_data():
 
 
 @main_bp.route("/load", methods=["PUT", "POST"])
+@error_catching
 def load_data():
     """
     Load data into the database. PUT inserts a single row; POST uploads a file.
@@ -178,21 +195,24 @@ def load_data():
 
             row_count, fail_row = driver.insert_row(table_name, row_data)
             if row_count == 1:
+                status = 200
                 result = {
                     'message': 'PUT completed',
                     'rows_affected': row_count
                 }
             elif row_count == -1:
+                status = 400
                 result = {
                     'message': 'PUT failed',
                     'cause': 'duplicate row number'
                 }
             else:
+                status = 400
                 result = {
                     'message': 'PUT failed',
                     'fail_row': fail_row
                 }
-            return make_response(jsonify(result), 200)
+            return make_response(jsonify(result), status)
 
     elif request.method == 'POST':
         if 'file' not in request.files:

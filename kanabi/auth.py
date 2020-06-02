@@ -6,13 +6,9 @@ from .model import User
 from .configure import db
 from .responses import make_gui_response
 
+
 auth_bp = Blueprint('auth_bp', __name__)
 json_header = {"Content-Type": "application/json"}
-
-# Test Curls:
-# curl -k https://localhost:443/signup -X POST -d "email=joseph@gmail.com&name=joseph&password=pwd"
-# curl -k https://localhost:443/login -X POST -d "email=joseph@gmail.com&password=pwd" -c "test.cookie"
-# curl -k https://localhost:443/logout -c test.cookie -b test.cookie
 
 
 def fetch_user(email: str) -> User:
@@ -22,9 +18,34 @@ def fetch_user(email: str) -> User:
 # Uses flask-login to log the user in and update their identity in flask-principal
 @auth_bp.route('/login', methods=['POST'])
 def login():
-    email = request.form.get('email')
-    password = request.form.get('password')
-    remember = True if request.form.get('remember') else False
+    '''
+    # Log into account with a particular email and password
+    $ curl -k -X OPTIONS -H "Origin: GUI_DOMAIN" -H "Content-Type: application/json" --request POST \
+        --data '{"email":"EMAIL_ADDRESS","password":"PASSWORD","remember":"True"}' \
+        -c cookie.txt https://SERVER:PORT/login
+
+    # Response data from a successful login attempt (200 OK):
+      {
+        "return_msg": "OK",
+        "user": {
+          "email": "EMAIL_ADDRESS",
+          "is_admin": [true/false],
+          "name": "NAME",
+          "read_only_mode": false
+      }
+    }
+
+    # Response data from an unsuccessful login attempt (400 ERROR):
+    {
+      "return_msg": "Invalid Credentials",
+      "user": {
+        "logged_in": false
+      }
+    }
+    '''
+    email = request.json.get('email')
+    password = request.json.get('password')
+    remember = True if request.json.get('remember') else False
     user = fetch_user(email)
 
     # Check if user actually exists and compare provided and stored password hashes
@@ -44,9 +65,23 @@ def login():
 # Adds the user to the database and rejects duplicate emails
 @auth_bp.route('/signup', methods=['POST'])
 def signup_post():
-    email = request.form.get('email')
-    name = request.form.get('name')
-    password = request.form.get('password')
+    '''
+    # Creates a user account
+    $ curl -k -X OPTIONS -H "Origin: https://capstone.sugar.coffee" -H "Content-Type: application/json" \
+        --request POST --data '{"email":"lgunnell@pdx.edu","password":"pass","name":"True"}' \
+        https://localhost:443/signup
+
+    # Output from successful user signup (200 OK):
+    {
+      "return_msg": "OK",
+      "user": {
+       "logged_in": false
+      }
+    }
+    '''
+    email = request.json.get('email')
+    name = request.json.get('name')
+    password = request.json.get('password')
 
     # if a user is found, reject attempt
     if bool(fetch_user(email)):
@@ -65,6 +100,18 @@ def signup_post():
 @auth_bp.route('/logout', methods=['GET'])
 @login_required
 def logout():
+    '''
+    # Sign out to end the current user session
+    $ curl -k https://SERVER:PORT/logout -c test.cookie -b test.cookie
+
+    # Output from successful user signup (200 OK):
+    {
+      "return_msg": "OK",
+      "user": {
+        "logged_in": false
+      }
+    }
+    '''
 
     # Login-Manager removes the user information from the session
     logout_user()
