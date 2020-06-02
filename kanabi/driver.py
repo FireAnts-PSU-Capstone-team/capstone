@@ -370,16 +370,13 @@ def write_info_data(df, current_user):
         current_user(user): the current active user of session
     Returns: dict of data writing info
     """
-    # check if the connection is alive
-    if not check_conn():
-        return {'failure': True, 'message': connection_error_msg}
     failed_rows = []
     success_count = 0
     row_array = np.ndenumerate(df.values).iter.base
     total_count = len(row_array)
     for row in row_array:
         try:
-            re, failed_row = insert_row(primary_table, row,current_user)  # TODO: need to replace so we can name a table
+            re, failed_row = insert_row(primary_table, row,current_user)
             if re == 1:
                 success_count += 1
             else:
@@ -394,28 +391,43 @@ def write_info_data(df, current_user):
     }
 
 
-def write_metadata(metadata):
+def write_metadata(metadata, current_user):
     """
     Write metadata of Excel file into metadata table.
     Args:
         metadata (dict): the metadata dictionary
+        current_user (User): user inofmartion for user making function call
     Returns: None
     """
     cmd = "INSERT INTO {}(filename, creator, size, created_date, last_modified_date, last_modified_by, title, rows, columns) " \
         "VALUES(" + "{} " + ", {}" * 8 + ") ON CONFLICT DO NOTHING"
-
-    # check to make sure that the connection is open and active
-    if not check_conn():
-        return connection_error_msg
+    try:
+        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=current_user.email, password=current_user.password, host="localhost")
+        cur = conn.cursor()
+        conn.commit()
+    except (Exception, psycopg2.DatabaseError) as error:
+        return connection_error_msg, 404
 
     try:
-        pgSqlCur.execute(cmd.format(metadata_table, metadata['filename'], metadata['creator'], metadata['size'],
+        cur.execute(cmd.format(metadata_table, metadata['filename'], metadata['creator'], metadata['size'],
                                     metadata['created'], metadata['modified'], metadata['lastModifiedBy'],
                                     metadata['title'], metadata['rows'], metadata['columns']))
-        pgSqlConn.commit()
+        conn.commit()
 
     except Exception as err:
         sql_except(err)
+    # # check to make sure that the connection is open and active
+    # if not check_conn():
+    #     return connection_error_msg
+    #
+    # try:
+    #     pgSqlCur.execute(cmd.format(metadata_table, metadata['filename'], metadata['creator'], metadata['size'],
+    #                                 metadata['created'], metadata['modified'], metadata['lastModifiedBy'],
+    #                                 metadata['title'], metadata['rows'], metadata['columns']))
+    #     pgSqlConn.commit()
+    #
+    # except Exception as err:
+    #     sql_except(err)
 
 
 def row_number_exists(cur, row_number, table=primary_table):
@@ -453,23 +465,23 @@ def validate_row(json_item):
     return validate_intake(df)
 
 
-def insert_row(table, row, current_user, checked=False):
+def insert_row(table, row, current_user):
     """
     Insert an array of values into the specified table.
     Args:
         table (str): name of table to insert into
         row ([]): row of values to insert, default to false,
-        checked (bool): flag that connection to DB has already been checked by calling function
     Returns: (bool, dict) a bool indicate whether insertion is successful, a dict of failed row info
     """
     # Check flag for multi row insert, if false check to make sure that the connection is open and active
     global row_seq
     row_temp = row_seq[table]
-    user = current_user
-    email = user.email
-    password = user.password
-    conn = psycopg2.connect(sslmode="require",dbname="capstone", user=email, password=password, host = "localhost")
-    cur = conn.cursor()
+    try:
+        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=current_user.email, password=current_user.password, host="localhost")
+        cur = conn.cursor()
+        conn.commit()
+    except (Exception, psycopg2.DatabaseError) as error:
+        return connection_error_msg, 404
 
     try:
         cur.execute('SELECT 1')
@@ -495,8 +507,7 @@ def insert_row(table, row, current_user, checked=False):
         cmd += ")"
         try:
             cur.execute(cmd)
-            if not checked:
-                conn.commit()
+            conn.commit()
             if cur.rowcount == 1:
                 row_seq[table] = row_temp
                 return 1, None
@@ -556,32 +567,50 @@ def process_file(f, current_user):
     Read an Excel file; put info data into info table, metadata into metadata table
     Args:
         f (str): filename of spreadsheet
+        current_user (User): Session user info making function call
     Returns (bool, dict): bool is successful or not, dict includes processing info 
     """
 
-    #check to make sure that the connection is open and active
-    if not check_conn():
-        return 0, connection_error_msg
-    else:
-        # read file content
-        df = pd.read_excel(f)
-        # Validate data frame
-        valid, error_msg = validate_intake(df)
+    # read file content
+    df = pd.read_excel(f)
+    # Validate data frame
+    valid, error_msg = validate_intake(df)
 
-        # Write the data to the DB
-        result_obj = write_info_data(df, current_user)
-        # insert metadata into metadata table
-        # should add version and revision to this schema, but don't know types yet
-        metadata = read_metadata(f)
+    # Write the data to the DB
+    result_obj = write_info_data(df, current_user)
+    # insert metadata into metadata table
+    # should add version and revision to this schema, but don't know types yet
+    metadata = read_metadata(f)
 
-        write_metadata(metadata)
+    write_metadata(metadata, current_user)
 
-        # commit execution
-        pgSqlConn.commit()
-        if not valid:
-            result_obj['failed_rows'] = error_msg
-        failed_insertions = result_obj['insertions_attempted'] - result_obj['insertions_successful']
-        return failed_insertions == 0, result_obj
+    if not valid:
+        result_obj['failed_rows'] = error_msg
+    failed_insertions = result_obj['insertions_attempted'] - result_obj['insertions_successful']
+    return failed_insertions == 0, result_obj
+    # #check to make sure that the connection is open and active
+    # if not check_conn():
+    #     return 0, connection_error_msg
+    # else:
+    #     # read file content
+    #     df = pd.read_excel(f)
+    #     # Validate data frame
+    #     valid, error_msg = validate_intake(df)
+    #
+    #     # Write the data to the DB
+    #     result_obj = write_info_data(df, current_user)
+    #     # insert metadata into metadata table
+    #     # should add version and revision to this schema, but don't know types yet
+    #     metadata = read_metadata(f)
+    #
+    #     write_metadata(metadata)
+    #
+    #     # commit execution
+    #     pgSqlConn.commit()
+    #     if not valid:
+    #         result_obj['failed_rows'] = error_msg
+    #     failed_insertions = result_obj['insertions_attempted'] - result_obj['insertions_successful']
+    #     return failed_insertions == 0, result_obj
 
 
 def delete_row(table, row_nums):

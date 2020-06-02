@@ -170,7 +170,7 @@ def load_data():
             return make_response(jsonify(result), 400)
         else:
             try:
-                driver.get_table(table_name, None)
+                driver.get_table(table_name, None, current_user)
             except driver.InvalidTableException:
                 return make_response(jsonify(f"Table {table_name} does not exist."), 404)
 
