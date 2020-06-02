@@ -211,61 +211,33 @@ def load_data():
         valid, error_msg = driver.validate_row(request.get_json(force=True))
         if not valid:
             result = {'failed_row': error_msg}
-            return make_response(jsonify(result), 404)
+            return make_response(jsonify(result), 400)
         try:
             row_data = IntakeRow(request.get_json(force=True)).value_array()
         except (KeyError, ValueError):
             message = {'message': 'Error encountered while parsing input'}
-            return make_response(jsonify(message), 404)
+            return make_response(jsonify(message), 400)
 
         row_count, fail_row = driver.insert_row(table_name, row_data)
         if row_count == 1:
+            status = 200
             result = {
                 'message': 'PUT completed',
                 'rows_affected': row_count
             }
         elif row_count == -1:
+            status = 400
             result = {
                 'message': 'PUT failed',
                 'cause': 'duplicate row number'
             }
         else:
-            try:
-                driver.get_table(table_name, None)
-            except driver.InvalidTableException:
-                return make_response(jsonify(f"Table {table_name} does not exist."), 404)
-
-            valid, error_msg = driver.validate_row(request.get_json(force=True))
-            if not valid:
-                result = {'failed_row': error_msg}
-                return make_response(jsonify(result), 400)
-            try:
-                row_data = IntakeRow(request.get_json(force=True)).value_array()
-            except (KeyError, ValueError):
-                message = {'message': 'Error encountered while parsing input'}
-                return make_response(jsonify(message), 400)
-
-            row_count, fail_row = driver.insert_row(table_name, row_data)
-            if row_count == 1:
-                status = 200
-                result = {
-                    'message': 'PUT completed',
-                    'rows_affected': row_count
-                }
-            elif row_count == -1:
-                status = 400
-                result = {
-                    'message': 'PUT failed',
-                    'cause': 'duplicate row number'
-                }
-            else:
-                status = 400
-                result = {
-                    'message': 'PUT failed',
-                    'fail_row': fail_row
-                }
-            return make_response(jsonify(result), status)
-
+            status = 400
+            result = {
+                'message': 'PUT failed',
+                'fail_row': fail_row
+            }
+        return make_response(jsonify(result), status)
     elif request.method == 'POST':
         # return make_response(get_post_param())
         if 'file' not in request.files:
