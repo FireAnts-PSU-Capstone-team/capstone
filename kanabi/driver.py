@@ -8,14 +8,13 @@ import numpy as np
 import pandas as pd
 import psycopg2
 
-from flask_principal import Identity
 from openpyxl import load_workbook
-from psycopg2 import extensions as pe
 
 import kanabi.db.connection as c
 from kanabi.models.IntakeRow import ColNames, intake_headers, IntakeRow
 from kanabi.query_parser import QueryParser, RequestParseException
 from kanabi.validation.intake_validation import validate_intake
+from .model import User
 
 test_file = 'resources/sample.xlsx'
 primary_table = 'intake'
@@ -60,6 +59,7 @@ def reconnectDB():
             if wait_time >= 30:
                 return False
     return True
+
 
 
 def get_table_list():
@@ -198,18 +198,25 @@ class InvalidRowException(Exception):
     pass
 
 
-def filter_table(request_body: json) -> (str, json, int):
+def filter_table(request_body: json, current_user: User) -> (str, json, int):
     """
     Return a JSON object representing the requested data from the table.
     Built to take a JSON request, which is parsed in order to construct a SQL query; returns the result of that query.
     The query must comply to a schema outlined in the Swagger file.
     Args:
         request_body ({}): a JSON object, which must conform to a defined schema and is parsed to build the query
+        current_user: a User object hodling the information for user making function call
     Returns:
          query (str): the query string passed to the database
          response ({}): the retrieved data
          status (int): the HTTP status code of the response
     """
+    try:
+        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=current_user.email, password=current_user.password, host="localhost")
+        cur = conn.cursor()
+        conn.commit()
+    except (Exception, psycopg2.DatabaseError) as error:
+        return connection_error_msg, 404
     try:
         qp = QueryParser(db_tables)
         query = qp.build_query(request_body)
@@ -217,8 +224,8 @@ def filter_table(request_body: json) -> (str, json, int):
         return 'JSON could not be parsed', e.msg, 400
     try:
         # get our query results
-        pgSqlCur.execute(query)
-        results = pgSqlCur.fetchall()
+        cur.execute(query)
+        results =cur.fetchall()
         # get our column names
         table = request_body['table']
         col_names = request_body.get('columns')
@@ -242,7 +249,7 @@ def filter_table(request_body: json) -> (str, json, int):
         return None, str(err), 400
 
 
-def get_table(table_name, columns):
+def get_table(table_name, columns, current_user):
     """
     Return a JSON-like format of table data.
     Args:
@@ -252,20 +259,21 @@ def get_table(table_name, columns):
     """
     result = []
     column_names = []
+    try:
+        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=current_user.email, password=current_user.password, host="localhost")
+        cur = conn.cursor()
+        conn.commit()
+    except (Exception, psycopg2.DatabaseError) as error:
+        return connection_error_msg, 404
 
-    # check to make sure that the connection is open and active
-    if not check_conn():
-        result.append(connection_error_msg)
-        return result
-
-    if not table_exists(pgSqlCur, table_name) or table_name not in db_tables:
+    if not table_exists(cur, table_name) or table_name not in db_tables:
         raise InvalidTableException
 
     try:
-        pgSqlCur.execute(f"select * from {table_name}")
-        rows = pgSqlCur.fetchall()
+        cur.execute(f"select * from {table_name}")
+        rows = cur.fetchall()
 
-        for col in pgSqlCur.description:
+        for col in cur.description:
             column_names.append(col.name)
 
         for row in rows:
@@ -280,11 +288,43 @@ def get_table(table_name, columns):
                 i += 1
 
             result.append(a_row)
-            
+
     except Exception as err:
         sql_except(err)
 
     return result
+    # # check to make sure that the connection is open and active
+    # if not check_conn():
+    #     result.append(connection_error_msg)
+    #     return result
+    #
+    # if not table_exists(pgSqlCur, table_name) or table_name not in db_tables:
+    #     raise InvalidTableException
+    #
+    # try:
+    #     pgSqlCur.execute(f"select * from {table_name}")
+    #     rows = pgSqlCur.fetchall()
+    #
+    #     for col in pgSqlCur.description:
+    #         column_names.append(col.name)
+    #
+    #     for row in rows:
+    #         a_row = {}
+    #         i = 0
+    #         for col in column_names:
+    #             if columns:
+    #                 if col in columns:
+    #                     a_row[col] = row[i]
+    #             else:
+    #                 a_row[col] = row[i]
+    #             i += 1
+    #
+    #         result.append(a_row)
+    #
+    # except Exception as err:
+    #     sql_except(err)
+    #
+    # return result
 
 
 def read_metadata(f):
@@ -322,11 +362,12 @@ def read_metadata(f):
     return data
 
 
-def write_info_data(df):
+def write_info_data(df, current_user):
     """
     Write data from spreadsheet to the information table.
     Args:
         df (dataframe): data from spreadsheet
+        current_user(user): the current active user of session
     Returns: dict of data writing info
     """
     # check if the connection is alive
@@ -338,7 +379,7 @@ def write_info_data(df):
     total_count = len(row_array)
     for row in row_array:
         try:
-            re, failed_row = insert_row(primary_table, row, True)  # TODO: need to replace so we can name a table
+            re, failed_row = insert_row(primary_table, row,current_user)  # TODO: need to replace so we can name a table
             if re == 1:
                 success_count += 1
             else:
@@ -427,12 +468,9 @@ def insert_row(table, row, current_user, checked=False):
     user = current_user
     email = user.email
     password = user.password
-    conn = psycopg2.connect(dbname="capstone", user=email, password=password, host = "localhost")
+    conn = psycopg2.connect(sslmode="require",dbname="capstone", user=email, password=password, host = "localhost")
     cur = conn.cursor()
 
-    # if not checked:
-    #     if not check_conn():
-    #         return 0, connection_error_msg
     try:
         cur.execute('SELECT 1')
         cmd = f"INSERT INTO {table} VALUES ("
@@ -471,7 +509,11 @@ def insert_row(table, row, current_user, checked=False):
             }
             return 0, failed_row
     except:
-        return "Can't connect to DB"
+        return 0, connection_error_msg
+
+    # if not checked:
+    #     if not check_conn():
+    #         return 0, connection_error_msg
     # cmd = f"INSERT INTO {table} VALUES ("
     #
     # # Determine whether to insert at a specific row number or use default
@@ -509,14 +551,15 @@ def insert_row(table, row, current_user, checked=False):
     #     return 0, failed_row
 
 
-def process_file(f):
+def process_file(f, current_user):
     """
     Read an Excel file; put info data into info table, metadata into metadata table
     Args:
         f (str): filename of spreadsheet
     Returns (bool, dict): bool is successful or not, dict includes processing info 
     """
-    # check to make sure that the connection is open and active
+
+    #check to make sure that the connection is open and active
     if not check_conn():
         return 0, connection_error_msg
     else:
@@ -526,7 +569,7 @@ def process_file(f):
         valid, error_msg = validate_intake(df)
 
         # Write the data to the DB
-        result_obj = write_info_data(df)
+        result_obj = write_info_data(df, current_user)
         # insert metadata into metadata table
         # should add version and revision to this schema, but don't know types yet
         metadata = read_metadata(f)

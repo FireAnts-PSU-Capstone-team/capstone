@@ -136,7 +136,7 @@ def fetch_data():
     Returns ({}): JSON object of table data
     """
     if request.method == 'POST':
-        query, response, status = driver.filter_table(request.json)
+        query, response, status = driver.filter_table(request.json, current_user)
         return make_response(jsonify(response), status)
 
     if request.method == 'GET':
@@ -148,7 +148,7 @@ def fetch_data():
             columns = request.args.get('column')
             if columns is not None:
                 columns = str.split(columns.strip(), ' ')
-            table_info_obj = driver.get_table(table_name, columns)
+            table_info_obj = driver.get_table(table_name, columns, current_user)
             return make_response(jsonify(table_info_obj), 200)
         except driver.InvalidTableException:
             return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
@@ -217,7 +217,7 @@ def load_data():
 
             filename = f'{UPLOAD_FOLDER}/' + file.filename
             file.save(filename)
-            success, result_obj = driver.process_file(filename)
+            success, result_obj = driver.process_file(filename, current_user)
             if success:
                 result = {
                     'message': 'File processed successfully',
@@ -360,11 +360,6 @@ def restore_record():
         return make_response(jsonify('Row '.join(row_num) + ' could not be restored automatically. '
                                                             'Contact your admin to have it restored'), 404)
 
-
-@main_bp.route('/tester', methods=['GET'])
-def tester():
-    message = driver.create_db_user()
-    return make_response(jsonify(message),200)
 
 @main_bp.route('/')
 def hello_world():
