@@ -1,18 +1,21 @@
-from flask import Blueprint, jsonify, make_response, request, session
-from flask_login import login_required
-from flask_principal import Permission, RoleNeed, PermissionDenied
-from pandas.io.json import json_normalize
-import markdown, markdown.extensions.fenced_code
-
-from werkzeug.security import generate_password_hash
 from functools import wraps
-from pandas import json_normalize
+from sqlite3 import DatabaseError
 
-from .models.IntakeRow import IntakeRow
+import markdown
+import markdown.extensions.fenced_code
+from flask import Blueprint, jsonify, make_response, request, session, Response
+from flask_login import login_required, current_user
+from flask_principal import Permission, RoleNeed
+from pandas import json_normalize
+from pandas.io.json import json_normalize
+from werkzeug.security import generate_password_hash
+
 import kanabi.driver as driver
-from .responses import make_gui_response
+from .auth import logout
 from .configure import db
-from .model import User
+from .models.IntakeRow import IntakeRow
+from .responses import make_gui_response
+from .user import User
 
 UPLOAD_FOLDER = 'resources'
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
@@ -94,44 +97,164 @@ def error_catching(function):
 def index():
     return make_gui_response(json_header, 200, 'Hello World')
 
-  
-# Admin tools endpoint. Uses decorators with flask principal to enforce role-related access
-@main_bp.route("/admin")
-@admin_permission.require(http_exception=403)
-def admin_tools():
+
+def user_admin(request: {}, mode: str) -> Response:
+    """
+    Handles user management, such as changing permissions levels or updating user information.
+    Requires the user to be logged in as an admin.
+    Args:
+        request ({form}): the request object
+        mode (str): the operation desired
+    Returns (Response): status message
+
+    """
+    email = request.form.get('email')
+    if email is None:
+        return make_gui_response(json_header, 400, 'Target user email not provided')
+    user = User.query.filter_by(email=email).one()
+    if user is None:
+        return make_gui_response(json_header, 400, 'Target user could not be found')
+
+    if mode == 'makeadmin':
+        user.is_admin = True
+    elif mode == 'removeadmin':
+        user.is_admin = False
+    elif mode == 'makeeditor':
+        user.is_editor = True
+    elif mode == 'removeeditor':
+        user.is_editor = False
+    elif mode == 'changepassword':
+        password = request.form.get('new_password')
+        if password is None:
+            return make_gui_response(json_header, 400, 'Password change request received, but password not provided')
+        user.password = generate_password_hash(password, method='sha256')
+    elif mode == 'changename':
+        name = request.form.get('new_name')
+        if name is None:
+            return make_gui_response(json_header, 400, 'Name change request received, but name not provided')
+        user.name = name
+    elif mode == 'changeemail':
+        email = request.form.get('new_email')
+        if email is None:
+            return make_gui_response(json_header, 400, 'Email change request received, but new email not provided')
+        user.email = email
+    elif mode == 'removeuser':
+        db.session.delete(user)
+        if user == current_user:
+            db.session.commit()
+            return logout()
+
+    db.session.commit()
     return make_gui_response(json_header, 200, 'OK')
 
 
-# Registers the first 'admin' account. Ignores all requests after 'admin' account has already been created.
-@main_bp.route("/makeadmin")
-def register_admin():
-    user = User.query.filter_by(name='admin', is_admin=True).first()
-    if user:
-        msg = 'An admin account has already been registered.'
-        return make_gui_response(json_header, 400, msg)
-    return make_gui_response(json_header, 200, 'OK')
+def list_users(mode: str) -> Response:
+    """
+    Allows a user with admin credentials to list active users and admins.
+    Args:
+        mode (str): selector for which list to retrieve
+    Returns (Response): status and requested data
 
+    """
+    ret = {}
+    if mode == 'listusers':
+        users = User.query.all()
+        for u in users:
+            ret[u.id] = {
+                'email': u.email,
+                'name': u.name,
+                'is_admin': u.is_admin
+            }
+    elif mode == 'listadmins':
+        users = User.query.filter_by(is_admin=True)
+        ret = {}
+        for u in users:
+            ret[u.id] = {
+                'email': u.email,
+                'name': u.name,
+                'is_admin': u.is_admin
+            }
+    return make_response(ret, 200)
+
+
+@main_bp.route("/admin/<mode>", methods=['GET', 'POST'])
+def admin_tools(mode: str) -> Response:
+    """
+    Wrapper for admin-only tools.
+    Args:
+        mode (str): specifies the operation to be performed
+    Returns (Response): containing status message/code and any requested data
+    """
+    user_admin_operations = ['makeadmin', 'removeadmin', 'makeeditor', 'removeeditor',
+                             'changepassword', 'changename', 'changeemail', 'removeuser']
+    if not session['is_admin']:
+        return make_gui_response(json_header, 403, 'User must be logged in as admin to access this resource')
+    else:
+        if mode in user_admin_operations:
+            if request.method == 'POST':
+                return user_admin(request, mode)
+            else:
+                return make_gui_response(json_header, 400, 'This resource only supports POST method')
+        elif mode in ['listusers', 'listadmins']:
+            if request.method == 'GET':
+                return list_users(mode)
+            else:
+                return make_gui_response(json_header, 400, 'This resource only supports GET method')
+        else:
+            return make_gui_response(json_header, 400, 'Unrecognized operation requested')
+
+
+@main_bp.route("/edituser/<mode>", methods=['POST'])
+@login_required
+def edit_self_user(mode):
+    """
+    Allow a user to change some of their own settings.
+    Returns (Response): status message
+    """
+    allowed_operations = ['changepassword', 'changename', 'changeemail', 'removeuser']
+    email = request.form.get('email')
+    user = User.query.filter_by(email=email).one()
+    if current_user != user and not session['is_admin']:
+        return make_gui_response(json_header, 403, 'Editing other users requires admin permissions')
+    else:
+        if mode not in allowed_operations:
+            return make_gui_response(json_header, 400, 'Requested operation not available')
+        else:
+            return user_admin(request, mode)
+
+
+# Simple litmus test that the user is logged in
 @main_bp.route("/usrhello")
 @login_required
 def usr_hello():
     return make_gui_response(json_header, 200, 'OK')
 
-# Creates the 'admin' account in the database. Should be executed once and only once, immediately after project
-#   is created. This creates an admin-level user named 'admin' who can be used to conduct user setup
+
 @main_bp.route("/makeadmin", methods=['POST'])
 def register_admin_post():
-    user = User.query.filter_by(name='admin', is_admin=True).first()
+    """
+    Creates the 'admin' account in the database. Should be executed once and only once, immediately after project
+    is created. This creates an admin-level user named 'admin' who can be used to conduct user setup
+    Though we're using a default username, we chose not to use 'admin' for some resistance to fuzzing attacks
+    Returns (Response): status message
+    """
+    user = User.query.filter_by(is_admin=True).first()
     if user:
         msg = 'An admin account has already been created.'
         return make_gui_response(json_header, 400, msg)
     else:
         password = request.form.get('password')
         email = request.form.get('email')
-        new_user = User(email=email, password=generate_password_hash(password, method='sha256'), name='admin',
+        name = request.form.get('name', 'capstone_user_1')
+        new_user = User(email=email, password=generate_password_hash(password, method='sha256'), name=name,
                         is_admin=True, is_editor=True)
-        db.session.add(new_user)
-        db.session.commit()
+        try:
+            db.session.add(new_user)
+            db.session.commit()
+        except DatabaseError as e:
+            return make_gui_response(json_header, 400, str(e))
         return make_gui_response(json_header, 200, 'OK')
+
 
 # Places the user into read-only mode
 @main_bp.route("/enablereadonly")
@@ -198,7 +321,7 @@ def fetch_data():
 
 
 @main_bp.route("/load", methods=["PUT", "POST"])
-# @error_catching
+@error_catching
 def load_data():
     """
     Load data into the database. PUT inserts a single row; POST uploads a file.
@@ -392,6 +515,7 @@ def restore_record():
         return make_response(jsonify('Row '.join(row_num) + ' could not be restored automatically. '
                                                             'Contact your admin to have it restored'), 404)
 
+
 @main_bp.route('/')
 def landing_page():
     readme = open("./README.md", "r")
@@ -399,6 +523,7 @@ def landing_page():
         readme.read(), extensions=["fenced_code"]
     )
     return md
+
 
 @main_bp.route('/<path:path>', methods=["PUT", "POST", "GET"])
 def catch_all(path):
