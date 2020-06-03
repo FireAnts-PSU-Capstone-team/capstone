@@ -18,11 +18,16 @@ the project, type `bash launch.bash run`.
 
 ### If you prefer to run the commands manually
 
-`sudo docker image rm flask-server:v1` &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&nbsp;&nbsp;Delete existing (cached) Docker image  \
-`sudo docker build -t flask-server:v1 .`&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;Build flask server image (in project folder): \
-`sudo docker-compose up` &ensp;&nbsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;Compose and run server \
-`sudo docker-compose up -d`        &nbsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;Run in background\
-`ctrl-c` &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;Stop running server \
+`sudo docker image rm flask-server:v1` &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&nbsp;&nbsp;Delete existing (cached) Docker image 
+
+`sudo docker build -t flask-server:v1 .`&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;Build flask server image (in project folder):
+
+`sudo docker-compose up` &ensp;&nbsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;Compose and run server 
+
+`sudo docker-compose up -d`        &nbsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;Run in background
+
+`ctrl-c` &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;Stop running server 
+
 `sudo docker-compose down` &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&ensp;&nbsp;Remove built server and PostgreSQL DB containers
 
 If run in background, stop containers with:
@@ -50,9 +55,9 @@ bash launch.bash backup-schedule <month|week|day> [path]   schedule regular back
 ```
 
 ## Troubleshooting
-If you get an error when running `sudo docker-compose up` indicating that port 5432 (Postgres) is already in use, you need to stop postgresql and try again:\
-`sudo service postgresql stop`\
-\
+If you get an error when running `sudo docker-compose up` indicating that port 5432 (Postgres) is already in use, you need to stop postgresql and try again:
+`sudo service postgresql stop`
+
 If you attempt a request and receive a reply regarding unverified SSL certificates, repeat the command 
 with `-k` provided as an additional argument.
 
@@ -60,8 +65,8 @@ with `-k` provided as an additional argument.
 You can open a browser and go to [https://localhost:443](https://localhost:443) to connect to the running API. From here, 
 you can hit any of the endpoints specified in the `server.py` file.
 
-You can also query the API from the command line, using `curl`: \
-&emsp; \
+You can also query the API from the command line, using `curl`: 
+&emsp; 
 &emsp;
 > /list
 
@@ -132,7 +137,7 @@ curl https://localhost/export?table=intake -o intake.csv
 curl -k -X PUT "https://localhost:443/restore?row=1"
 ```
 &emsp;
-\
+
 &emsp; 
 ### Authentication
 > /signup
@@ -154,7 +159,8 @@ In subsequent requests, this named cookie must be provided to the server every t
 ```
 curl -X GET https://localhost/usrhello -k -b a.cookie -c a.cookie
 ```
-`-b` uses the named cookie as input; `-c` saves any updates the server makes to that cookie. \
+`-b` uses the named cookie as input; `-c` saves any updates the server makes to that cookie. 
+
 &emsp; 
 
 > /logout

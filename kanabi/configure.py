@@ -5,7 +5,7 @@ from flask_login import LoginManager, current_user
 from flask_principal import Principal, RoleNeed, UserNeed, identity_loaded, Identity, AnonymousIdentity
 from flask_cors import CORS
 from kanabi.cors import cors_setup
-from .responses import make_gui_response
+from .responses import make_gui_response, update_origin_list, origin_list
 
 db = SQLAlchemy()
 
@@ -40,11 +40,12 @@ def create_app():
     login_manager.init_app(app)
 
     # Set up CORS by loading the list of accepted origin domains from the "accepted_domains.ini" file.
-    origin_list = cors_setup.load_domains_from_file()
+    o_list = update_origin_list()
+
     # Including this header is required when using POST with JSON across domains
     app.config['CORS_HEADERS'] = 'Content-Type'
     # Utilizes CORS with the list of origin strings and regex expressions to validate resource requests.
-    CORS(app, origins=origin_list)
+    CORS(app, origins=o_list, supports_credentials=True)
 
     # Uses flask-login to load user by their id. Receives an id, returns a user object.
     @login_manager.user_loader
@@ -70,11 +71,18 @@ def create_app():
             if current_user.is_admin:
                 identity.provides.add(RoleNeed('admin'))
 
-    from .model import User
+    from .user import User
 
     with app.app_context():
         from kanabi import server
         from kanabi import auth
+
+        for line in o_list:
+            print('CORS: ACCEPTING REQUESTS FROM: {}'.format(line))
+
+        # Apply CORS to Blueprints
+        CORS(server.main_bp, origins=o_list, supports_credentials=True)
+        CORS(auth.auth_bp, origins=o_list, supports_credentials=True)
 
         # Register Blueprints
         app.register_blueprint(server.main_bp)
