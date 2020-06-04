@@ -188,7 +188,7 @@ def fetch_data():
 
 
 @main_bp.route("/load", methods=["PUT", "POST"])
-# @error_catching
+@error_catching
 def load_data():
     """
     Load data into the database. PUT inserts a single row; POST uploads a file.

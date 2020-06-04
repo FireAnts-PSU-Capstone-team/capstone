@@ -461,7 +461,7 @@ def insert_row(table, row, checked=False):
         # if first column is not row#, then almost this is the title
         # after add a row#, add this first column as string
         if not (isinstance(row[0], int)) and (row[0] is not None):
-            cmd += ",'" + str(row[0]) + "'"
+            cmd += "," + fmt(row[0])
 
 
     for i in range(1, len(row)):
