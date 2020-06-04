@@ -2,7 +2,7 @@ from flask import Blueprint, request, current_app, session
 from flask_login import login_user, login_required, logout_user
 from flask_principal import Identity, AnonymousIdentity, identity_changed
 from werkzeug.security import generate_password_hash, check_password_hash
-from .model import User
+from .user import User
 from .configure import db
 from .responses import make_gui_response
 
@@ -43,9 +43,12 @@ def login():
       }
     }
     '''
-    email = request.json.get('email')
-    password = request.json.get('password')
-    remember = True if request.json.get('remember') else False
+    req = parse_content(request)
+    if req is None:
+        return make_gui_response(json_header, 400, 'Content-Type not allowed')
+    email = req.get('email')
+    password = req.get('password')
+    remember = True if req.get('remember') else False
     user = fetch_user(email)
 
     # Check if user actually exists and compare provided and stored password hashes
@@ -62,10 +65,18 @@ def login():
     return make_gui_response(json_header, 200, 'OK')
 
 
+def parse_content(r):
+    content_type = str(r.content_type)
+    if content_type == 'application/json':
+        return r.json
+    elif content_type == 'application/x-www-form-urlencoded':
+        return r.form
+
+
 # Adds the user to the database and rejects duplicate emails
 @auth_bp.route('/signup', methods=['POST'])
 def signup_post():
-    '''
+    """
     # Creates a user account
     $ curl -k -X OPTIONS -H "Origin: https://capstone.sugar.coffee" -H "Content-Type: application/json" \
         --request POST --data '{"email":"lgunnell@pdx.edu","password":"pass","name":"True"}' \
@@ -78,10 +89,13 @@ def signup_post():
        "logged_in": false
       }
     }
-    '''
-    email = request.json.get('email')
-    name = request.json.get('name')
-    password = request.json.get('password')
+    """
+    req = parse_content(request)
+    if req is None:
+        return make_gui_response(json_header, 400, 'Content-Type not allowed')
+    email = req.get('email')
+    name = req.get('name')
+    password = req.get('password')
 
     # if a user is found, reject attempt
     if bool(fetch_user(email)):

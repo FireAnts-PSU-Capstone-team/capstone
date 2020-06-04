@@ -62,7 +62,7 @@ function count_rows() {
 function run_test() {
 
     # config variables
-    tables=('metadata' 'intake' 'txn_history' 'archive')
+    tables=('metadata' 'intake')
     primary_table='intake'
     record_row=(9 29 38)
     prefixed_host='https://localhost'
