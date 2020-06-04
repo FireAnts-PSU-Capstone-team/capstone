@@ -411,6 +411,8 @@ def export_csv():
             return make_response(jsonify('Table name not supplied.'), 400)
         try:
             table_output = driver.get_table(table_name, None, current_user)
+            if isinstance(table_output,str):
+                return make_response(jsonify(table_output),400)
             df = json_normalize(table_output)
             table_info_obj = df.to_csv(index=False)
             return make_response(table_info_obj, 200)

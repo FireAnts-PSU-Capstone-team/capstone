@@ -211,12 +211,14 @@ def filter_table(request_body: json, user: User) -> (str, json, int):
          response ({}): the retrieved data
          status (int): the HTTP status code of the response
     """
+    if not user.is_authenticated:
+        return None,'Must be logged in to perform action', 404
     try:
         conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password, host="db")
         cur = conn.cursor()
         conn.commit()
     except (Exception, psycopg2.DatabaseError) as error:
-        return connection_error_msg, 404
+        return None, connection_error_msg, 404
     try:
         qp = QueryParser(db_tables)
         query = qp.build_query(request_body)
@@ -257,6 +259,8 @@ def get_table(table_name, columns, user):
         columns ([str]): a list of columns to include in the results
     Returns ([str]): an object-notated dump of the table
     """
+    if not user.is_authenticated:
+        return 'Must be logged in to perform action'
     result = []
     column_names = []
     try:
@@ -338,6 +342,8 @@ def write_info_data(df, user):
         user(user): the current active user of session
     Returns: dict of data writing info
     """
+    if not user.is_authenticated:
+        return False, 'Must be logged in to perform action', 404
     failed_rows = []
     success_count = 0
     row_array = np.ndenumerate(df.values).iter.base
@@ -367,6 +373,8 @@ def write_metadata(metadata, user):
         user (User): user inofmartion for user making function call
     Returns: None
     """
+    if not user.is_authenticated:
+        return False, 'Must be logged in to perform action', 404
     cmd = "INSERT INTO {}(filename, creator, size, created_date, last_modified_date, last_modified_by, title, rows, columns) " \
         "VALUES(" + "{} " + ", {}" * 8 + ") ON CONFLICT DO NOTHING"
     try:
@@ -384,7 +392,6 @@ def write_metadata(metadata, user):
 
     except Exception as err:
         sql_except(err)
-
 
 
 def row_number_exists(cur, row_number, table=primary_table):
@@ -431,6 +438,8 @@ def insert_row(table, row, user):
     Returns: (bool, dict) a bool indicate whether insertion is successful, a dict of failed row info
     """
     # Check flag for multi row insert, if false check to make sure that the connection is open and active
+    if not user.is_authenticated:
+        return False,{'Message':'Must be logged in to perform action'}
     global row_seq
     row_temp = row_seq[table]
     try:
@@ -488,6 +497,8 @@ def process_file(f, user):
         user (User): Session user info making function call
     Returns (bool, dict): bool is successful or not, dict includes processing info 
     """
+    if not user.is_authenticated:
+        return False, {'Message':'Must be logged in to perform action'}
 
     # read file content
     df = pd.read_excel(f)
@@ -516,6 +527,8 @@ def delete_row(table, row_nums, user):
         user (User): info of sessions user making funciton call, used to create db connection
     Returns (bool, dict): Boolean is successful or not, dict contains processed info
     """
+    if not user.is_authenticated:
+        return False, 'Must be logged in to perform action', 404
     success = False
     delete_info = {}
     try:
@@ -564,6 +577,8 @@ def update_table(table, row, update_columns, user):
         user (User):  the information for user making the funciton call, used to create postgres connection
     Returns (bool, str): bool is successful or not, str includes processing info
     """
+    if not user.is_authenticated:
+        return False, 'Must be logged in to perform action', 404
     try:
         conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password, host="db")
         cur = conn.cursor()
@@ -617,6 +632,8 @@ def restore_row(row_num, user):
             user(User) - the user information making function call used to create db connection
     Returns (bool/str):  Bool success or not, str contains process info
     """
+    if not user.is_authenticated:
+        return False, 'Must be logged in to perform action', 404
     try:
         conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password, host="db")
         cur = conn.cursor()
@@ -650,7 +667,6 @@ def restore_row(row_num, user):
         return 0, str(err)
 
 
-
 def create_db_user(name, password, admin):
     """
     Function to create the new user in the database when they are created on webserver
@@ -674,7 +690,6 @@ def create_db_user(name, password, admin):
     except psycopg2.Error as err:
         sql_except(err)
         return 0, str(err)
-
 
 
 # TODO: either delete this or update it
