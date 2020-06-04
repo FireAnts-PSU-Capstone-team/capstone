@@ -14,7 +14,7 @@ import kanabi.db.connection as c
 from kanabi.models.IntakeRow import ColNames, intake_headers, IntakeRow
 from kanabi.query_parser import QueryParser, RequestParseException
 from kanabi.validation.intake_validation import validate_intake
-from .model import User
+from .user import User
 
 test_file = 'resources/sample.xlsx'
 primary_table = 'intake'
@@ -198,21 +198,21 @@ class InvalidRowException(Exception):
     pass
 
 
-def filter_table(request_body: json, current_user: User) -> (str, json, int):
+def filter_table(request_body: json, user: User) -> (str, json, int):
     """
     Return a JSON object representing the requested data from the table.
     Built to take a JSON request, which is parsed in order to construct a SQL query; returns the result of that query.
     The query must comply to a schema outlined in the Swagger file.
     Args:
         request_body ({}): a JSON object, which must conform to a defined schema and is parsed to build the query
-        current_user: a User object hodling the information for user making function call
+        user: a User object hodling the information for user making function call
     Returns:
          query (str): the query string passed to the database
          response ({}): the retrieved data
          status (int): the HTTP status code of the response
     """
     try:
-        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=current_user.email, password=current_user.password, host="localhost")
+        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password, host="db")
         cur = conn.cursor()
         conn.commit()
     except (Exception, psycopg2.DatabaseError) as error:
@@ -249,7 +249,7 @@ def filter_table(request_body: json, current_user: User) -> (str, json, int):
         return None, str(err), 400
 
 
-def get_table(table_name, columns, current_user):
+def get_table(table_name, columns, user):
     """
     Return a JSON-like format of table data.
     Args:
@@ -260,7 +260,7 @@ def get_table(table_name, columns, current_user):
     result = []
     column_names = []
     try:
-        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=current_user.email, password=current_user.password, host="localhost")
+        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password, host="db")
         cur = conn.cursor()
         conn.commit()
     except (Exception, psycopg2.DatabaseError) as error:
@@ -293,38 +293,6 @@ def get_table(table_name, columns, current_user):
         sql_except(err)
 
     return result
-    # # check to make sure that the connection is open and active
-    # if not check_conn():
-    #     result.append(connection_error_msg)
-    #     return result
-    #
-    # if not table_exists(pgSqlCur, table_name) or table_name not in db_tables:
-    #     raise InvalidTableException
-    #
-    # try:
-    #     pgSqlCur.execute(f"select * from {table_name}")
-    #     rows = pgSqlCur.fetchall()
-    #
-    #     for col in pgSqlCur.description:
-    #         column_names.append(col.name)
-    #
-    #     for row in rows:
-    #         a_row = {}
-    #         i = 0
-    #         for col in column_names:
-    #             if columns:
-    #                 if col in columns:
-    #                     a_row[col] = row[i]
-    #             else:
-    #                 a_row[col] = row[i]
-    #             i += 1
-    #
-    #         result.append(a_row)
-    #
-    # except Exception as err:
-    #     sql_except(err)
-    #
-    # return result
 
 
 def read_metadata(f):
@@ -362,12 +330,12 @@ def read_metadata(f):
     return data
 
 
-def write_info_data(df, current_user):
+def write_info_data(df, user):
     """
     Write data from spreadsheet to the information table.
     Args:
         df (dataframe): data from spreadsheet
-        current_user(user): the current active user of session
+        user(user): the current active user of session
     Returns: dict of data writing info
     """
     failed_rows = []
@@ -376,7 +344,7 @@ def write_info_data(df, current_user):
     total_count = len(row_array)
     for row in row_array:
         try:
-            re, failed_row = insert_row(primary_table, row,current_user)
+            re, failed_row = insert_row(primary_table, row,user)
             if re == 1:
                 success_count += 1
             else:
@@ -391,18 +359,18 @@ def write_info_data(df, current_user):
     }
 
 
-def write_metadata(metadata, current_user):
+def write_metadata(metadata, user):
     """
     Write metadata of Excel file into metadata table.
     Args:
         metadata (dict): the metadata dictionary
-        current_user (User): user inofmartion for user making function call
+        user (User): user inofmartion for user making function call
     Returns: None
     """
     cmd = "INSERT INTO {}(filename, creator, size, created_date, last_modified_date, last_modified_by, title, rows, columns) " \
         "VALUES(" + "{} " + ", {}" * 8 + ") ON CONFLICT DO NOTHING"
     try:
-        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=current_user.email, password=current_user.password, host="localhost")
+        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password, host="db")
         cur = conn.cursor()
         conn.commit()
     except (Exception, psycopg2.DatabaseError) as error:
@@ -416,18 +384,7 @@ def write_metadata(metadata, current_user):
 
     except Exception as err:
         sql_except(err)
-    # # check to make sure that the connection is open and active
-    # if not check_conn():
-    #     return connection_error_msg
-    #
-    # try:
-    #     pgSqlCur.execute(cmd.format(metadata_table, metadata['filename'], metadata['creator'], metadata['size'],
-    #                                 metadata['created'], metadata['modified'], metadata['lastModifiedBy'],
-    #                                 metadata['title'], metadata['rows'], metadata['columns']))
-    #     pgSqlConn.commit()
-    #
-    # except Exception as err:
-    #     sql_except(err)
+
 
 
 def row_number_exists(cur, row_number, table=primary_table):
@@ -465,7 +422,7 @@ def validate_row(json_item):
     return validate_intake(df)
 
 
-def insert_row(table, row, current_user):
+def insert_row(table, row, user):
     """
     Insert an array of values into the specified table.
     Args:
@@ -477,7 +434,7 @@ def insert_row(table, row, current_user):
     global row_seq
     row_temp = row_seq[table]
     try:
-        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=current_user.email, password=current_user.password, host="localhost")
+        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password, host="db")
         cur = conn.cursor()
         conn.commit()
     except (Exception, psycopg2.DatabaseError) as error:
@@ -522,52 +479,13 @@ def insert_row(table, row, current_user):
     except:
         return 0, connection_error_msg
 
-    # if not checked:
-    #     if not check_conn():
-    #         return 0, connection_error_msg
-    # cmd = f"INSERT INTO {table} VALUES ("
-    #
-    # # Determine whether to insert at a specific row number or use default
-    # if row[0] is not None:
-    #     if row_number_exists(pgSqlCur, int(row[0])):
-    #         failed_row = {
-    #             'message': f'Row number {row[0]} already taken.'
-    #         }
-    #         return 0, failed_row
-    #     else:
-    #         cmd += str(row[0])
-    # else:
-    #     # Loop through and update row seq to first available spot
-    #     while row_number_exists(pgSqlCur,row_temp):
-    #         row_temp += 1
-    #     cmd += f"{row_temp}"
-    #
-    # for i in range(1, len(row)):
-    #     cmd += f", {fmt(row[i])}"
-    # cmd += ")"
-    # try:
-    #     pgSqlCur.execute(cmd)
-    #     if not checked:
-    #         pgSqlConn.commit()
-    #     if pgSqlCur.rowcount == 1:
-    #         row_seq[table] = row_temp
-    #         return 1, None
-    #     else:
-    #         raise psycopg2.Error
-    # except Exception as err:
-    #     sql_except(err)
-    #     failed_row = {
-    #         'mrl': row[ColNames.MRL.value]
-    #     }
-    #     return 0, failed_row
 
-
-def process_file(f, current_user):
+def process_file(f, user):
     """
     Read an Excel file; put info data into info table, metadata into metadata table
     Args:
         f (str): filename of spreadsheet
-        current_user (User): Session user info making function call
+        user (User): Session user info making function call
     Returns (bool, dict): bool is successful or not, dict includes processing info 
     """
 
@@ -577,54 +495,31 @@ def process_file(f, current_user):
     valid, error_msg = validate_intake(df)
 
     # Write the data to the DB
-    result_obj = write_info_data(df, current_user)
+    result_obj = write_info_data(df, user)
     # insert metadata into metadata table
     # should add version and revision to this schema, but don't know types yet
     metadata = read_metadata(f)
 
-    write_metadata(metadata, current_user)
+    write_metadata(metadata, user)
 
     if not valid:
         result_obj['failed_rows'] = error_msg
     failed_insertions = result_obj['insertions_attempted'] - result_obj['insertions_successful']
     return failed_insertions == 0, result_obj
-    # #check to make sure that the connection is open and active
-    # if not check_conn():
-    #     return 0, connection_error_msg
-    # else:
-    #     # read file content
-    #     df = pd.read_excel(f)
-    #     # Validate data frame
-    #     valid, error_msg = validate_intake(df)
-    #
-    #     # Write the data to the DB
-    #     result_obj = write_info_data(df, current_user)
-    #     # insert metadata into metadata table
-    #     # should add version and revision to this schema, but don't know types yet
-    #     metadata = read_metadata(f)
-    #
-    #     write_metadata(metadata)
-    #
-    #     # commit execution
-    #     pgSqlConn.commit()
-    #     if not valid:
-    #         result_obj['failed_rows'] = error_msg
-    #     failed_insertions = result_obj['insertions_attempted'] - result_obj['insertions_successful']
-    #     return failed_insertions == 0, result_obj
 
 
-def delete_row(table, row_nums, current_user):
+def delete_row(table, row_nums, user):
     """
     Args:
         table (str): table name to delete row from
         row_nums ([int]): the rowId(s) to delete
-        current_user (User): info of sessions user making funciton call, used to create db connection
+        user (User): info of sessions user making funciton call, used to create db connection
     Returns (bool, dict): Boolean is successful or not, dict contains processed info
     """
     success = False
     delete_info = {}
     try:
-        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=current_user.email, password=current_user.password, host="localhost")
+        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password, host="db")
         cur = conn.cursor()
         conn.commit()
     except (Exception, psycopg2.DatabaseError) as error:
@@ -657,37 +552,6 @@ def delete_row(table, row_nums, current_user):
         return 'Deletion successful', delete_info
     else:
         return 'Some/all deletions failed', delete_info
-    # if not check_conn():
-    #     return 0, connection_error_msg
-    # else:
-    #     # verify table is within the db
-    #     if table not in db_tables:
-    #         raise InvalidTableException
-    #     # convert each row_num to digit;
-    #     try:
-    #         row_nums = list(map(int, row_nums))
-    #     except ValueError:
-    #         raise InvalidRowException
-    #     for row in row_nums:
-    #         if row <= 0:
-    #             delete_info[f'Row {str(row)}'] = 'Invalid row number'
-    #             continue
-    #         cmd = f'DELETE FROM {table} WHERE "row" = {row};'
-    #         try:
-    #             pgSqlCur.execute(cmd)
-    #             pgSqlConn.commit()
-    #             if pgSqlCur.rowcount == 1:
-    #                 success = True
-    #                 delete_info[f'Row {str(row)}'] = 'Successfully deleted'
-    #             else:
-    #                 delete_info[f'Row {str(row)}'] = 'Failed to delete'
-    #
-    #         except psycopg2.Error as err:
-    #             sql_except(err)
-    #     if success:
-    #         return 'Deletion successful', delete_info
-    #     else:
-    #         return 'Some/all deletions failed', delete_info
 
 
 def update_table(table, row, update_columns, user):
@@ -697,10 +561,11 @@ def update_table(table, row, update_columns, user):
         table (str): table name
         row (str/int): row number
         update_columns (dict): obj of {column_name: new value, ... }
+        user (User):  the information for user making the funciton call, used to create postgres connection
     Returns (bool, str): bool is successful or not, str includes processing info
     """
     try:
-        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password, host="localhost")
+        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password, host="db")
         cur = conn.cursor()
         conn.commit()
     except (Exception, psycopg2.DatabaseError) as error:
@@ -749,10 +614,11 @@ def restore_row(row_num, user):
     """
     Function to restore a row that was previously deleted from a table
     Args:   row_num(int) - row number in the archive table of data to restore
+            user(User) - the user information making function call used to create db connection
     Returns (bool/str):  Bool success or not, str contains process info
     """
     try:
-        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password, host="localhost")
+        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password, host="db")
         cur = conn.cursor()
         conn.commit()
     except (Exception, psycopg2.DatabaseError) as error:
@@ -782,32 +648,7 @@ def restore_row(row_num, user):
     except psycopg2.Error as err:
         sql_except(err)
         return 0, str(err)
-    # if not check_conn():
-    #     return 0, connection_error_msg
-    # else:
-    #     try:
-    #         row_num = list(map(int, row_num))
-    #     except ValueError:
-    #         raise InvalidRowException
-    #     # get the archive row to be restored
-    #     try:
-    #         for row in row_num:
-    #             cmd = f'SELECT restore_row({row});'
-    #             pgSqlCur.execute(cmd)
-    #             success = pgSqlCur.fetchone()
-    #             if success[0] == True:
-    #                 restore_info[f'Row {str(row)}'] = 'Successfully restored'
-    #                 pgSqlConn.commit()
-    #             else:
-    #                 restore_info[f'Row {str(row)}'] = 'Failed to restore'
-    #         return success[0], restore_info
-    #
-    #     except psycopg2.IntegrityError as err:
-    #         return 0, "Can't restore the row. This can be 1 of three reasons, Row already populated, MRL already exists or receipt Num is not unique to the table."
-    #
-    #     except psycopg2.Error as err:
-    #         sql_except(err)
-    #         return 0, str(err)
+
 
 
 def create_db_user(name, password, admin):
