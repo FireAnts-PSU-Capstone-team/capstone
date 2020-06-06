@@ -7,7 +7,7 @@ This SQL file will be executed once the DB is set up.
 -------------------------
 
 --
--- Name: change_fnc(); Type: FUNCTION; Schema: public; Owner: cc
+-- Name: change_fnc(); Type: FUNCTION; Schema: public; Owner: kanabiadmin
 -- Desc: Monitors table for any insert/update/delete commands
 -- 		 It copies the old data and the new data in txn_history table as
 --  	 JSON. In case of DELETE it copies data into archive table then updates txn_history
@@ -37,7 +37,7 @@ END IF;
 END;
 $$;
 
-ALTER FUNCTION change_fnc() OWNER TO cc;
+ALTER FUNCTION change_fnc() OWNER TO kanabiadmin;
 
 --
 -- A function to restore a record from the archive table back to original table
@@ -71,7 +71,7 @@ RETURN FALSE;
 END IF;
 END;$_$;
 
-ALTER FUNCTION restore_row(row_num integer) OWNER TO cc;
+ALTER FUNCTION restore_row(row_num integer) OWNER TO kanabiadmin;
 
 
 -------------------------
@@ -86,7 +86,7 @@ SET default_table_access_method = heap;
 -------------------------
 
 --
--- Name: metadata; Type: TABLE; Schema: public; Owner: cc
+-- Name: metadata; Type: TABLE; Schema: public; Owner: kanabiadmin
 --
 CREATE TABLE IF NOT EXISTS metadata (
     filename TEXT NOT NULL,
@@ -99,11 +99,11 @@ CREATE TABLE IF NOT EXISTS metadata (
     "rows" INT,
     columns INT
 );
-ALTER TABLE metadata OWNER TO cc;
+ALTER TABLE metadata OWNER TO kanabiadmin;
 COMMENT ON TABLE metadata IS 'Table to track the file metadata that is uploaded to DB';
 
 --
--- Name: Intake; Type: TABLE; Schema: public; Owner: cc
+-- Name: Intake; Type: TABLE; Schema: public; Owner: kanabiadmin
 --
 CREATE TABLE intake (
     "row" integer NOT NULL,
@@ -135,13 +135,13 @@ CREATE TABLE intake (
     notes text,
     validation_errors text 
 );
-ALTER TABLE intake OWNER TO cc;
+ALTER TABLE intake OWNER TO kanabiadmin;
 COMMENT ON TABLE intake IS 'Table to track all the data for cannabis program in city of portalnd';
 ALTER TABLE ONLY intake
     ADD CONSTRAINT intake_pkey PRIMARY KEY ("row");
     
 --
--- Name: txn_history; Type: TABLE; Schema: public; Owner: cc
+-- Name: txn_history; Type: TABLE; Schema: public; Owner: kanabiadmin
 --
 CREATE TABLE txn_history (
     id integer NOT NULL,
@@ -154,13 +154,13 @@ CREATE TABLE txn_history (
     tabname text,
     archive_row integer
 );
-ALTER TABLE txn_history OWNER TO cc;
+ALTER TABLE txn_history OWNER TO kanabiadmin;
 COMMENT ON TABLE txn_history IS 'Table tracks the changes made to the intake database table';
 ALTER TABLE ONLY txn_history
     ADD CONSTRAINT txn_history_pkey PRIMARY KEY (id);
     
 --
--- Name: archive; Type: TABLE; Schema: public; Owner: CC
+-- Name: archive; Type: TABLE; Schema: public; Owner: kanabiadmin
 --
 CREATE TABLE archive (
     row_id integer NOT NULL,
@@ -168,13 +168,13 @@ CREATE TABLE archive (
     who text DEFAULT CURRENT_USER,
     old_val json
 );
-ALTER TABLE archive OWNER TO cc;
+ALTER TABLE archive OWNER TO kanabiadmin;
 COMMENT ON TABLE archive IS 'Table tracks the rows removed from the intake database table';
 ALTER TABLE ONLY archive
     ADD CONSTRAINT archive_pkey PRIMARY KEY (row_id);
 
 --
--- Name: violations Type: table Schema: public Owner: cc
+-- Name: violations Type: table Schema: public Owner: kanabiadmin
 --
 CREATE TABLE IF NOT EXISTS violations
 (
@@ -198,13 +198,13 @@ CREATE TABLE IF NOT EXISTS violations
     notes text,
     validation_errors text 
 );
-ALTER TABLE violations OWNER to cc;
+ALTER TABLE violations OWNER to kanabiadmin;
 COMMENT ON TABLE violations IS 'Table to hold all the information regarding violations.';
 ALTER TABLE ONLY violations
     ADD CONSTRAINT violations_pkey PRIMARY KEY ("row");
 
 --
--- Name: reports Type: table Schema: public Owner: cc
+-- Name: reports Type: table Schema: public Owner: kanabiadmin
 --
 CREATE TABLE IF NOT EXISTS reports
 (
@@ -224,7 +224,7 @@ CREATE TABLE IF NOT EXISTS reports
     additional_notes text,
     validation_errors text
 );
-ALTER TABLE reports OWNER to cc;
+ALTER TABLE reports OWNER to kanabiadmin;
 COMMENT ON TABLE reports IS 'Table to hold all the information regarding violations.';
 ALTER TABLE ONLY reports
     ADD CONSTRAINT reports_pkey PRIMARY KEY ("row");
@@ -234,7 +234,7 @@ ALTER TABLE ONLY reports
 
 --
 -- Name: txn_history_id_seq
--- Desc: Sequence used as PK for txn_history table Owner: cc
+-- Desc: Sequence used as PK for txn_history table Owner: kanabiadmin
 --
 CREATE SEQUENCE txn_history_id_seq
     AS integer
@@ -244,13 +244,13 @@ CREATE SEQUENCE txn_history_id_seq
     NO MAXVALUE
     CACHE 1;
 
-ALTER TABLE txn_history_id_seq OWNER TO cc;
+ALTER TABLE txn_history_id_seq OWNER TO kanabiadmin;
 ALTER SEQUENCE txn_history_id_seq OWNED BY txn_history.id;
 ALTER TABLE ONLY txn_history ALTER COLUMN id SET DEFAULT nextval('txn_history_id_seq'::regclass);
 
 --
 -- Name: archive_row_seq
--- Desc: Sequence used as PK for archive table Owner: cc
+-- Desc: Sequence used as PK for archive table Owner: kanabiadmin
 --
 CREATE SEQUENCE archive_row_seq
     AS integer
@@ -260,7 +260,7 @@ CREATE SEQUENCE archive_row_seq
     NO MAXVALUE
     CACHE 1;
 
-ALTER TABLE archive_row_seq OWNER TO cc;
+ALTER TABLE archive_row_seq OWNER TO kanabiadmin;
 ALTER SEQUENCE archive_row_seq OWNED BY archive.row_id;
 ALTER TABLE ONLY archive ALTER COLUMN row_id SET DEFAULT nextval('archive_row_seq'::regclass);
 
@@ -305,9 +305,9 @@ CREATE ROLE adminaccess;
 -- Users
 -------------------------
 
-CREATE USER reader WITH PASSWORD 'capstone';
-CREATE USER writer WITH PASSWORD 'capstone';
-CREATE USER administrator WITH PASSWORD 'capstone';
+CREATE USER reader WITH PASSWORD 'password';
+CREATE USER writer WITH PASSWORD 'password';
+CREATE USER administrator WITH PASSWORD 'password';
 
 -------------------------
 -- Access

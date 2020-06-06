@@ -22,7 +22,7 @@ def login():
     # Log into account with a particular email and password
     $ curl -k -X OPTIONS -H "Origin: GUI_DOMAIN" -H "Content-Type: application/json" --request POST \
         --data '{"email":"EMAIL_ADDRESS","password":"PASSWORD","remember":"True"}' \
-        -c cookie.txt https://SERVER:PORT/login
+        -c cookie.txt https://localhost/login
 
     # Response data from a successful login attempt (200 OK):
       {
@@ -67,7 +67,7 @@ def login():
 def signup_post():
     '''
     # Creates a user account
-    $ curl -k -X OPTIONS -H "Origin: https://capstone.sugar.coffee" -H "Content-Type: application/json" \
+    $ curl -k -X OPTIONS -H "Origin: https://localhost" -H "Content-Type: application/json" \
         --request POST --data '{"email":"lgunnell@pdx.edu","password":"pass","name":"True"}' \
         https://localhost:443/signup
 
@@ -102,7 +102,7 @@ def signup_post():
 def logout():
     '''
     # Sign out to end the current user session
-    $ curl -k https://SERVER:PORT/logout -c test.cookie -b test.cookie
+    $ curl -k https://localhost/logout -c test.cookie -b test.cookie
 
     # Output from successful user signup (200 OK):
     {
