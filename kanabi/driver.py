@@ -134,35 +134,6 @@ def fmt(s):
     return s
 
 
-# TODO: either remove this or update it
-def dump_tables():
-    """
-    Displays the contents of the tables in the database.
-    Returns: None
-    """
-    # check to make sure that the connection is open and active
-    if not check_conn():
-        return connection_error_msg
-
-    print("Test:\n-------------------------------")
-    try:
-        pgSqlCur.execute(f"select * from {primary_table}")
-        rows = pgSqlCur.fetchall()
-        for row in rows:
-            print(row)
-    except Exception as err:
-        sql_except(err)
-
-    print("\nMetadata:\n-------------------------------")
-    try:
-        pgSqlCur.execute("select * from metadata")
-        rows = pgSqlCur.fetchall()
-        for row in rows:
-            print(row)
-    except Exception as err:
-        sql_except(err)
-
-
 def table_exists(cur, table):
     """
     Checks whether the named table exists.
@@ -334,13 +305,14 @@ def read_metadata(f):
     return data
 
 
-def write_info_data(df, user):
+def write_info_data(df, table, user):
     """
     Write data from spreadsheet to the information table.
     Args:
-        df (dataframe): data from spreadsheet
+		table (str): name of target table
+        df (pd.DataFrame): data from spreadsheet
         user(user): the current active user of session
-    Returns: dict of data writing info
+    Returns: (dict): status report
     """
     if not user.is_authenticated:
         return False, 'Must be logged in to perform action', 404
@@ -350,12 +322,12 @@ def write_info_data(df, user):
     total_count = len(row_array)
     for row in row_array:
         try:
-            re, failed_row = insert_row(primary_table, row,user)
+            re, failed_row = insert_row(table, row, user)
             if re == 1:
                 success_count += 1
             else:
                 failed_rows.append(failed_row)
-        except:
+        except psycopg2.Error:
             failed_rows.append(row)
 
     return {
@@ -454,20 +426,25 @@ def insert_row(table, row, user):
         cmd = f"INSERT INTO {table} VALUES ("
 
         # Determine whether to insert at a specific row number or use default
-        if row[0] is not None:
-            if row_number_exists(cur, int(row[0])):
+        if (row[0] is not None) and (isinstance(row[0],int)):
+            if row_number_exists(cur, int(row[0]), table):
                 failed_row = {
+					'row':row[0],
                     'message': f'Row number {row[0]} already taken.'
                 }
                 return 0, failed_row
-            else:
+			else:
                 cmd += str(row[0])
         else:
             # Loop through and update row seq to first available spot
-            while row_number_exists(cur, row_temp):
+            while row_number_exists(cur, row_temp, table):
                 row_temp += 1
             cmd += f"{row_temp}"
 
+ 			# if first column is not row#, then almost this is the title
+        	# after add a row#, add this first column as string
+        	if not isinstance(row[0], int) and row[0] is not None:
+            	cmd += "," + fmt(row[0])
         for i in range(1, len(row)):
             cmd += f", {fmt(row[i])}"
         cmd += ")"
@@ -489,11 +466,12 @@ def insert_row(table, row, user):
         return 0, connection_error_msg
 
 
-def process_file(f, user):
+def process_file(table, file, user):
     """
     Read an Excel file; put info data into info table, metadata into metadata table
     Args:
-        f (str): filename of spreadsheet
+        table (str): table into which to insert
+		file (str): filename of spreadsheet
         user (User): Session user info making function call
     Returns (bool, dict): bool is successful or not, dict includes processing info 
     """
@@ -501,12 +479,17 @@ def process_file(f, user):
         return False, {'Message':'Must be logged in to perform action'}
 
     # read file content
-    df = pd.read_excel(f)
-    # Validate data frame
-    valid, error_msg = validate_intake(df)
+    df = pd.read_excel(file)
+	if table == 'intake':
+    	# Validate data frame
+    	valid, error_msg = validate_intake(df)
+	else:
+		# not validating other table than primary for now
+		valid = True
+		error_msg = None
 
     # Write the data to the DB
-    result_obj = write_info_data(df, user)
+    result_obj = write_info_data(df, table, user)
     # insert metadata into metadata table
     # should add version and revision to this schema, but don't know types yet
     metadata = read_metadata(f)
@@ -648,23 +631,23 @@ def restore_row(row_num, user):
         raise InvalidRowException
     # get the archive row to be restored
     try:
+		success = []
         for row in row_num:
             cmd = f'SELECT restore_row({row});'
             cur.execute(cmd)
             success = cur.fetchone()
-            if success[0] == True:
+            if success[0]:
                 restore_info[f'Row {str(row)}'] = 'Successfully restored'
                 conn.commit()
             else:
                 restore_info[f'Row {str(row)}'] = 'Failed to restore'
         return success[0], restore_info
 
-    except psycopg2.IntegrityError as err:
-        return 0, "Can't restore the row. This can be 1 of three reasons, Row already populated, MRL already exists or receipt Num is not unique to the table."
+    except psycopg2.IntegrityError:
+        return 0, "Can't restore the row. This can be 1 of 3 reasons, Row already populated, MRL not " \
+				  "unique, or receipt num is not unique. "
 
-    except psycopg2.Error as err:
-        sql_except(err)
-        return 0, str(err)
+    
 
 
 def create_db_user(name, password, admin):
@@ -690,34 +673,4 @@ def create_db_user(name, password, admin):
     except psycopg2.Error as err:
         sql_except(err)
         return 0, str(err)
-
-
-# TODO: either delete this or update it
-def test_driver():
-    # Pre-insert query
-    print('Dump tables -------------------------------------------------')
-    dump_tables()
-
-    print('\nInsert data -------------------------------------------------')
-    process_file(test_file)
-
-    # three options for collisions:
-    # 1. do nothing (discard new row; probably want to return an error to the user in this case)
-    # 2. update existing record with new metadata
-    # ON CONFLICT (filename)
-    #       DO UPDATE
-    #       SET (size, last_modified_by, modified) = (EXCLUDED.size, EXCLUDED.last_modified_by, EXCLUDED.modified)
-    # 3. add entirely new record
-    # would need to return status of insertion, then insert a new row. Would need an incrementing column, like 'version'
-
-    # unfortunately, it looks like 'creator' and 'created' are both fabricated by openpyxl, so we may need to find
-    # a different way to capture that data if we want to keep them
-
-    # Post insert query, verify data is inserted
-    print('\nDump tables -------------------------------------------------')
-    dump_tables()
-
-    # close the db connection
-    print("Closing connection to database.")
-    c.pg_disconnect(pgSqlCur, pgSqlConn)
 
