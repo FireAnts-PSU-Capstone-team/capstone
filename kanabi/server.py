@@ -323,6 +323,7 @@ def load_data():
         else:
             try:
                 driver.get_table(table_name, None, current_user)
+
             except driver.InvalidTableException:
                 return make_response(jsonify(f"Table {table_name} does not exist."), 404)
 
@@ -337,6 +338,7 @@ def load_data():
                 return make_response(jsonify(message), 400)
 
             row_count, fail_row = driver.insert_row(table_name, row_data, current_user)
+
             if row_count == 1:
                 status = 200
                 result = {
@@ -370,6 +372,7 @@ def load_data():
             filename = f'{UPLOAD_FOLDER}/' + file.filename
             file.save(filename)
             success, result_obj = driver.process_file(filename, current_user)
+
             if success:
                 result = {
                     'message': 'File processed successfully',

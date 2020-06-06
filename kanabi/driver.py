@@ -61,7 +61,6 @@ def reconnectDB():
     return True
 
 
-
 def get_table_list():
     """
     Gets the database's active tables.
@@ -263,6 +262,7 @@ def get_table(table_name, columns, user):
         return 'Must be logged in to perform action'
     result = []
     column_names = []
+
     try:
         conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password, host="db")
         cur = conn.cursor()
@@ -291,8 +291,23 @@ def get_table(table_name, columns, user):
                     a_row[col] = row[i]
                 i += 1
 
+
             result.append(a_row)
 
+
+        for row in rows:
+            a_row = {}
+            i = 0
+            for col in column_names:
+                if columns:
+                    if col in columns:
+                        a_row[col] = row[i]
+                else:
+                    a_row[col] = row[i]
+                i += 1
+
+            result.append(a_row)
+            
     except Exception as err:
         sql_except(err)
 
@@ -335,6 +350,7 @@ def read_metadata(f):
 
 
 def write_info_data(df, user):
+
     """
     Write data from spreadsheet to the information table.
     Args:
@@ -350,7 +366,9 @@ def write_info_data(df, user):
     total_count = len(row_array)
     for row in row_array:
         try:
+
             re, failed_row = insert_row(primary_table, row,user)
+
             if re == 1:
                 success_count += 1
             else:
@@ -377,12 +395,14 @@ def write_metadata(metadata, user):
         return False, 'Must be logged in to perform action', 404
     cmd = "INSERT INTO {}(filename, creator, size, created_date, last_modified_date, last_modified_by, title, rows, columns) " \
         "VALUES(" + "{} " + ", {}" * 8 + ") ON CONFLICT DO NOTHING"
+
     try:
         conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password, host="db")
         cur = conn.cursor()
         conn.commit()
     except (Exception, psycopg2.DatabaseError) as error:
         return connection_error_msg, 404
+
 
     try:
         cur.execute(cmd.format(metadata_table, metadata['filename'], metadata['creator'], metadata['size'],
@@ -490,6 +510,7 @@ def insert_row(table, row, user):
 
 
 def process_file(f, user):
+
     """
     Read an Excel file; put info data into info table, metadata into metadata table
     Args:
@@ -721,3 +742,5 @@ def test_driver():
     print("Closing connection to database.")
     c.pg_disconnect(pgSqlCur, pgSqlConn)
 
+
+   
