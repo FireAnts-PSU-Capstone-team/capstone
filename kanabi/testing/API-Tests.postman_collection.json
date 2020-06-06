@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "e4c6b6c0-d0d9-4306-96b7-77daa5cb0538",
+		"_postman_id": "2d39c9a1-4a8e-449f-a798-72421b6bc001",
 		"name": "API-Tests",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
@@ -11,10 +11,10 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "02cf6052-7b54-473c-a903-5df5648e7edd",
+						"id": "230cd1ce-70dc-4643-862e-6dd869b44d9a",
 						"exec": [
 							"pm.test(\"Too Many Records Status Code\", function () {",
-							"    pm.response.to.have.status(400);",
+							"    pm.response.to.have.status(500);",
 							"}",
 							")",
 							"pm.test(\"Too Many Records Response\", function () {",
@@ -67,10 +67,10 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "28d4ad5f-47ba-454f-9d1c-b43d848dad21",
+						"id": "fdc9d067-4f7a-4a02-bcde-e6d45c02310d",
 						"exec": [
-							"pm.test(\"Tncomplete Intake Status Code\", function () {",
-							"    pm.response.to.have.status(400);",
+							"pm.test(\"Incomplete Intake Status Code\", function () {",
+							"    pm.response.to.have.status(500);",
 							"}",
 							")",
 							"pm.test(\"Incomplete Intake Response\", function () {",
@@ -120,7 +120,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "866d6421-db3b-4468-a41b-76d76dea3bd4",
+						"id": "e7a801e8-84d8-40f6-bda2-345f1d3aee23",
 						"exec": [
 							"pm.test(\"Incomplete Intake Request\", function () {",
 							"    pm.response.to.have.status(500);",
@@ -169,7 +169,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "48695b91-2fda-47ed-82c3-5af6e37c5dd4",
+						"id": "312950a7-45b8-4ce2-8e1b-03f23cd976a0",
 						"exec": [
 							"pm.test(\"Single Intake Request\", function () {",
 							"    pm.expect(pm.response.text()).to.include(\"PUT completed\");",
@@ -226,7 +226,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "245d969b-0890-4f1c-a393-40c0bbbc8bd4",
+						"id": "5bd583b6-55b8-4c78-a22c-c74ada3ed4f9",
 						"exec": [
 							"pm.test(\"Duplicate Intake Request\", function () {",
 							"    pm.expect(pm.response.json()).to.have.property('fail_row');",
@@ -287,7 +287,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "9d0672a7-1c56-4320-853c-a99d1eaeedab",
+						"id": "95711293-2f23-4089-8190-0a910799820d",
 						"exec": [
 							"var value = pm.environment.get(\"inc\");",
 							"",
@@ -304,7 +304,7 @@
 				{
 					"listen": "prerequest",
 					"script": {
-						"id": "40965406-c334-493f-aaba-daab4f6ee2d1",
+						"id": "14ae1a72-4de9-4b24-a7c6-b4d62df45e02",
 						"exec": [
 							"var inc = pm.environment.get(\"inc\");",
 							"",
@@ -362,7 +362,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "a1205507-59c5-4e37-a692-a0217f408a89",
+						"id": "38411125-da55-413c-830c-e2813b099867",
 						"exec": [
 							"pm.test(\"Invalid URL Status Code\", function () {",
 							"    pm.response.to.have.status(404);",
@@ -400,7 +400,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "0db97dd6-f043-40c8-b63a-64f5722245a9",
+						"id": "082658e2-804d-464c-994b-a453402aef80",
 						"exec": [
 							"// This test requires POSTing the sample.xlsx file found in the source code repository's resources directory.",
 							"// The link to this file does not ship across export/import instances, and so will need to be",
@@ -468,7 +468,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "768beccc-1464-42fc-aace-91c09d1ee877",
+						"id": "445ec5ef-b625-4c55-858e-8c66c1763e69",
 						"exec": [
 							"pm.test(\"Invalid URL Status Code\", function () {",
 							"    pm.response.to.have.status(404);",
@@ -501,19 +501,19 @@
 			"response": []
 		},
 		{
-			"name": "No File Provided",
+			"name": "No Table Listed in File Upload",
 			"event": [
 				{
 					"listen": "test",
 					"script": {
-						"id": "aa4fc114-3f6a-4fe9-af14-1df1793f0273",
+						"id": "3d6e288c-67a1-4705-9b45-890f8a4a0313",
 						"exec": [
-							"pm.test(\"No File Status Code\", function () {",
+							"pm.test(\"No Table In Upload Status Code\", function () {",
 							"    pm.response.to.have.status(400);",
 							"}",
 							")",
-							"pm.test(\"No File Output\", function () {",
-							"    pm.expect(pm.response.text()).to.include(\"No file listed\");",
+							"pm.test(\"No Table In Upload Output\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"Table name not specified\");",
 							"}",
 							")"
 						],
@@ -525,19 +525,13 @@
 				"method": "POST",
 				"header": [],
 				"url": {
-					"raw": "https://localhost/load?file=",
+					"raw": "https://localhost/load",
 					"protocol": "https",
 					"host": [
 						"localhost"
 					],
 					"path": [
 						"load"
-					],
-					"query": [
-						{
-							"key": "file",
-							"value": ""
-						}
 					]
 				}
 			},
@@ -549,7 +543,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "f4f979b3-cbc3-4bfd-9ae0-4a08536f7af7",
+						"id": "90ece85a-90fd-4b64-9aef-f89250579cdb",
 						"exec": [
 							"pm.test(\"Test Query Only Table Status\", function () {",
 							"    pm.response.to.have.status(200);",
@@ -632,7 +626,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "b3536205-ad89-435c-be57-af068815fcd8",
+						"id": "ee6107e2-6b23-4201-b284-632199330640",
 						"exec": [
 							"pm.test(\"Test Query Table and Columns Status\", function () {",
 							"    pm.response.to.have.status(200);",
@@ -688,7 +682,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "98a8acbb-1866-4286-950b-0499bbae0f51",
+						"id": "0c749ed8-4f15-4e15-888d-5fa9d80c9552",
 						"exec": [
 							"pm.test(\"Test Query And Status\", function () {",
 							"    pm.response.to.have.status(200);",
@@ -744,7 +738,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "99a82fa3-ee04-4c1e-b30f-47f61c7f516a",
+						"id": "88b54772-6ee8-4149-bb8e-b5db42e18e0f",
 						"exec": [
 							"pm.test(\"Test Query Equals Status\", function () {",
 							"    pm.response.to.have.status(200);",
@@ -801,7 +795,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "186b060b-b4ac-42c4-a529-18b9ba403b3c",
+						"id": "a3b79325-c773-4687-ba09-33ff8af32335",
 						"exec": [
 							"pm.test(\"Test Query Or Status\", function () {",
 							"    pm.response.to.have.status(200);",
@@ -858,7 +852,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "f3747922-552e-4b8b-bc61-34ce629eaa1a",
+						"id": "37c19b57-8e4f-482c-a490-d3e610cfb6de",
 						"exec": [
 							"pm.test(\"Test Query Fail No Table\", function () {",
 							"    pm.response.to.have.status(400);",
@@ -866,7 +860,7 @@
 							")",
 							"",
 							"pm.test(\"Test Query Fail No Table Response\", function () {",
-							"    pm.expect(pm.response.text()).to.include(\"Error: No table named in request\");",
+							"    pm.expect(pm.response.text()).to.include(\"Table name not supplied\");",
 							"})"
 						],
 						"type": "text/javascript"
@@ -911,7 +905,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "ccf6a4a9-7971-414c-a5fb-1738d3098362",
+						"id": "354033b0-a68e-44d1-8e45-4997b1d04180",
 						"exec": [
 							"pm.test(\"Test Query Fail Columns Not Array\", function () {",
 							"    pm.response.to.have.status(400);",
@@ -964,7 +958,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "0b24dc00-a7bf-4d41-9def-5c2262013775",
+						"id": "8ab27deb-a519-49a8-8f43-c4106502873d",
 						"exec": [
 							"pm.test(\"Test Query Invalid Column\", function () {",
 							"    pm.response.to.have.status(400);",
@@ -1017,7 +1011,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "e4b89a28-51ab-40f4-8046-b0b8c98bce8d",
+						"id": "78d7e2a7-9e46-4bdc-b8b2-7ba63e07d700",
 						"exec": [
 							"pm.test(\"Test Query Fail Invalid And 1\", function () {",
 							"    pm.response.to.have.status(400);",
@@ -1070,7 +1064,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "349c06dc-eba1-40ca-bc23-b7e77451a805",
+						"id": "4f1f6eae-435a-4a6e-81c6-f1bd59e62e98",
 						"exec": [
 							"pm.test(\"Test Query Fail Invalid Table\", function () {",
 							"    pm.response.to.have.status(400);",
@@ -1123,7 +1117,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "fe4d7d81-72eb-4748-b54d-2c29635b8fe2",
+						"id": "040bfdb2-570a-4cad-b61c-3c931fa1c03f",
 						"exec": [
 							"pm.test(\"Test Query Fail Invalid Where\", function () {",
 							"    pm.response.to.have.status(400);",
@@ -1176,7 +1170,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "223d34c5-e3ed-48af-a616-2fe5626c4382",
+						"id": "841272b1-644e-452a-af0f-d2cefacc6c37",
 						"exec": [
 							"pm.test(\"Invalid URL Status Code\", function () {",
 							"    pm.response.to.have.status(404);",
@@ -1214,7 +1208,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "d530c6a1-d618-4763-8994-905d9f6382cf",
+						"id": "12a8cce3-43e2-4116-bc1b-8ea6da3741a4",
 						"exec": [
 							"pm.test(\"Bad Table Status Code\", function () {",
 							"    pm.response.to.have.status(404);",
@@ -1257,7 +1251,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "dc2d730a-fe13-40da-af13-ba9de1bee077",
+						"id": "9a5c951a-bff3-4171-b7a9-97b71a742383",
 						"exec": [
 							"pm.test(\"Get Metadata\", function () {",
 							"    pm.response.to.have.status(200);",
@@ -1296,10 +1290,18 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "063f30e7-d33b-478c-9467-952e41ccf57d",
+						"id": "73f21725-ec00-4a32-9f88-c355d094604c",
 						"exec": [
 							"pm.test(\"Get Intake\", function () {",
 							"    pm.response.to.have.status(200);",
+							"}",
+							")",
+							"",
+							"pm.test(\"Get Intake Schema\", function () {",
+							"    var json = pm.response.json()[0];",
+							"    pm.expect(json).to.have.property('entity');",
+							"    pm.expect(json).to.have.property('mrl');",
+							"    pm.expect(json).to.have.property('submission_date');",
 							"}",
 							")"
 						],
@@ -1355,7 +1357,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "2c165b2e-edfd-4cbf-973e-fa439715e72d",
+						"id": "37a6bc31-40cd-48b0-babb-1a938c2bfff2",
 						"exec": [
 							"pm.test(\"Get Metadata Endpont\", function () {",
 							"    pm.response.to.have.status(200);",
@@ -1388,7 +1390,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "0bb7de01-937f-4da4-944f-f2152f928b8f",
+						"id": "85fe1a70-7d08-4e14-8a9a-049f0a38731c",
 						"exec": [
 							"pm.test(\"Base Endpont\", function () {",
 							"    pm.response.to.have.status(200);",
@@ -1407,6 +1409,127 @@
 					"protocol": "https",
 					"host": [
 						"localhost"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Signup",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "32324e3c-7338-4d42-bc65-0f6e22242192",
+						"exec": [
+							"pm.test(\"Signup\", function () {",
+							"    pm.response.to.have.status(200);",
+							"}",
+							")",
+							"",
+							"pm.test(\"Signup Response Schema\", function () {",
+							"    var json = pm.response.json();",
+							"    pm.expect(json).to.have.property('user');",
+							"    var return_msg = json['return_msg'];",
+							"    pm.expect(return_msg).to.eql(\"OK\");",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "email",
+							"value": "joseph@gmail.com",
+							"type": "text"
+						},
+						{
+							"key": "name",
+							"value": "joseph",
+							"type": "text"
+						},
+						{
+							"key": "password",
+							"value": "pwd",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "https://localhost:443/signup",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "443",
+					"path": [
+						"signup"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Make admin",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "bacbddc3-3255-4176-9342-e13e807102eb",
+						"exec": [
+							"pm.test(\"Make Initial Admin\", function () {",
+							"    pm.response.to.have.status(200);",
+							"}",
+							")",
+							"",
+							"pm.test(\"Make Initial Admin Schema\", function () {",
+							"    var json = pm.response.json();",
+							"    pm.expect(json).to.have.property('user');",
+							"    var return_msg = json['return_msg'];",
+							"    // pm.expect(false);",
+							"    console.log(return_msg);",
+							"    pm.expect(return_msg).to.eql(\"OK\");",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "email",
+							"value": "a@gmail.com",
+							"type": "text"
+						},
+						{
+							"key": "password",
+							"value": "xef",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "https://localhost:443/makeadmin",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "443",
+					"path": [
+						"makeadmin"
 					]
 				}
 			},
