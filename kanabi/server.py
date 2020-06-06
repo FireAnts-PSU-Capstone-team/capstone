@@ -263,7 +263,6 @@ def allowed_file(filename):
 
 
 @main_bp.route("/list", methods=["GET", "POST"])
-@login_required
 def fetch_data():
     """
     Displays the contents of the table listed in the request.
@@ -305,7 +304,6 @@ def fetch_data():
 
 
 @main_bp.route("/load", methods=["PUT", "POST"])
-@login_required
 @error_catching
 def load_data():
     """
@@ -393,7 +391,6 @@ def load_data():
 
 
 @main_bp.route('/metadata', methods=['GET'])
-@login_required
 def show_metadata():
     """
     Display the contents of the metadata table.
@@ -404,7 +401,6 @@ def show_metadata():
 
 
 @main_bp.route('/export', methods=['GET'])
-@login_required
 def export_csv():
     """
     Returns CSV of the table listed in the request.
@@ -428,7 +424,6 @@ def export_csv():
 
 
 @main_bp.route("/delete", methods=["GET"])
-@login_required
 def delete_row():
     """
     Delete a row of data from the specified table.
@@ -450,7 +445,6 @@ def delete_row():
 
 
 @main_bp.route('/update', methods=['POST'])
-@login_required
 def update_table():
     """
     Update the contents of the intake table.
@@ -504,7 +498,6 @@ def update_table():
 
 
 @main_bp.route('/restore', methods=['PUT'])
-@login_required
 def restore_record():
     """
     Restore a record from the archive table to its original table
