@@ -47,6 +47,38 @@ def write_permission(function):
 
     return wrapper
 
+ 
+def allowed_file(filename):
+    """
+    Checks an input file for approved extensions.
+    Args:
+        filename (str): file to check
+    Returns (bool): file approved
+    """
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def get_post_param():
+    """
+    Return a dict of param for POST request
+    Returns (dict): param dict obj
+    """
+    data_content_type = request.content_type
+
+    if data_content_type is None:
+        result = {'message': 'Update operation requires parameters.'}
+        return make_response(jsonify(result), 400)
+
+    if data_content_type.find('json') != -1:
+        request_param = request.get_json(force=True)
+    elif data_content_type.find('x-www-form-urlencoded') != -1:
+        request_param = request.form
+    else:
+        result = {'message': f'Unsupported data content-type: {data_content_type}'}
+        return make_response(jsonify(result), 400)
+
+    return request_param
+
 
 # Custom decorator that catches any server errors and return an appropriate response that includes CORS headers
 def error_catching(function):
@@ -246,17 +278,6 @@ def test_read_only():
     return make_gui_response(json_header, 200, 'OK')
 
 
-def allowed_file(filename):
-    """
-    Checks an input file for approved extensions.
-    Args:
-        filename (str): file to check
-    Returns (bool): file approved
-
-    """
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
 @main_bp.route("/list", methods=["GET", "POST"])
 def fetch_data():
     """
@@ -307,48 +328,47 @@ def load_data():
         POST: /load?file=</path/to/file.xlsx>
     Returns ({}): HTTPS response
     """
+    table_name = request.args.get('table')
+    if table_name is None:
+        result = {'message': 'Table name not specified.'}
+        return make_response(jsonify(result), 400)
+
     if request.method == 'PUT':
-        table_name = request.args.get('table')
-        if table_name is None:
-            result = {'message': 'Table name not specified.'}
+        try:
+            driver.get_table(table_name, None)
+        except driver.InvalidTableException:
+            return make_response(jsonify(f"Table {table_name} does not exist."), 404)
+
+        valid, error_msg = driver.validate_row(request.get_json(force=True))
+        if not valid:
+            result = {'failed_row': error_msg}
             return make_response(jsonify(result), 400)
+        try:
+            row_data = IntakeRow(request.get_json(force=True)).value_array()
+        except (KeyError, ValueError):
+            message = {'message': 'Error encountered while parsing input'}
+            return make_response(jsonify(message), 400)
+
+        row_count, fail_row = driver.insert_row(table_name, row_data)
+        if row_count == 1:
+            status = 200
+            result = {
+                'message': 'PUT completed',
+                'rows_affected': row_count
+            }
+        elif row_count == -1:
+            status = 400
+            result = {
+                'message': 'PUT failed',
+                'cause': 'duplicate row number'
+            }
         else:
-            try:
-                driver.get_table(table_name, None)
-            except driver.InvalidTableException:
-                return make_response(jsonify(f"Table {table_name} does not exist."), 404)
-
-            valid, error_msg = driver.validate_row(request.get_json(force=True))
-            if not valid:
-                result = {'failed_row': error_msg}
-                return make_response(jsonify(result), 400)
-            try:
-                row_data = IntakeRow(request.get_json(force=True)).value_array()
-            except (KeyError, ValueError):
-                message = {'message': 'Error encountered while parsing input'}
-                return make_response(jsonify(message), 400)
-
-            row_count, fail_row = driver.insert_row(table_name, row_data)
-            if row_count == 1:
-                status = 200
-                result = {
-                    'message': 'PUT completed',
-                    'rows_affected': row_count
-                }
-            elif row_count == -1:
-                status = 400
-                result = {
-                    'message': 'PUT failed',
-                    'cause': 'duplicate row number'
-                }
-            else:
-                status = 400
-                result = {
-                    'message': 'PUT failed',
-                    'fail_row': fail_row
-                }
-            return make_response(jsonify(result), status)
-
+            status = 400
+            result = {
+                'message': 'PUT failed',
+                'fail_row': fail_row
+            }
+        return make_response(jsonify(result), status)
     elif request.method == 'POST':
         if 'file' not in request.files:
             result = {'message': 'No file listed'}
@@ -361,7 +381,7 @@ def load_data():
 
             filename = f'{UPLOAD_FOLDER}/' + file.filename
             file.save(filename)
-            success, result_obj = driver.process_file(filename)
+            success, result_obj = driver.process_file(table_name, filename)
             if success:
                 result = {
                     'message': 'File processed successfully',
@@ -441,19 +461,7 @@ def update_table():
     """
     update_columns = {}
     row = None
-    data_content_type = request.content_type
-
-    if data_content_type is None:
-        result = {'message': 'Update operation requires parameters.'}
-        return make_response(jsonify(result), 400)
-
-    if data_content_type.find('json') != -1:
-        request_param = request.get_json(force=True)
-    elif data_content_type.find('x-www-form-urlencoded') != -1:
-        request_param = request.form
-    else:
-        result = {'message': f'Unsupported data content-type: {data_content_type}'}
-        return make_response(jsonify(result), 400)
+    request_param = get_post_param()
 
     for key in request_param:
         if key == 'row':
