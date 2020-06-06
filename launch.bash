@@ -62,7 +62,7 @@ function count_rows() {
 function run_test() {
 
     # config variables
-    tables=('metadata' 'intake')
+    tables=('metadata' 'intake' 'txn_history' 'archive')
     primary_table='intake'
     record_row=(9 29 38)
     prefixed_host='https://localhost'
@@ -131,7 +131,7 @@ function run_test() {
 
         echo "5. Loading spreadsheet \"${testing_spreadsheet}\""
         
-        out=$(curl -X POST -s --form "file=@${testing_spreadsheet}" ${prefixed_host}:${server_port}/load?table=${primary_table} ${self_signed})
+        out=$(curl -X POST -s --form "file=@${testing_spreadsheet}" ${prefixed_host}:${server_port}/load${self_signed})
         echo ${out} | grep "File processed successfully" > /dev/null
         if [[ $? == 0 ]]
         then

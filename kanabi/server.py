@@ -48,7 +48,6 @@ def write_permission(function):
 
     return wrapper
 
-
 def allowed_file(filename):
     """
     Checks an input file for approved extensions.
@@ -57,8 +56,6 @@ def allowed_file(filename):
     Returns (bool): file approved
     """
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
 def get_post_param():
     """
     Return a dict of param for POST request
@@ -79,7 +76,6 @@ def get_post_param():
         return make_response(jsonify(result), 400)
 
     return request_param
-
 
 # Custom decorator that catches any server errors and return an appropriate response that includes CORS headers
 def error_catching(function):
@@ -283,6 +279,8 @@ def test_read_only():
     return make_gui_response(json_header, 200, 'OK')
 
 
+
+
 @main_bp.route("/list", methods=["GET", "POST"])
 @login_required
 def fetch_data():
@@ -476,7 +474,9 @@ def update_table():
     """
     update_columns = {}
     row = None
-    request_param = get_post_param()
+    
+        request_param = get_post_param()
+    
 
     for key in request_param:
         if key == 'row':
