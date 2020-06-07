@@ -20,8 +20,7 @@ test_file = 'resources/sample.xlsx'
 primary_table = 'intake'
 metadata_table = 'metadata'
 connection_error_msg = 'The connection to the database is closed and cannot be opened. Verify DB server is up.'
-row_seq = { "intake": 1, "violations": 1, "records": 1 }
-
+row_seq = {"intake": 1, "violations": 1, "reports": 1}
 
 # TODO: refactor to remove duplicated code
 is_connected = False
@@ -59,7 +58,6 @@ def reconnectDB():
             if wait_time >= 30:
                 return False
     return True
-
 
 
 def get_table_list():
@@ -134,35 +132,6 @@ def fmt(s):
     return s
 
 
-# TODO: either remove this or update it
-def dump_tables():
-    """
-    Displays the contents of the tables in the database.
-    Returns: None
-    """
-    # check to make sure that the connection is open and active
-    if not check_conn():
-        return connection_error_msg
-
-    print("Test:\n-------------------------------")
-    try:
-        pgSqlCur.execute(f"select * from {primary_table}")
-        rows = pgSqlCur.fetchall()
-        for row in rows:
-            print(row)
-    except Exception as err:
-        sql_except(err)
-
-    print("\nMetadata:\n-------------------------------")
-    try:
-        pgSqlCur.execute("select * from metadata")
-        rows = pgSqlCur.fetchall()
-        for row in rows:
-            print(row)
-    except Exception as err:
-        sql_except(err)
-
-
 def table_exists(cur, table):
     """
     Checks whether the named table exists.
@@ -182,7 +151,7 @@ def table_exists(cur, table):
         exists = False
 
     return exists
-        
+
 
 class InvalidTableException(Exception):
     """
@@ -212,9 +181,10 @@ def filter_table(request_body: json, user: User) -> (str, json, int):
          status (int): the HTTP status code of the response
     """
     if not user.is_authenticated:
-        return None,'Must be logged in to perform action', 404
+        return None, 'Must be logged in to perform action', 404
     try:
-        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password, host="db")
+        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password,
+                                host="db")
         cur = conn.cursor()
         conn.commit()
     except (Exception, psycopg2.DatabaseError) as error:
@@ -227,7 +197,7 @@ def filter_table(request_body: json, user: User) -> (str, json, int):
     try:
         # get our query results
         cur.execute(query)
-        results =cur.fetchall()
+        results = cur.fetchall()
         # get our column names
         table = request_body['table']
         col_names = request_body.get('columns')
@@ -264,7 +234,8 @@ def get_table(table_name, columns, user):
     result = []
     column_names = []
     try:
-        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password, host="db")
+        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password,
+                                host="db")
         cur = conn.cursor()
         conn.commit()
     except (Exception, psycopg2.DatabaseError) as error:
@@ -350,7 +321,7 @@ def write_info_data(df, user):
     total_count = len(row_array)
     for row in row_array:
         try:
-            re, failed_row = insert_row(primary_table, row,user)
+            re, failed_row = insert_row(primary_table, row, user)
             if re == 1:
                 success_count += 1
             else:
@@ -376,9 +347,10 @@ def write_metadata(metadata, user):
     if not user.is_authenticated:
         return False, 'Must be logged in to perform action', 404
     cmd = "INSERT INTO {}(filename, creator, size, created_date, last_modified_date, last_modified_by, title, rows, columns) " \
-        "VALUES(" + "{} " + ", {}" * 8 + ") ON CONFLICT DO NOTHING"
+          "VALUES(" + "{} " + ", {}" * 8 + ") ON CONFLICT DO NOTHING"
     try:
-        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password, host="db")
+        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password,
+                                host="db")
         cur = conn.cursor()
         conn.commit()
     except (Exception, psycopg2.DatabaseError) as error:
@@ -386,8 +358,8 @@ def write_metadata(metadata, user):
 
     try:
         cur.execute(cmd.format(metadata_table, metadata['filename'], metadata['creator'], metadata['size'],
-                                    metadata['created'], metadata['modified'], metadata['lastModifiedBy'],
-                                    metadata['title'], metadata['rows'], metadata['columns']))
+                               metadata['created'], metadata['modified'], metadata['lastModifiedBy'],
+                               metadata['title'], metadata['rows'], metadata['columns']))
         conn.commit()
 
     except Exception as err:
@@ -413,11 +385,12 @@ def row_number_exists(cur, row_number, table=primary_table):
     return exists
 
 
-def validate_row(json_item):
+def validate_row(json_item, table):
     """
     Preps a JSON input row and passes it to the data validator. Returns the validator's response.
     Args:
         json_item ({}): input JSON
+        table (str): table name
     Returns ((bool, str)): <whether row is valid>, <error message>
     """
     # If the incoming json object doesn't have a row associated with it, we add a temporary one for validation
@@ -426,27 +399,32 @@ def validate_row(json_item):
         json_item.update({'row': 999})
         json_item.move_to_end('row', last=False)
     df = pd.json_normalize(json_item)
-    return validate_intake(df)
+    if table == 'intake':
+        return validate_intake(df)
+    # add more entries here once other tables have validators
+    else:
+        raise InvalidTableException
 
 
 def insert_row(table, row, user):
     """
     Insert an array of values into the specified table.
     Args:
+        user (User): associated user
         table (str): name of table to insert into
         row ([]): row of values to insert, default to false,
     Returns: (bool, dict) a bool indicate whether insertion is successful, a dict of failed row info
     """
-    # Check flag for multi row insert, if false check to make sure that the connection is open and active
     if not user.is_authenticated:
-        return False,{'Message':'Must be logged in to perform action'}
+        return False, {'Message': 'Must be logged in to perform action'}
     global row_seq
     row_temp = row_seq[table]
     try:
-        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password, host="db")
+        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password,
+                                host="db")
         cur = conn.cursor()
         conn.commit()
-    except (Exception, psycopg2.DatabaseError) as error:
+    except psycopg2.DatabaseError:
         return connection_error_msg, 404
 
     try:
@@ -481,9 +459,15 @@ def insert_row(table, row, user):
                 raise psycopg2.Error
         except Exception as err:
             sql_except(err)
-            failed_row = {
-                'mrl': row[ColNames.MRL.value]
-            }
+            if table == 'intake':
+                failed_row = {
+                    'mrl': row[ColNames.MRL.value]
+                }
+            else:
+                failed_row = {
+                    # TODO: once other tables have unique IDs, use them here
+                    'row': row[0]
+                }
             return 0, failed_row
     except:
         return 0, connection_error_msg
@@ -498,7 +482,7 @@ def process_file(f, user):
     Returns (bool, dict): bool is successful or not, dict includes processing info 
     """
     if not user.is_authenticated:
-        return False, {'Message':'Must be logged in to perform action'}
+        return False, {'Message': 'Must be logged in to perform action'}
 
     # read file content
     df = pd.read_excel(f)
@@ -532,7 +516,8 @@ def delete_row(table, row_nums, user):
     success = False
     delete_info = {}
     try:
-        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password, host="db")
+        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password,
+                                host="db")
         cur = conn.cursor()
         conn.commit()
     except (Exception, psycopg2.DatabaseError) as error:
@@ -580,7 +565,8 @@ def update_table(table, row, update_columns, user):
     if not user.is_authenticated:
         return False, 'Must be logged in to perform action', 404
     try:
-        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password, host="db")
+        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password,
+                                host="db")
         cur = conn.cursor()
         conn.commit()
     except (Exception, psycopg2.DatabaseError) as error:
@@ -635,12 +621,13 @@ def restore_row(row_num, user):
     if not user.is_authenticated:
         return False, 'Must be logged in to perform action', 404
     try:
-        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password, host="db")
+        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password,
+                                host="db")
         cur = conn.cursor()
         conn.commit()
     except (Exception, psycopg2.DatabaseError) as error:
         return connection_error_msg, 404
-    restore_info={}
+    restore_info = {}
 
     try:
         row_num = list(map(int, row_num))
@@ -720,4 +707,3 @@ def test_driver():
     # close the db connection
     print("Closing connection to database.")
     c.pg_disconnect(pgSqlCur, pgSqlConn)
-

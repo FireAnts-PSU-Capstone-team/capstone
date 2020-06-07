@@ -43,9 +43,10 @@ def login():
       }
     }
     '''
-    email = request.json.get('email')
-    password = request.json.get('password')
-    remember = True if request.json.get('remember') else False
+    req = parse_request(request)
+    email = req.get('email')
+    password = req.get('password')
+    remember = True if req.get('remember') else False
     user = fetch_user(email)
 
     # Check if user actually exists and compare provided and stored password hashes
@@ -61,6 +62,16 @@ def login():
     identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
     return make_gui_response(json_header, 200, 'OK')
 
+
+def parse_request(r):
+    content_type = r.content_type
+    if content_type == 'application/json':
+        req = request.json
+    elif content_type == 'application/x-www-form-urlencoded':
+        req = request.form
+    else:
+        return make_gui_response(json_header, 400, 'Content-Type not accepted')
+    return req
 
 # Adds the user to the database and rejects duplicate emails
 @auth_bp.route('/signup', methods=['POST'])
@@ -79,9 +90,10 @@ def signup_post():
       }
     }
     '''
-    email = request.json.get('email')
-    name = request.json.get('name')
-    password = request.json.get('password')
+    req = parse_request(request)
+    email = req.get('email')
+    name = req.get('name')
+    password = req.get('password')
 
     # if a user is found, reject attempt
     if bool(fetch_user(email)):

@@ -1411,6 +1411,220 @@
 				}
 			},
 			"response": []
+		},
+		{
+			"name": "Single Reports Upload",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "b03216be-324e-4547-9954-22b21494e09e",
+						"exec": [
+							"pm.test(\"Single Reports Upload Response\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"PUT completed\");",
+							"}",
+							")",
+							"pm.test(\"Reports Upload Status Code\", function () {",
+							"    pm.response.to.have.status(200);",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"Date\": \"2/22/2016\",\n  \"Method\": \"Phone\",\n  \"Intake Person\": \"\",\n  \"RP (Name)\": \"Benjamin Calapa\",\n  \"RP (Contact Info)\": \"503-807-3998\",\n  \"Concern\": \"Next to a park. People smoking in the park next to the dispensary. Causing singifcant livability and crime problems. \",\n  \"Location Name\": \"Exodus wellness center\",\n  \"Location Address\": \" 16211 SE Powell Blvd\",\n  \"MRL?\": \"51\",\n  \"Action Taken\":  \"Information\",\n  \"Status\": \"Closed\",\n  \"Status Date\": \"6/27/2016\",\n  \"Additional Notes\": \"\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost:443/load?table=reports",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "443",
+					"path": [
+						"load"
+					],
+					"query": [
+						{
+							"key": "table",
+							"value": "reports"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Reports Upload Persisted",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "c7b359d8-da23-4370-bf69-9b68168d7d89",
+						"exec": [
+							"pm.test(\"Reports Retrieval Response\", function () {",
+							"    pm.expect(pm.response.json()[0]).to.have.property('concern');",
+							"}",
+							")",
+							"pm.test(\"Reports Retrieval Status Code\", function () {",
+							"    pm.response.to.have.status(200);",
+							"}",
+							")",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://localhost:443/list?table=reports",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "443",
+					"path": [
+						"list"
+					],
+					"query": [
+						{
+							"key": "table",
+							"value": "reports"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Single Violations Upload",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "e5c33ae0-a0ba-4975-864d-cb6aaba3add5",
+						"exec": [
+							"pm.test(\"Single Violations Upload Response\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"PUT completed\");",
+							"}",
+							")",
+							"pm.test(\"Violations Upload Status Code\", function () {",
+							"    pm.response.to.have.status(200);",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"DBA\": \"Green Buds\",\n  \"Address\": \"10929 NE Sandy\",\n  \"MRL#\": \"359, 409\",\n  \"License Type\": \"MD\",\n  \"Violation sent date\": \"7/27/2016\",\n  \"Original Violation Amount\": \"$5,000\",\n  \"Admin Rvw Decision Date\": \"\",\n  \"Admin Rvw Violation Amount\": \"\",\n  \"Certified #\": \"\",\n  \"Certified receipt returned\": \"\",\n  \"Date paid/ Waived\": \"5/16/2017\",\n  \"Receipt No.\": \"1068\",\n  \"Cash Amount\": \"\",\n  \"Check Amount\": \"$5,000\",\n  \"Card Amount\": \"\",\n  \"Check No. / Approval Code\": \"651103600\",\n  \"Notes\": \"\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost:443/load?table=violations",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "443",
+					"path": [
+						"load"
+					],
+					"query": [
+						{
+							"key": "table",
+							"value": "violations"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Violations Upload Persisted",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "74fde0f3-df8b-4dcc-9bdb-fad5e2e416cf",
+						"exec": [
+							"pm.test(\"Violations Retrieval Response\", function () {",
+							"    pm.expect(pm.response.json()[0]).to.have.property('certified_receipt_returned');",
+							"}",
+							")",
+							"pm.test(\"Violations Retrieval Status Code\", function () {",
+							"    pm.response.to.have.status(200);",
+							"}",
+							")",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "https://localhost:443/list?table=violations",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "443",
+					"path": [
+						"list"
+					],
+					"query": [
+						{
+							"key": "table",
+							"value": "violations"
+						}
+					]
+				}
+			},
+			"response": []
 		}
 	],
 	"protocolProfileBehavior": {}

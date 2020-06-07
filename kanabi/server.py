@@ -18,7 +18,7 @@ from .models.IntakeRow import IntakeRow
 from .responses import make_gui_response
 from .user import User
 
-UPLOAD_FOLDER = 'resources'
+UPLOAD_FOLDER = 'kanabi/resources'
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
 json_header = {"Content-Type": "application/json"}
 admin_only_tables = ['archive', 'txn_history']
@@ -326,12 +326,22 @@ def load_data():
             except driver.InvalidTableException:
                 return make_response(jsonify(f"Table {table_name} does not exist."), 404)
 
-            valid, error_msg = driver.validate_row(request.get_json(force=True))
+            valid, error_msg = driver.validate_row(request.get_json(force=True), table_name)
             if not valid:
                 result = {'failed_row': error_msg}
                 return make_response(jsonify(result), 400)
             try:
-                row_data = IntakeRow(request.get_json(force=True)).value_array()
+                if table_name.lower() == 'intake':
+                    from .models import IntakeRow
+                    row_data = IntakeRow.IntakeRow(request.get_json(force=True)).value_array()
+                elif table_name.lower() == 'reports':
+                    from .models import ReportsRow
+                    row_data = ReportsRow.ReportsRow(request.get_json(force=True)).value_array()
+                elif table_name.lower() == 'violations':
+                    from .models import ViolationsRow
+                    row_data = ViolationsRow.ViolationsRow(request.get_json(force=True)).value_array()
+                else:
+                    return make_response(jsonify(f"Table {table_name} is not supported for upload."), 400)
             except (KeyError, ValueError):
                 message = {'message': 'Error encountered while parsing input'}
                 return make_response(jsonify(message), 400)
