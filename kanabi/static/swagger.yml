@@ -234,7 +234,7 @@ paths:
       summary: update record in table
       description: Update the contents of the intake table.
       parameters:
-        - name: conetent_type
+        - name: content_type
           in: header
           required: true
           description: string containing encoding structure
@@ -262,6 +262,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/responses/Standard500ErrorResponse'
+
   /restore:
     put:
       summary: restore row from archive
@@ -288,8 +289,110 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/responses/Standard500ErrorResponse'
+
+  /signup:
+    post:
+      summary: signup user
+      description: Create new user account on webserver
+      parameters:
+      - name: content_type
+        in: header
+        required: true
+        description: string containing encoding structure
+        schema:
+          type: string
+      requestBody:
+          required: true
+          description: JSON object of user to create
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/signup_request'
+      responses:
+        200:
+          description: successful creation of user
+          content:
+            application/json: {}
+        400:
+          description: User already exists, malformed content
+          content:
+            application/json: {}
+        500:
+          description: An unexpected error occured.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/Standard500ErrorResponse'
+
+  /login:
+    post:
+      summary: login user
+      description: Login user to the webserver for tracking actions
+      parameters:
+      - name: content_type
+        in: header
+        required: true
+        description: string containing encoding structure
+        schema:
+          type: string
+      requestBody:
+          required: true
+          description: JSON object of user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/login_request'
+      responses:
+        200:
+          description: successful creation of user
+          content:
+            application/json: {}
+        400:
+          description: User already exists, malformed content
+          content:
+            application/json: {}
+        500:
+          description: An unexpected error occured.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/Standard500ErrorResponse'
+
+  /logout:
+    get:
+      summary: logout user
+      description: slogout user from webserver
+      responses:
+        200:
+          description: User successfully logged out of system
+          content:
+            application/json: {}
+        500:
+          description: An unexpected error occured.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/Standard500ErrorResponse'
 components:
   schemas:
+    login_request:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+        remember:
+          type: string
+    signup_request:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+        name:
+          type: string
     query_request:
       type: object
       properties:
