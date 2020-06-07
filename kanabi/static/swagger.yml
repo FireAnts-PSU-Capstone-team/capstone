@@ -128,6 +128,12 @@ paths:
         required: true
         schema:
           type: string
+      - name: table
+        in: query
+        description: Name of table to insert data into
+        required: true
+        schema:
+          type: string
       requestBody:
         required: true
         content:
@@ -236,7 +242,7 @@ paths:
             type: string
           style: simple
         - name: row
-          in: path
+          in: query
           required: true
           description: value of row to update
           schema:
@@ -256,7 +262,32 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/responses/Standard500ErrorResponse'
-
+  /restore:
+    put:
+      summary: restore row from archive
+      description: restore a row from archive table back to original table
+      parameters:
+        - name: row
+          in: query
+          required: true
+          description: The row id in the archive table to restore
+          schema:
+            type: integer
+      responses:
+        200:
+          description: successful update of record
+          content:
+            application/json: {}
+        400:
+          description: No column/row specified, invalid data specified
+          content:
+            application/json: {}
+        500:
+          description: An unexpected error occured.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/Standard500ErrorResponse'
 components:
   schemas:
     query_request:
