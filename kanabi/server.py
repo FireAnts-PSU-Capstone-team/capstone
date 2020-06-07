@@ -49,6 +49,38 @@ def write_permission(function):
     return wrapper
 
 
+def allowed_file(filename):
+    """
+    Checks an input file for approved extensions.
+    Args:
+        filename (str): file to check
+    Returns (bool): file approved
+    """
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def get_post_param():
+    """
+    Return a dict of param for POST request
+    Returns (dict): param dict obj
+    """
+    data_content_type = request.content_type
+
+    if data_content_type is None:
+        result = {'message': 'Update operation requires parameters.'}
+        return make_response(jsonify(result), 400)
+
+    if data_content_type.find('json') != -1:
+        request_param = request.get_json(force=True)
+    elif data_content_type.find('x-www-form-urlencoded') != -1:
+        request_param = request.form
+    else:
+        result = {'message': f'Unsupported data content-type: {data_content_type}'}
+        return make_response(jsonify(result), 400)
+
+    return request_param
+
+
 # Custom decorator that catches any server errors and return an appropriate response that includes CORS headers
 def error_catching(function):
     @wraps(function)
@@ -251,17 +283,6 @@ def test_read_only():
     return make_gui_response(json_header, 200, 'OK')
 
 
-def allowed_file(filename):
-    """
-    Checks an input file for approved extensions.
-    Args:
-        filename (str): file to check
-    Returns (bool): file approved
-
-    """
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
 @main_bp.route("/list", methods=["GET", "POST"])
 def fetch_data():
     """
@@ -452,19 +473,8 @@ def update_table():
     """
     update_columns = {}
     row = None
-    data_content_type = request.content_type
 
-    if data_content_type is None:
-        result = {'message': 'Update operation requires parameters.'}
-        return make_response(jsonify(result), 400)
-
-    if data_content_type.find('json') != -1:
-        request_param = request.get_json(force=True)
-    elif data_content_type.find('x-www-form-urlencoded') != -1:
-        request_param = request.form
-    else:
-        result = {'message': f'Unsupported data content-type: {data_content_type}'}
-        return make_response(jsonify(result), 400)
+    request_param = get_post_param()
 
     for key in request_param:
         if key == 'row':

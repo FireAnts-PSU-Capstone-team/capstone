@@ -20,8 +20,7 @@ test_file = 'resources/sample.xlsx'
 primary_table = 'intake'
 metadata_table = 'metadata'
 connection_error_msg = 'The connection to the database is closed and cannot be opened. Verify DB server is up.'
-row_seq = { "intake": 1, "violations": 1, "records": 1 }
-
+row_seq = {"intake": 1, "violations": 1, "records": 1, "reports": 1}
 
 # TODO: refactor to remove duplicated code
 is_connected = False
@@ -51,7 +50,6 @@ def reconnectDB():
             pgSqlCur, pgSqlConn = c.pg_connect()
             is_connected = True
             return is_connected
-        # TODO: specify the exceptions thrown here
         except:
             time.sleep(1)
             wait_time += 1
@@ -59,6 +57,37 @@ def reconnectDB():
             if wait_time >= 30:
                 return False
     return True
+
+
+
+def table_rows_to_dict(rows, columns=None):
+    """
+    Constructs a dict from rows of a table.
+    Args:
+        rows {__iter__}: one or many rows to parse
+        columns [str]: list of column names to include in results
+    Returns []: list of results
+    """
+    result = []
+    column_names = []
+
+    for col in pgSqlCur.description:
+        column_names.append(col.name)
+
+    for row in rows:
+        a_row = {}
+        i = 0
+        for col in column_names:
+            if columns:
+                if col in columns:
+                    a_row[col] = row[i]
+            else:
+                a_row[col] = row[i]
+            i += 1
+
+        result.append(a_row)
+
+    return result
 
 
 def get_table_list():
@@ -94,22 +123,21 @@ def check_conn():
     try:
         pgSqlCur.execute('SELECT 1')
         return True
-    # TODO: specify the exceptions thrown here
-    except:
+    except psycopg2.Error:
         return reconnectDB()
 
 
 def sql_except(err):
     """
-    Function to print out the error message generated from the exception
+    Function to print out the error message generated from the exception.
     Args:
-        err - the error message generated
-    Returns None
+        err (psycopg2.Error) - the error message generated
+    Returns: None
     """
     # roll back the last sql command
     pgSqlCur.execute("ROLLBACK")
     # get the details for exception
-    err_type, err_obj, traceback = sys.exc_info()
+    # err_type, err_obj, traceback = sys.exc_info()
 
     # print the connect() error
     sys.stderr.write(f"\npsycopg2 ERROR: {err}")
@@ -123,13 +151,15 @@ def fmt(s):
         s: the input element
     Returns (str): a SQL-friendly string representation
     """
-    if s is None or str(s).lower() == 'nan' or str(s) == '':
+    if s is None or str(s) == '':
         s = "NULL"
     else:
         if type(s) is str:
             s = "'" + str(s).replace('"', '').replace("'", "") + "'"  # strip quotation marks
+        elif str(s).lower() == 'nan' or str(s).lower() == 'nat':  # s MUST not be str
+            s = "NULL"
         else:
-            s = str(s)
+            s = "'" + str(s) + "'"
     return s
 
 
@@ -181,7 +211,7 @@ def table_exists(cur, table):
         exists = False
 
     return exists
-        
+
 
 class InvalidTableException(Exception):
     """
@@ -270,6 +300,7 @@ def get_table(table_name, columns, user):
     except (Exception, psycopg2.DatabaseError) as error:
         return connection_error_msg, 404
 
+
     if not table_exists(cur, table_name) or table_name not in db_tables:
         raise InvalidTableException
 
@@ -277,22 +308,7 @@ def get_table(table_name, columns, user):
         cur.execute(f"select * from {table_name}")
         rows = cur.fetchall()
 
-        for col in cur.description:
-            column_names.append(col.name)
-
-        for row in rows:
-            a_row = {}
-            i = 0
-            for col in column_names:
-                if columns:
-                    if col in columns:
-                        a_row[col] = row[i]
-                else:
-                    a_row[col] = row[i]
-                i += 1
-
-
-            result.append(a_row)
+        result = table_rows_to_dict(rows, columns)
 
 
         for row in rows:
@@ -349,14 +365,15 @@ def read_metadata(f):
     return data
 
 
-def write_info_data(df, user):
 
+def write_info_data(df, table, user):
     """
-    Write data from spreadsheet to the information table.
+    Write data from spreadsheet to the named table.
     Args:
         df (dataframe): data from spreadsheet
         user(user): the current active user of session
-    Returns: dict of data writing info
+
+    Returns: (dict): status report
     """
     if not user.is_authenticated:
         return False, 'Must be logged in to perform action', 404
@@ -367,7 +384,7 @@ def write_info_data(df, user):
     for row in row_array:
         try:
 
-            re, failed_row = insert_row(primary_table, row,user)
+            re, failed_row = insert_row(table, row, user)
 
             if re == 1:
                 success_count += 1
@@ -520,17 +537,24 @@ def process_file(f, user):
     """
     if not user.is_authenticated:
         return False, {'Message':'Must be logged in to perform action'}
-
+    if table not in db_tables:
+        reaise InvalidTableException
+   
     # read file content
-    df = pd.read_excel(f)
-    # Validate data frame
-    valid, error_msg = validate_intake(df)
-
+    df = pd.read_excel(file)
+	
+    if table == 'intake':
+    	# Validate data frame
+    	valid, error_msg = validate_intake(df)
+	else:
+		# not validating other table than primary for now
+		valid = True
+		error_msg = None
     # Write the data to the DB
     result_obj = write_info_data(df, user)
     # insert metadata into metadata table
     # should add version and revision to this schema, but don't know types yet
-    metadata = read_metadata(f)
+    metadata = read_metadata(file)
 
     write_metadata(metadata, user)
 
@@ -637,6 +661,15 @@ def update_table(table, row, update_columns, user):
             # the target row is not updated
             return 0, 'Update failed, please check if the row exists'
 
+        # validate inserted row
+        cur.execute(f"select * from {table} where row = {row}")
+        new_row = cur.fetchall()
+        valid, error_msg = validate_intake(pd.json_normalize(table_rows_to_dict(new_row)), 1)
+        if not valid:
+            cur.execute("ROLLBACK")
+            conn.commit()
+            return 0, error_msg
+
     except psycopg2.Error as err:
         sql_except(err)
         return 0, str(err)
@@ -712,35 +745,3 @@ def create_db_user(name, password, admin):
         sql_except(err)
         return 0, str(err)
 
-
-# TODO: either delete this or update it
-def test_driver():
-    # Pre-insert query
-    print('Dump tables -------------------------------------------------')
-    dump_tables()
-
-    print('\nInsert data -------------------------------------------------')
-    process_file(test_file)
-
-    # three options for collisions:
-    # 1. do nothing (discard new row; probably want to return an error to the user in this case)
-    # 2. update existing record with new metadata
-    # ON CONFLICT (filename)
-    #       DO UPDATE
-    #       SET (size, last_modified_by, modified) = (EXCLUDED.size, EXCLUDED.last_modified_by, EXCLUDED.modified)
-    # 3. add entirely new record
-    # would need to return status of insertion, then insert a new row. Would need an incrementing column, like 'version'
-
-    # unfortunately, it looks like 'creator' and 'created' are both fabricated by openpyxl, so we may need to find
-    # a different way to capture that data if we want to keep them
-
-    # Post insert query, verify data is inserted
-    print('\nDump tables -------------------------------------------------')
-    dump_tables()
-
-    # close the db connection
-    print("Closing connection to database.")
-    c.pg_disconnect(pgSqlCur, pgSqlConn)
-
-
-   
