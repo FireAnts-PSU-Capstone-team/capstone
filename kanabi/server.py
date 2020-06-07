@@ -283,6 +283,17 @@ def test_read_only():
     return make_gui_response(json_header, 200, 'OK')
 
 
+def allowed_file(filename):
+    """
+    Checks an input file for approved extensions.
+    Args:
+        filename (str): file to check
+    Returns (bool): file approved
+
+    """
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
 @main_bp.route("/list", methods=["GET", "POST"])
 def fetch_data():
     """

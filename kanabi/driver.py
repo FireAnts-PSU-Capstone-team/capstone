@@ -20,7 +20,8 @@ test_file = 'resources/sample.xlsx'
 primary_table = 'intake'
 metadata_table = 'metadata'
 connection_error_msg = 'The connection to the database is closed and cannot be opened. Verify DB server is up.'
-row_seq = {"intake": 1, "violations": 1, "records": 1, "reports": 1}
+row_seq = { "intake": 1, "violations": 1, "records": 1 }
+
 
 # TODO: refactor to remove duplicated code
 is_connected = False
@@ -50,6 +51,7 @@ def reconnectDB():
             pgSqlCur, pgSqlConn = c.pg_connect()
             is_connected = True
             return is_connected
+        # TODO: specify the exceptions thrown here
         except:
             time.sleep(1)
             wait_time += 1
@@ -57,7 +59,6 @@ def reconnectDB():
             if wait_time >= 30:
                 return False
     return True
-
 
 
 def table_rows_to_dict(rows, columns=None):
@@ -123,21 +124,22 @@ def check_conn():
     try:
         pgSqlCur.execute('SELECT 1')
         return True
-    except psycopg2.Error:
+    # TODO: specify the exceptions thrown here
+    except:
         return reconnectDB()
 
 
 def sql_except(err):
     """
-    Function to print out the error message generated from the exception.
+    Function to print out the error message generated from the exception
     Args:
-        err (psycopg2.Error) - the error message generated
-    Returns: None
+        err - the error message generated
+    Returns None
     """
     # roll back the last sql command
     pgSqlCur.execute("ROLLBACK")
     # get the details for exception
-    # err_type, err_obj, traceback = sys.exc_info()
+    err_type, err_obj, traceback = sys.exc_info()
 
     # print the connect() error
     sys.stderr.write(f"\npsycopg2 ERROR: {err}")
@@ -151,15 +153,13 @@ def fmt(s):
         s: the input element
     Returns (str): a SQL-friendly string representation
     """
-    if s is None or str(s) == '':
+    if s is None or str(s).lower() == 'nan' or str(s) == '':
         s = "NULL"
     else:
         if type(s) is str:
             s = "'" + str(s).replace('"', '').replace("'", "") + "'"  # strip quotation marks
-        elif str(s).lower() == 'nan' or str(s).lower() == 'nat':  # s MUST not be str
-            s = "NULL"
         else:
-            s = "'" + str(s) + "'"
+            s = str(s)
     return s
 
 
@@ -211,7 +211,7 @@ def table_exists(cur, table):
         exists = False
 
     return exists
-
+        
 
 class InvalidTableException(Exception):
     """
@@ -308,7 +308,8 @@ def get_table(table_name, columns, user):
         cur.execute(f"select * from {table_name}")
         rows = cur.fetchall()
 
-        result = table_rows_to_dict(rows, columns)
+        for col in pgSqlCur.description:
+            column_names.append(col.name)
 
 
         for row in rows:
@@ -365,14 +366,13 @@ def read_metadata(f):
     return data
 
 
-
 def write_info_data(df, table, user):
+
     """
-    Write data from spreadsheet to the named table.
+    Write data from spreadsheet to the information table.
     Args:
         df (dataframe): data from spreadsheet
         user(user): the current active user of session
-
     Returns: (dict): status report
     """
     if not user.is_authenticated:
@@ -527,7 +527,6 @@ def insert_row(table, row, user):
 
 
 def process_file(f, user):
-
     """
     Read an Excel file; put info data into info table, metadata into metadata table
     Args:
@@ -744,4 +743,5 @@ def create_db_user(name, password, admin):
     except psycopg2.Error as err:
         sql_except(err)
         return 0, str(err)
+
 
