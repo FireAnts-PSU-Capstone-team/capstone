@@ -279,6 +279,7 @@ def test_read_only():
 
 
 @main_bp.route("/list", methods=["GET", "POST"])
+@login_required
 def fetch_data():
     """
     Displays the contents of the table listed in the request.
@@ -296,7 +297,7 @@ def fetch_data():
         if table in admin_only_tables and not session['is_admin']:
             return make_response(jsonify('User must be logged in as admin to access this resource'), 403)
 
-        query, response, status = driver.filter_table(request.json)
+        query, response, status = driver.filter_table(request.json, current_user)
         return make_response(jsonify(response), status)
 
     if request.method == 'GET':
@@ -312,13 +313,14 @@ def fetch_data():
             if table_name in admin_only_tables and not session['is_admin']:
                 return make_response(jsonify('User must be logged in as admin to access this resource'), 403)
 
-            table_info_obj = driver.get_table(table_name, columns)
+            table_info_obj = driver.get_table(table_name, columns, current_user)
             return make_response(jsonify(table_info_obj), 200)
         except driver.InvalidTableException:
             return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
 
 
 @main_bp.route("/load", methods=["PUT", "POST"])
+@login_required
 @error_catching
 def load_data():
     """
@@ -335,7 +337,7 @@ def load_data():
 
     if request.method == 'PUT':
         try:
-            driver.get_table(table_name, None)
+            driver.get_table(table_name, None, current_user)
         except driver.InvalidTableException:
             return make_response(jsonify(f"Table {table_name} does not exist."), 404)
 
@@ -349,7 +351,7 @@ def load_data():
             message = {'message': 'Error encountered while parsing input'}
             return make_response(jsonify(message), 400)
 
-        row_count, fail_row = driver.insert_row(table_name, row_data)
+        row_count, fail_row = driver.insert_row(table_name, row_data, current_user)
         if row_count == 1:
             status = 200
             result = {
@@ -381,7 +383,7 @@ def load_data():
 
             filename = f'{UPLOAD_FOLDER}/' + file.filename
             file.save(filename)
-            success, result_obj = driver.process_file(table_name, filename)
+            success, result_obj = driver.process_file(table_name, filename, current_user)
             if success:
                 result = {
                     'message': 'File processed successfully',
@@ -402,16 +404,18 @@ def load_data():
 
 
 @main_bp.route('/metadata', methods=['GET'])
+@login_required
 def show_metadata():
     """
     Display the contents of the metadata table.
     Returns ({}): response object containing the contents of the table.
     """
-    response_body = jsonify(driver.get_table('metadata', None))
+    response_body = jsonify(driver.get_table('metadata', None, current_user))
     return make_response(response_body, 200)
 
 
 @main_bp.route('/export', methods=['GET'])
+@login_required
 def export_csv():
     """
     Returns CSV of the table listed in the request.
@@ -424,7 +428,9 @@ def export_csv():
         if table_name is None:
             return make_response(jsonify('Table name not supplied.'), 400)
         try:
-            table_output = driver.get_table(table_name, None)
+            table_output = driver.get_table(table_name, None, current_user)
+            if isinstance(table_output,str):
+                return make_response(jsonify(table_output),400)
             df = json_normalize(table_output)
             table_info_obj = df.to_csv(index=False)
             return make_response(table_info_obj, 200)
@@ -433,6 +439,7 @@ def export_csv():
 
 
 @main_bp.route("/delete", methods=["GET"])
+@login_required
 def delete_row():
     """
     Delete a row of data from the specified table.
@@ -445,7 +452,7 @@ def delete_row():
         return make_response(jsonify('Table name or row number not supplied.'), 400)
     try:
         row_nums = str.split(row_nums.strip(), ' ')
-        table_info_obj = driver.delete_row(table_name, row_nums)
+        table_info_obj = driver.delete_row(table_name, row_nums, current_user)
         return make_response(jsonify(table_info_obj), 200)
     except driver.InvalidTableException:
         return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
@@ -454,6 +461,7 @@ def delete_row():
 
 
 @main_bp.route('/update', methods=['POST'])
+@login_required
 def update_table():
     """
     Update the contents of the intake table.
@@ -484,7 +492,7 @@ def update_table():
         return make_response(jsonify(result), 400)
 
     # only update intake table now
-    response_body = driver.update_table('intake', row, update_columns)
+    response_body = driver.update_table('intake', row, update_columns, current_user)
     result = {'message': response_body[1]}
     if response_body[0] == 0:
         # error on updating
@@ -495,6 +503,7 @@ def update_table():
 
 
 @main_bp.route('/restore', methods=['PUT'])
+@login_required
 def restore_record():
     """
     Restore a record from the archive table to its original table
@@ -506,7 +515,7 @@ def restore_record():
         return make_response(jsonify('Row number not supplied.'), 400)
     try:
         row_num = str.split(row_num.strip(), ' ')
-        table_info_obj = driver.restore_row(row_num)
+        table_info_obj = driver.restore_row(row_num, current_user)
         return make_response(jsonify(table_info_obj), 200)
     except driver.InvalidRowException:
         return make_response(jsonify('Row '.join(row_num) + ' could not be restored automatically. '
