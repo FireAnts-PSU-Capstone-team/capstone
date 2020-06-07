@@ -4,7 +4,6 @@ from sqlite3 import DatabaseError
 import markdown
 import markdown.extensions.fenced_code
 from flask import Blueprint, jsonify, make_response, request, session, Response
-
 from flask_login import login_required, current_user
 from flask_principal import Permission, RoleNeed
 from pandas import json_normalize
@@ -48,7 +47,7 @@ def write_permission(function):
 
     return wrapper
 
-
+ 
 def allowed_file(filename):
     """
     Checks an input file for approved extensions.
@@ -247,15 +246,11 @@ def register_admin_post():
         name = request.form.get('name', 'capstone_user_1')
         new_user = User(email=email, password=generate_password_hash(password, method='sha256'), name=name,
                         is_admin=True, is_editor=True)
-
         try:
             db.session.add(new_user)
             db.session.commit()
-            # add new user into the postgres database with admin access
-            driver.create_db_user(email, new_user.password, new_user.is_admin)
         except DatabaseError as e:
             return make_gui_response(json_header, 400, str(e))
-
         return make_gui_response(json_header, 200, 'OK')
 
 
@@ -283,17 +278,6 @@ def test_read_only():
     return make_gui_response(json_header, 200, 'OK')
 
 
-def allowed_file(filename):
-    """
-    Checks an input file for approved extensions.
-    Args:
-        filename (str): file to check
-    Returns (bool): file approved
-
-    """
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
 @main_bp.route("/list", methods=["GET", "POST"])
 def fetch_data():
     """
@@ -312,8 +296,7 @@ def fetch_data():
         if table in admin_only_tables and not session['is_admin']:
             return make_response(jsonify('User must be logged in as admin to access this resource'), 403)
 
-        query, response, status = driver.filter_table(request.json, current_user)
-
+        query, response, status = driver.filter_table(request.json)
         return make_response(jsonify(response), status)
 
     if request.method == 'GET':
@@ -329,7 +312,7 @@ def fetch_data():
             if table_name in admin_only_tables and not session['is_admin']:
                 return make_response(jsonify('User must be logged in as admin to access this resource'), 403)
 
-            table_info_obj = driver.get_table(table_name, columns, current_user)
+            table_info_obj = driver.get_table(table_name, columns)
             return make_response(jsonify(table_info_obj), 200)
         except driver.InvalidTableException:
             return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
@@ -345,50 +328,47 @@ def load_data():
         POST: /load?file=</path/to/file.xlsx>
     Returns ({}): HTTPS response
     """
+    table_name = request.args.get('table')
+    if table_name is None:
+        result = {'message': 'Table name not specified.'}
+        return make_response(jsonify(result), 400)
+
     if request.method == 'PUT':
-        table_name = request.args.get('table')
-        if table_name is None:
-            result = {'message': 'Table name not specified.'}
+        try:
+            driver.get_table(table_name, None)
+        except driver.InvalidTableException:
+            return make_response(jsonify(f"Table {table_name} does not exist."), 404)
+
+        valid, error_msg = driver.validate_row(request.get_json(force=True))
+        if not valid:
+            result = {'failed_row': error_msg}
             return make_response(jsonify(result), 400)
+        try:
+            row_data = IntakeRow(request.get_json(force=True)).value_array()
+        except (KeyError, ValueError):
+            message = {'message': 'Error encountered while parsing input'}
+            return make_response(jsonify(message), 400)
+
+        row_count, fail_row = driver.insert_row(table_name, row_data)
+        if row_count == 1:
+            status = 200
+            result = {
+                'message': 'PUT completed',
+                'rows_affected': row_count
+            }
+        elif row_count == -1:
+            status = 400
+            result = {
+                'message': 'PUT failed',
+                'cause': 'duplicate row number'
+            }
         else:
-            try:
-                driver.get_table(table_name, None, current_user)
-
-            except driver.InvalidTableException:
-                return make_response(jsonify(f"Table {table_name} does not exist."), 404)
-
-            valid, error_msg = driver.validate_row(request.get_json(force=True))
-            if not valid:
-                result = {'failed_row': error_msg}
-                return make_response(jsonify(result), 400)
-            try:
-                row_data = IntakeRow(request.get_json(force=True)).value_array()
-            except (KeyError, ValueError):
-                message = {'message': 'Error encountered while parsing input'}
-                return make_response(jsonify(message), 400)
-
-            row_count, fail_row = driver.insert_row(table_name, row_data, current_user)
-
-            if row_count == 1:
-                status = 200
-                result = {
-                    'message': 'PUT completed',
-                    'rows_affected': row_count
-                }
-            elif row_count == -1:
-                status = 400
-                result = {
-                    'message': 'PUT failed',
-                    'cause': 'duplicate row number'
-                }
-            else:
-                status = 400
-                result = {
-                    'message': 'PUT failed',
-                    'fail_row': fail_row
-                }
-            return make_response(jsonify(result), status)
-
+            status = 400
+            result = {
+                'message': 'PUT failed',
+                'fail_row': fail_row
+            }
+        return make_response(jsonify(result), status)
     elif request.method == 'POST':
         if 'file' not in request.files:
             result = {'message': 'No file listed'}
@@ -401,8 +381,7 @@ def load_data():
 
             filename = f'{UPLOAD_FOLDER}/' + file.filename
             file.save(filename)
-            success, result_obj = driver.process_file(filename, current_user)
-
+            success, result_obj = driver.process_file(table_name, filename)
             if success:
                 result = {
                     'message': 'File processed successfully',
@@ -428,7 +407,7 @@ def show_metadata():
     Display the contents of the metadata table.
     Returns ({}): response object containing the contents of the table.
     """
-    response_body = jsonify(driver.get_table('metadata', None, current_user))
+    response_body = jsonify(driver.get_table('metadata', None))
     return make_response(response_body, 200)
 
 
@@ -445,9 +424,7 @@ def export_csv():
         if table_name is None:
             return make_response(jsonify('Table name not supplied.'), 400)
         try:
-            table_output = driver.get_table(table_name, None, current_user)
-            if isinstance(table_output,str):
-                return make_response(jsonify(table_output),400)
+            table_output = driver.get_table(table_name, None)
             df = json_normalize(table_output)
             table_info_obj = df.to_csv(index=False)
             return make_response(table_info_obj, 200)
@@ -468,7 +445,7 @@ def delete_row():
         return make_response(jsonify('Table name or row number not supplied.'), 400)
     try:
         row_nums = str.split(row_nums.strip(), ' ')
-        table_info_obj = driver.delete_row(table_name, row_nums, current_user)
+        table_info_obj = driver.delete_row(table_name, row_nums)
         return make_response(jsonify(table_info_obj), 200)
     except driver.InvalidTableException:
         return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
@@ -484,7 +461,6 @@ def update_table():
     """
     update_columns = {}
     row = None
-
     request_param = get_post_param()
 
     for key in request_param:
@@ -508,7 +484,7 @@ def update_table():
         return make_response(jsonify(result), 400)
 
     # only update intake table now
-    response_body = driver.update_table('intake', row, update_columns, current_user)
+    response_body = driver.update_table('intake', row, update_columns)
     result = {'message': response_body[1]}
     if response_body[0] == 0:
         # error on updating
@@ -530,7 +506,7 @@ def restore_record():
         return make_response(jsonify('Row number not supplied.'), 400)
     try:
         row_num = str.split(row_num.strip(), ' ')
-        table_info_obj = driver.restore_row(row_num, current_user)
+        table_info_obj = driver.restore_row(row_num)
         return make_response(jsonify(table_info_obj), 200)
     except driver.InvalidRowException:
         return make_response(jsonify('Row '.join(row_num) + ' could not be restored automatically. '
