@@ -19,7 +19,7 @@ def fetch_user(email: str) -> User:
 # Uses flask-login to log the user in and update their identity in flask-principal
 @auth_bp.route('/login', methods=['POST'])
 def login():
-    '''
+    """
     # Log into account with a particular email and password
     $ curl -k -X OPTIONS -H "Origin: GUI_DOMAIN" -H "Content-Type: application/json" --request POST \
         --data '{"email":"EMAIL_ADDRESS","password":"PASSWORD","remember":"True"}' \
@@ -43,7 +43,8 @@ def login():
         "logged_in": false
       }
     }
-    '''
+    """
+    # TODO: don't allow these values to be null
     req = parse_content(request)
     email = req.get('email')
     password = req.get('password')
@@ -73,6 +74,7 @@ def parse_content(r):
     else:
         return make_gui_response(json_header, 400, 'Content-Type not accepted')
     return req
+
 
 # Adds the user to the database and rejects duplicate emails
 @auth_bp.route('/signup', methods=['POST'])
@@ -108,7 +110,7 @@ def signup_post():
     # add the new user to the database
     db.session.add(new_user)
     db.session.commit()
-    #add new user into the postgres database
+    # add new user into the postgres database
     create_db_user(email, new_user.password, new_user.is_admin)
     return make_gui_response(json_header, 200, 'OK')
 
@@ -117,7 +119,7 @@ def signup_post():
 @auth_bp.route('/logout', methods=['GET'])
 @login_required
 def logout():
-    '''
+    """
     # Sign out to end the current user session
     $ curl -k https://localhost/logout -c test.cookie -b test.cookie
 
@@ -128,7 +130,7 @@ def logout():
         "logged_in": false
       }
     }
-    '''
+    """
 
     # Login-Manager removes the user information from the session
     logout_user()

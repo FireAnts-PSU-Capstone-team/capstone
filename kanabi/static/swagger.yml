@@ -26,15 +26,10 @@ paths:
         content:
           application/x-www-form-urlencoded:
             schema:
-              type: object
-              properties:
-                email:
-                  type: string
-                password:
-                  type: string
-              required:
-                - email
-                - password
+              $ref: '#/components/schemas/login_request'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/login_request'
       responses:
         200:
           description: Login successful
@@ -55,18 +50,7 @@ paths:
         content:
           application/x-www-form-urlencoded:
             schema:
-              type: object
-              properties:
-                email:
-                  type: string
-                password:
-                  type: string
-                name:
-                  type: string
-              required:
-                - email
-                - password
-                - name
+              $ref: '#/components/schemas/signup_request'
       responses:
         200:
           description: User created successfully.
@@ -329,6 +313,7 @@ paths:
     post:
       summary: Uploads a file
       description: Add the contents of a file to the database. Must be a .xls or .xlsx file.
+      parameters:
       - name: table
         in: query
         description: Name of table to insert data into
@@ -515,89 +500,6 @@ paths:
               schema:
                 $ref: '#/components/responses/Standard500ErrorResponse'
 
-  /signup:
-    post:
-      summary: signup user
-      description: Create new user account on webserver
-      parameters:
-      - name: content_type
-        in: header
-        required: true
-        description: string containing encoding structure
-        schema:
-          type: string
-      requestBody:
-          required: true
-          description: JSON object of user to create
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/signup_request'
-      responses:
-        200:
-          description: successful creation of user
-          content:
-            application/json: {}
-        400:
-          description: User already exists, malformed content
-          content:
-            application/json: {}
-        500:
-          description: An unexpected error occured.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/responses/Standard500ErrorResponse'
-
-  /login:
-    post:
-      summary: login user
-      description: Login user to the webserver for tracking actions
-      parameters:
-      - name: content_type
-        in: header
-        required: true
-        description: string containing encoding structure
-        schema:
-          type: string
-      requestBody:
-          required: true
-          description: JSON object of user
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/login_request'
-      responses:
-        200:
-          description: successful creation of user
-          content:
-            application/json: {}
-        400:
-          description: User already exists, malformed content
-          content:
-            application/json: {}
-        500:
-          description: An unexpected error occured.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/responses/Standard500ErrorResponse'
-
-  /logout:
-    get:
-      summary: logout user
-      description: slogout user from webserver
-      responses:
-        200:
-          description: User successfully logged out of system
-          content:
-            application/json: {}
-        500:
-          description: An unexpected error occured.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/responses/Standard500ErrorResponse'
 components:
   schemas:
     login_request:
@@ -609,6 +511,9 @@ components:
           type: string
         remember:
           type: string
+      required:
+        - email
+        - password
     signup_request:
       type: object
       properties:
@@ -618,6 +523,10 @@ components:
           type: string
         name:
           type: string
+      required:
+        - email
+        - password
+        - name
     query_request:
       type: object
       properties:
