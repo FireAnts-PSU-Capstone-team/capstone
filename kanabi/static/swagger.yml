@@ -1,4 +1,5 @@
 openapi: 3.0.1
+
 info:
   title: Kanabi
   description: Spreadsheet ingestor and data management tool for the Department of
@@ -7,28 +8,219 @@ info:
     name: Project Lead
     email: andrew13haley@gmail.com
   version: 1.0.0
+
 servers:
 - url: https://localhost:443/
+
 paths:
-  /metadata:
-    get:
-      summary: View file metadata
-      description: Displays the contents of the metadata table.
+
+# User Management
+
+  /login:
+    post:
+      summary: Login
+      description: Logs a user into their account. Returns a session cookie which must be repeated in all subsequent requests.
+      requestBody:
+        description: Login credentials
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/login_request'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/login_request'
       responses:
         200:
-          description: Contents of metadata table
+          description: Login successful
           content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/metadata'
-        500:
-          description: An unexpected error occured.
+            application/json: {}
+        400:
+          description: Login failed. Credentials invalid
           content:
-            application/json:
-              schema:
-                $ref: '#/components/responses/Standard500ErrorResponse'
+            application/json: {}
+
+  /signup:
+    post:
+      summary: Sign up
+      description: Register as a new user. By default, has standard R/W permissions. Acquiring admin permissions requires an existing admin to edit this user's profile.
+      requestBody:
+        description: Login credentials
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/signup_request'
+      responses:
+        200:
+          description: User created successfully.
+          content:
+            application/json: {}
+        400:
+          description: User creation failed.
+          content:
+            application/json: {}
+
+  /logout:
+    get:
+      summary: Log out
+      description: Logs the current user out of the system. Invalidates their session token.
+      responses:
+        200:
+          description: Logout successful
+          content:
+            application/json: {}
+
+  /admin/{mode}:
+    post:
+      summary: Update user profile information
+      description: Allows an admin-level user to update a given user's profile.
+      parameters:
+        - name: mode
+          in: path
+          description: |
+            Operation to perform. Currently supported operations are: \
+            `changepassword`: change the user's password. Requires `password` argument in the form. \
+            `changename`: change the user's `name` value. Required argument: `name` \
+            `changeemail`: change the user's email. Required argument: `new_email` \
+            `removeuser`: de-register the listed user. The user is removed from the database. \
+            `makeadmin`: register the listed user as an admin. \
+            `removeadmin`: remove the listed user's admin permissions. \
+            `makeeditor`: sets the user to editor status (default) \
+            `removeeditor`: sets the user to read-only status
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+                name:
+                  type: string
+                new_email:
+                  type: string
+              required:
+                - email
+                - password
+                - name
+      responses:
+        200:
+          description: Operation successful.
+          content:
+            application/json: {}
+        400:
+          description: Required parameter not provided, or request invalid.
+          content:
+            application/json: {}
+        403:
+          description: User is not logged in as an admin.
+          content:
+            application/json: {}
+    get:
+      summary: Retrieve data needed for user administration.
+      description: Allows an admin-level user to retrieve privileged user data, such as a listing of all users.
+      parameters:
+        - name: mode
+          in: path
+          description: |
+            Operation to perform. Currently supported operations are: \
+            `changepassword`: change the user's password. Requires `password` argument in the form. \
+            `changename`: change the user's `name` value. Required argument: `name` \
+            `changeemail`: change the user's email. Required argument: `email` \
+            `removeuser`: de-register the active user. The user is removed from the database.
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Request successful
+          content:
+            application/json: {}
+        400:
+          description: Required parameter not provided, or request invalid
+          content:
+            application/json: {}
+        403:
+          description: User is not logged in as an admin.
+          content:
+            application/json: {}
+
+  /edituser/{mode}:
+    post:
+      summary: Change user profile
+      description: Allows a user to edit their own profile information. An admin may also edit another user's profile.
+      parameters:
+        - name: mode
+          in: path
+          description: Operation to perform. Currently supported operations are 'changepassword', 'changename', 'changeemail', and 'removeuser'. See '#/paths/admin/' for operation descriptions.
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+              required:
+                - email
+                - password
+      responses:
+        200:
+          description: Request successful.
+          content:
+            application/json: {}
+        400:
+          description: Request failed.
+          content:
+            application/json: {}
+
+  /makeadmin:
+    post:
+      summary: Create initial admin account
+      description: Creates the first admin account. Fails if another user exists with admin permissions. Used in
+        setting up the database, so the initial user can manage subsequent users.
+      requestBody:
+        description: Email and password for this user. Name may also be supplied.
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+                name:
+                  type: string
+              required:
+                - email
+                - password
+      responses:
+        200:
+          description: Account successfully created
+          content:
+            application/json: {}
+        400:
+          description: An admin account already exists.
+          content:
+            application/json: {}
+
+# Data Management
+
   /list:
     get:
       summary: Displays the contents of a table
@@ -62,7 +254,7 @@ paths:
     post:
       summary: Filter table data
       description: Returns a filtered subset of data based on a POSTed query in JSON
-        format
+        format.
       requestBody:
         required: true
         content:
@@ -122,12 +314,6 @@ paths:
       summary: Uploads a file
       description: Add the contents of a file to the database. Must be a .xls or .xlsx file.
       parameters:
-      - name: filename
-        in: query
-        description: Name of file to process
-        required: true
-        schema:
-          type: string
       - name: table
         in: query
         description: Name of table to insert data into
@@ -137,8 +323,14 @@ paths:
       requestBody:
         required: true
         content:
-          application/vnd.openxmlformats-officedocument.spreadsheetml.sheet: {}
-          application/vnd.ms-excel: {}
+          application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+            schema:
+              type: string
+              format: binary
+          application/vnd.ms-excel:
+            schema:
+              type: string
+              format: binary
       responses:
         200:
           description: File successfully consumed
@@ -175,7 +367,7 @@ paths:
           required: true
           description: Integer of row ID to be deleted. Multipe IDs are separated by '+', e.g. "row=1+2"
           schema:
-            type: integer
+            type: string
       responses:
         200:
           description: Row(s) successfully deleted
@@ -198,28 +390,26 @@ paths:
 
   /export:
     get:
-      summary: export data as csv
-      description: save a db tables data into a csv format
+      summary: Export data as a CSV file
+      description: Save a table's data into a CSV file
       parameters:
         - name: table
           in: query
           required: true
-          description: the name of the db table to be exported
+          description: The name of the db table to be exported
           schema:
             type: string
       responses:
         200:
-          description: table contents in csv format
+          description: File containing table contents in csv format
           content:
-            text/plain; charset=utf-8:
-              schema:
-                $ref: '#/components/schemas/table'
+            text/plain; charset=utf-8: {}
         400:
-          description: No table/row specified in query
+          description: Table name not specified
           content:
             application/json: {}
         404:
-          description: Table doesn't exist
+          description: Table does not exist
           content:
             application/json: {}
         500:
@@ -231,31 +421,51 @@ paths:
 
   /update:
     post:
-      summary: update record in table
-      description: Update the contents of the intake table.
+      summary: Update record in table
+      description: Update the contents of the table. Currently only supports the intake table.
       parameters:
         - name: content_type
           in: header
           required: true
-          description: string containing encoding structure
+          description: String containing encoding structure of input
           schema:
             type: string
           style: simple
         - name: row
           in: query
           required: true
-          description: value of row to update
+          description: Index of row to update
           schema:
             type: integer
       responses:
         200:
-          description: successful update of record
+          description: Successful update of record
           content:
             application/json: {}
         400:
-          description: No column/row specified, invalid data specified
+          description: No column/row specified, or invalid data supplied
           content:
             application/json: {}
+        500:
+          description: An unexpected error occured.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/Standard500ErrorResponse'
+
+  /metadata:
+    get:
+      summary: View file metadata
+      description: Displays the contents of the metadata table.
+      responses:
+        200:
+          description: Contents of metadata table
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/metadata'
         500:
           description: An unexpected error occured.
           content:
@@ -290,89 +500,6 @@ paths:
               schema:
                 $ref: '#/components/responses/Standard500ErrorResponse'
 
-  /signup:
-    post:
-      summary: signup user
-      description: Create new user account on webserver
-      parameters:
-      - name: content_type
-        in: header
-        required: true
-        description: string containing encoding structure
-        schema:
-          type: string
-      requestBody:
-          required: true
-          description: JSON object of user to create
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/signup_request'
-      responses:
-        200:
-          description: successful creation of user
-          content:
-            application/json: {}
-        400:
-          description: User already exists, malformed content
-          content:
-            application/json: {}
-        500:
-          description: An unexpected error occured.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/responses/Standard500ErrorResponse'
-
-  /login:
-    post:
-      summary: login user
-      description: Login user to the webserver for tracking actions
-      parameters:
-      - name: content_type
-        in: header
-        required: true
-        description: string containing encoding structure
-        schema:
-          type: string
-      requestBody:
-          required: true
-          description: JSON object of user
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/login_request'
-      responses:
-        200:
-          description: successful creation of user
-          content:
-            application/json: {}
-        400:
-          description: User already exists, malformed content
-          content:
-            application/json: {}
-        500:
-          description: An unexpected error occured.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/responses/Standard500ErrorResponse'
-
-  /logout:
-    get:
-      summary: logout user
-      description: slogout user from webserver
-      responses:
-        200:
-          description: User successfully logged out of system
-          content:
-            application/json: {}
-        500:
-          description: An unexpected error occured.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/responses/Standard500ErrorResponse'
 components:
   schemas:
     login_request:
@@ -384,6 +511,9 @@ components:
           type: string
         remember:
           type: string
+      required:
+        - email
+        - password
     signup_request:
       type: object
       properties:
@@ -393,6 +523,10 @@ components:
           type: string
         name:
           type: string
+      required:
+        - email
+        - password
+        - name
     query_request:
       type: object
       properties:
@@ -444,6 +578,10 @@ components:
       oneOf:
         - $ref: '#/components/schemas/intake'
         - $ref: '#/components/schemas/metadata'
+        - $ref: '#/components/schemas/reports'
+        - $ref: '#/components/schemas/violations'
+        # archive
+        # txn_history
         # add more here once more tables are defined
     table:
       type: array
