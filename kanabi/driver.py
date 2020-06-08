@@ -20,7 +20,6 @@ test_file = 'resources/sample.xlsx'
 primary_table = 'intake'
 metadata_table = 'metadata'
 connection_error_msg = 'The connection to the database is closed and cannot be opened. Verify DB server is up.'
-row_seq = {"intake": 1, "violations": 1, "reports": 1}
 login_required_msg = 'Must be logged in to perform action'
 row_seq = {"intake": 1, "violations": 1, "reports": 1}
 
@@ -61,13 +60,13 @@ def reconnectDB():
     return True
 
 
-def table_rows_to_dict(rows, cur, columns=None):
+def table_rows_to_dicts(rows, cur, columns=None):
     """
     Constructs a dict from rows of a table.
     Args:
         rows {__iter__}: one or many rows to parse
         columns [str]: list of column names to include in results
-    Returns []: list of results
+    Returns [dict]: list of results
     """
     result = []
     column_names = []
@@ -166,7 +165,7 @@ def fmt(s):
     Formats an input element for SQL-friendly injection. Translates None to "NULL", quotes strings, and stringifies
     non-textual arguments.
     Args:
-        s: the input element
+        s (any): the input element
     Returns (str): a SQL-friendly string representation
     """
     if s is None or str(s) == '':
@@ -223,21 +222,17 @@ def filter_table(request_body: json, user: User) -> (str, json, int):
     The query must comply to a schema outlined in the Swagger file.
     Args:
         request_body ({}): a JSON object, which must conform to a defined schema and is parsed to build the query
-        user: a User object holding the information for user making funciton call
+        user: a User object holding the information for user making function call
     Returns:
          query (str): the query string passed to the database
          response ({}): the retrieved data
          status (int): the HTTP status code of the response
     """
     if not user.is_authenticated:
-        return None, 'Must be logged in to perform action', 404
-    try:
-        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password,
-                                host="db")
-        cur = conn.cursor()
-        conn.commit()
-    except (Exception, psycopg2.DatabaseError) as error:
-        return None, connection_error_msg, 404
+        return None, login_required_msg, 400
+    cur, conn = user_cursor(user)
+    if cur is None:
+        return None, connection_error_msg, 500
     try:
         qp = QueryParser(db_tables)
         query = qp.build_query(request_body)
@@ -276,20 +271,15 @@ def get_table(table_name, columns, user):
     Args:
         table_name (str): the table to fetch
         columns ([str]): a list of columns to include in the results
-        user (User): object holding user info making the funciton call
+        user (User): object holding user info making the function call
     Returns ([str]): an object-notated dump of the table
     """
     if not user.is_authenticated:
         return 'Must be logged in to perform action'
     result = []
-    column_names = []
-    try:
-        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password,
-                                host="db")
-        cur = conn.cursor()
-        conn.commit()
-    except (Exception, psycopg2.DatabaseError) as error:
-        return connection_error_msg, 404
+    cur, conn = user_cursor(user)
+    if cur is None:
+        return None
 
     if not table_exists(cur, table_name) or table_name not in db_tables:
         raise InvalidTableException
@@ -298,7 +288,7 @@ def get_table(table_name, columns, user):
         cur.execute(f"select * from {table_name}")
         rows = cur.fetchall()
 
-        result = table_rows_to_dict(rows, cur, columns)
+        result = table_rows_to_dicts(rows, cur, columns)
 
     except Exception as err:
         sql_except(err)
@@ -359,7 +349,7 @@ def write_info_data(df, table, user):
     total_count = len(row_array)
     for row in row_array:
         try:
-            re, failed_row = insert_row(table, row, user, True)
+            re, failed_row = insert_row(table, row, user)
             if re == 1:
                 success_count += 1
             else:
@@ -392,7 +382,7 @@ def write_metadata(metadata, user):
                                 host="db")
         cur = conn.cursor()
         conn.commit()
-    except (Exception, psycopg2.DatabaseError) as error:
+    except psycopg2.DatabaseError:
         return connection_error_msg, 404
 
     try:
@@ -401,7 +391,7 @@ def write_metadata(metadata, user):
                                metadata['title'], metadata['rows'], metadata['columns']))
         conn.commit()
 
-    except Exception as err:
+    except psycopg2.Error as err:
         sql_except(err)
 
 
@@ -445,40 +435,32 @@ def validate_row(json_item, table):
         raise InvalidTableException
 
 
-def insert_row(table, row, user, checked=False):
+def insert_row(table, row, user):
     """
     Insert an array of values into the specified table.
     Args:
         table (str): name of table to insert into
         row ([]): row of values to insert, default to false,
         user (User): User obj that holds info on user making function call
-        checked (bool): flag that connection to DB has already been checked by calling function
     Returns: (bool, dict) a bool indicate whether insertion is successful, a dict of failed row info
     """
     if not user.is_authenticated:
-        return False, {'Message': 'Must be logged in to perform action'}
+        return False, {'Message': login_required_msg}
+    cur, conn = user_cursor(user)
     global row_seq
     row_temp = row_seq[table]
-
-    try:
-        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password,
-                                host="db")
-        cur = conn.cursor()
-        conn.commit()
-    except psycopg2.DatabaseError:
-        return connection_error_msg, 404
 
     cmd = f"INSERT INTO {table} VALUES ("
     try:
 
         # Determine whether to insert at a specific row number or use default
-        if (row[0] is not None) and (isinstance(row[0], int)):
+        if row[0] is not None and isinstance(row[0], int):
             if row_number_exists(pgSqlCur, int(row[0]), table):
                 failed_row = {
                     'row': row[0],
                     'message': f'Row number {row[0]} already taken.'
                 }
-                return 0, failed_row
+                return False, failed_row
             else:
                 cmd += str(row[0])
         else:
@@ -500,10 +482,10 @@ def insert_row(table, row, user, checked=False):
             conn.commit()
             if cur.rowcount == 1:
                 row_seq[table] = row_temp
-                return 1, None
+                return True, None
             else:
                 raise psycopg2.Error
-        except Exception as err:
+        except psycopg2.Error as err:
             sql_except(err)
             if table == 'intake':
                 failed_row = {
@@ -514,9 +496,9 @@ def insert_row(table, row, user, checked=False):
                     # TODO: once other tables have unique IDs, use them here
                     'row': row[0]
                 }
-            return 0, failed_row
+            return False, failed_row
     except:
-        return 0, connection_error_msg
+        return False, connection_error_msg
 
 
 def process_file(table, file, user):
@@ -529,7 +511,7 @@ def process_file(table, file, user):
     Returns (bool, dict): bool is successful or not, dict includes processing info
     """
     if not user.is_authenticated:
-        return False, {'Message': 'Must be logged in to perform action'}
+        return False, {'Message': login_required_msg}
     if table not in db_tables:
         raise InvalidTableException
 
@@ -562,7 +544,7 @@ def delete_row(table, row_nums, user):
     """
     Args:
         table (str): table name to delete row from
-        row_nums ([int]): the rowId(s) to delete
+        row_nums ([int]): the row id(s) to delete
         user (User): User obj holding info on user making func call
     Returns (bool, dict): Boolean is successful or not, dict contains processed info
     """
@@ -645,31 +627,31 @@ def update_table(table, row, update_columns, user):
 
         if cur.rowcount != 1:
             # the target row is not updated
-            return 0, 'Update failed, please check if the row exists'
+            return False, 'Update failed, please check if the row exists'
 
         # validate inserted row
         cur.execute(f"select * from {table} where row = {row}")
         new_row = cur.fetchall()
-        valid, error_msg = validate_intake(pd.json_normalize(table_rows_to_dict(new_row, cur)), 1)
+        valid, error_msg = validate_intake(pd.json_normalize(table_rows_to_dicts(new_row, cur)), 1)
         if not valid:
             cur.execute("ROLLBACK")
             conn.commit()
-            return 0, error_msg
+            return False, error_msg
 
     except psycopg2.Error as err:
         sql_except(err)
-        return 0, str(err)
+        return False, str(err)
 
     # commit if no error
     conn.commit()
-    return 1, 'Updated successfully'
+    return True, 'Updated successfully'
 
 
 def restore_row(row_num, user):
     """
     Function to restore a row that was previously deleted from a table
     Args:
-        row_num (int): row number in the archive table of data to restore
+        row_num ([int]): row number(s) in the archive table of data to restore
         user (User): User obj holding info on user making func call
     Returns (bool, str):  Bool success or not, str contains process info
     """
