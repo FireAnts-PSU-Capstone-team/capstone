@@ -243,7 +243,7 @@ def register_admin_post():
     else:
         password = request.form.get('password')
         email = request.form.get('email')
-        name = request.form.get('name', 'capstone_user_1')
+        name = request.form.get('name', 'kanabi_user_1')
         new_user = User(email=email, password=generate_password_hash(password, method='sha256'), name=name,
                         is_admin=True, is_editor=True)
 
