@@ -155,7 +155,13 @@ paths:
   /edituser/{mode}:
     post:
       summary: Change user profile
-      description: Allows a user to edit their own profile information. An admin may also edit another user's profile.
+      description: |
+        Operation to perform. Currently supported operations are: \
+        `changepassword`: change the user's password. Requires `password` argument in the form. \
+        `changename`: change the user's `name` value. Required argument: `name` \
+        `changeemail`: change the user's email. Required argument: `new_email` \
+        `removeuser`: de-register the listed user. The user is removed from the database. \
+        See the /admin endpoint for operation descriptions.
       parameters:
         - name: mode
           in: path
