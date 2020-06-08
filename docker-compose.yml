@@ -33,5 +33,8 @@ services:
         image: flask-server:v1
         depends_on:
             - db
+        volumes:
+            # <local/path/to/store/data>:<path/inside/container>
+            - ./kanabi/auth-db/db.sqlite:/kanabi/auth-db/db.sqlite
         ports:
             - "443:443"
