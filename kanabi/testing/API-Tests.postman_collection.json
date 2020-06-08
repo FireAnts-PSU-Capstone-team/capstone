@@ -1,22 +1,200 @@
 {
 	"info": {
-		"_postman_id": "e4c6b6c0-d0d9-4306-96b7-77daa5cb0538",
+		"_postman_id": "2a478a66-c636-4bda-bd91-bdc4314cdbb0",
 		"name": "API-Tests",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
+		{
+			"name": "Make admin",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "6ce73ff4-6d90-4ea8-bec1-f88ca38bd0f6",
+						"exec": [
+							"pm.test(\"Make Initial Admin\", function () {",
+							"    pm.response.to.have.status(200);",
+							"}",
+							")",
+							"",
+							"pm.test(\"Make Initial Admin Schema\", function () {",
+							"    var json = pm.response.json();",
+							"    pm.expect(json).to.have.property('user');",
+							"    var return_msg = json['return_msg'];",
+							"    // pm.expect(false);",
+							"    console.log(return_msg);",
+							"    pm.expect(return_msg).to.eql(\"OK\");",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "email",
+							"value": "a@gmail.com",
+							"type": "text"
+						},
+						{
+							"key": "password",
+							"value": "xef",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "https://localhost:443/makeadmin",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "443",
+					"path": [
+						"makeadmin"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Signup",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "d5ce2406-b5d4-4e6a-b5a0-e97948d94cce",
+						"exec": [
+							"pm.test(\"Signup\", function () {",
+							"    pm.response.to.have.status(200);",
+							"}",
+							")",
+							"",
+							"pm.test(\"Signup Response Schema\", function () {",
+							"    var json = pm.response.json();",
+							"    pm.expect(json).to.have.property('user');",
+							"    var return_msg = json['return_msg'];",
+							"    pm.expect(return_msg).to.eql(\"OK\");",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "email",
+							"value": "joseph@gmail.com",
+							"type": "text"
+						},
+						{
+							"key": "name",
+							"value": "joseph",
+							"type": "text"
+						},
+						{
+							"key": "password",
+							"value": "pwd",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "https://localhost:443/signup",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "443",
+					"path": [
+						"signup"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Login",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "7999786c-d9df-4d8e-a786-952e4ec4acd3",
+						"exec": [
+							"pm.test(\"Login\", function () {",
+							"    pm.response.to.have.status(200);",
+							"}",
+							")",
+							"",
+							"pm.test(\"Login Response Schema\", function () {",
+							"    var json = pm.response.json();",
+							"    pm.expect(json).to.have.property('user');",
+							"    var return_msg = json['return_msg'];",
+							"    pm.expect(return_msg).to.eql(\"OK\");",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "email",
+							"value": "joseph@gmail.com",
+							"type": "text"
+						},
+						{
+							"key": "password",
+							"value": "pwd",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "https://localhost:443/login",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "443",
+					"path": [
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
 		{
 			"name": "Too Many Records",
 			"event": [
 				{
 					"listen": "test",
 					"script": {
-						"id": "02cf6052-7b54-473c-a903-5df5648e7edd",
+						"id": "bd3cbd4c-e9e6-402f-9343-1946cd758554",
 						"exec": [
-							"pm.test(\"Too Many Records Status Code\", function () {",
-							"    pm.response.to.have.status(400);",
-							"}",
-							")",
+							"// pm.test(\"Too Many Records Status Code\", function () {",
+							"//     pm.response.to.have.status(400);",
+							"// }",
+							"// )",
 							"pm.test(\"Too Many Records Response\", function () {",
 							"    pm.expect(pm.response.text()).to.include(\"Failed to decode JSON object\");",
 							"}",
@@ -67,7 +245,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "28d4ad5f-47ba-454f-9d1c-b43d848dad21",
+						"id": "b5dce516-7451-451b-908a-725279fa5b56",
 						"exec": [
 							"pm.test(\"Incomplete Intake Status Code\", function () {",
 							"    pm.response.to.have.status(500);",
@@ -120,7 +298,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "866d6421-db3b-4468-a41b-76d76dea3bd4",
+						"id": "7df6b3a6-c89a-4fc6-b2d1-8449f4a79a87",
 						"exec": [
 							"pm.test(\"Incomplete Intake Request\", function () {",
 							"    pm.response.to.have.status(500);",
@@ -169,7 +347,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "48695b91-2fda-47ed-82c3-5af6e37c5dd4",
+						"id": "b7455a20-7bc6-4329-86c2-a7a8872e07a0",
 						"exec": [
 							"pm.test(\"Single Intake Request\", function () {",
 							"    pm.expect(pm.response.text()).to.include(\"PUT completed\");",
@@ -226,7 +404,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "245d969b-0890-4f1c-a393-40c0bbbc8bd4",
+						"id": "ee941892-0702-47b2-8b59-c73c4c584b01",
 						"exec": [
 							"pm.test(\"Duplicate Intake Request\", function () {",
 							"    pm.expect(pm.response.json()).to.have.property('fail_row');",
@@ -287,7 +465,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "9d0672a7-1c56-4320-853c-a99d1eaeedab",
+						"id": "0e2f8f72-3d68-40f9-a921-5df12f6c6298",
 						"exec": [
 							"var value = pm.environment.get(\"inc\");",
 							"",
@@ -304,7 +482,7 @@
 				{
 					"listen": "prerequest",
 					"script": {
-						"id": "40965406-c334-493f-aaba-daab4f6ee2d1",
+						"id": "8e8cadb3-0ff8-4879-958c-a707913c3f25",
 						"exec": [
 							"var inc = pm.environment.get(\"inc\");",
 							"",
@@ -362,7 +540,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "a1205507-59c5-4e37-a692-a0217f408a89",
+						"id": "f3b354ee-9cad-4ded-914a-bef5a5831ca1",
 						"exec": [
 							"pm.test(\"Invalid URL Status Code\", function () {",
 							"    pm.response.to.have.status(404);",
@@ -400,7 +578,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "0db97dd6-f043-40c8-b63a-64f5722245a9",
+						"id": "c5f630fb-3c85-490b-b259-dcd2bc415f5d",
 						"exec": [
 							"// This test requires POSTing the sample.xlsx file found in the source code repository's resources directory.",
 							"// The link to this file does not ship across export/import instances, and so will need to be",
@@ -468,7 +646,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "768beccc-1464-42fc-aace-91c09d1ee877",
+						"id": "add2da34-73fa-447a-af25-0c6b4e136b94",
 						"exec": [
 							"pm.test(\"Invalid URL Status Code\", function () {",
 							"    pm.response.to.have.status(404);",
@@ -506,7 +684,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "aa4fc114-3f6a-4fe9-af14-1df1793f0273",
+						"id": "c125977a-7458-4ce9-8784-bce4df70cf00",
 						"exec": [
 							"pm.test(\"No Table In Upload Status Code\", function () {",
 							"    pm.response.to.have.status(400);",
@@ -525,7 +703,7 @@
 				"method": "POST",
 				"header": [],
 				"url": {
-					"raw": "https://localhost/load?file=",
+					"raw": "https://localhost/load",
 					"protocol": "https",
 					"host": [
 						"localhost"
@@ -543,7 +721,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "f4f979b3-cbc3-4bfd-9ae0-4a08536f7af7",
+						"id": "a10d2c7e-6000-4c4a-ab64-e426bb93d417",
 						"exec": [
 							"pm.test(\"Test Query Only Table Status\", function () {",
 							"    pm.response.to.have.status(200);",
@@ -626,7 +804,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "b3536205-ad89-435c-be57-af068815fcd8",
+						"id": "1ce59180-6323-4c7c-9f84-5b2df06ec8cc",
 						"exec": [
 							"pm.test(\"Test Query Table and Columns Status\", function () {",
 							"    pm.response.to.have.status(200);",
@@ -682,7 +860,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "98a8acbb-1866-4286-950b-0499bbae0f51",
+						"id": "5bbbb2a4-d00e-4e36-893d-b02d4903d209",
 						"exec": [
 							"pm.test(\"Test Query And Status\", function () {",
 							"    pm.response.to.have.status(200);",
@@ -738,7 +916,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "99a82fa3-ee04-4c1e-b30f-47f61c7f516a",
+						"id": "d79e973d-52ab-4c92-9979-c01d2a256400",
 						"exec": [
 							"pm.test(\"Test Query Equals Status\", function () {",
 							"    pm.response.to.have.status(200);",
@@ -795,7 +973,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "186b060b-b4ac-42c4-a529-18b9ba403b3c",
+						"id": "cd9579fe-81b9-456a-9bf5-026088d53e9e",
 						"exec": [
 							"pm.test(\"Test Query Or Status\", function () {",
 							"    pm.response.to.have.status(200);",
@@ -852,7 +1030,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "f3747922-552e-4b8b-bc61-34ce629eaa1a",
+						"id": "0fbbc011-6923-4bf7-be96-b5d92a97665b",
 						"exec": [
 							"pm.test(\"Test Query Fail No Table\", function () {",
 							"    pm.response.to.have.status(400);",
@@ -905,7 +1083,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "ccf6a4a9-7971-414c-a5fb-1738d3098362",
+						"id": "021e7c45-e342-4d08-8270-5425b4b60c2e",
 						"exec": [
 							"pm.test(\"Test Query Fail Columns Not Array\", function () {",
 							"    pm.response.to.have.status(400);",
@@ -958,7 +1136,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "0b24dc00-a7bf-4d41-9def-5c2262013775",
+						"id": "ef4ac65f-45ae-4b28-b4aa-d25f783e82f9",
 						"exec": [
 							"pm.test(\"Test Query Invalid Column\", function () {",
 							"    pm.response.to.have.status(400);",
@@ -1011,7 +1189,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "e4b89a28-51ab-40f4-8046-b0b8c98bce8d",
+						"id": "4fa54725-ae9c-49cc-bf0a-5a45ff27fc69",
 						"exec": [
 							"pm.test(\"Test Query Fail Invalid And 1\", function () {",
 							"    pm.response.to.have.status(400);",
@@ -1064,7 +1242,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "349c06dc-eba1-40ca-bc23-b7e77451a805",
+						"id": "2cace0d3-41f6-4e7a-9b19-4228a2c8e602",
 						"exec": [
 							"pm.test(\"Test Query Fail Invalid Table\", function () {",
 							"    pm.response.to.have.status(400);",
@@ -1117,7 +1295,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "fe4d7d81-72eb-4748-b54d-2c29635b8fe2",
+						"id": "b2b7671e-fffc-45d4-8091-a1e84a55ecd8",
 						"exec": [
 							"pm.test(\"Test Query Fail Invalid Where\", function () {",
 							"    pm.response.to.have.status(400);",
@@ -1170,7 +1348,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "223d34c5-e3ed-48af-a616-2fe5626c4382",
+						"id": "8e8c108d-b2e8-4336-93cc-1a08090dc114",
 						"exec": [
 							"pm.test(\"Invalid URL Status Code\", function () {",
 							"    pm.response.to.have.status(404);",
@@ -1208,7 +1386,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "d530c6a1-d618-4763-8994-905d9f6382cf",
+						"id": "1aa946a5-b7cf-46e5-b362-91e01a5f0a9b",
 						"exec": [
 							"pm.test(\"Bad Table Status Code\", function () {",
 							"    pm.response.to.have.status(404);",
@@ -1251,7 +1429,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "dc2d730a-fe13-40da-af13-ba9de1bee077",
+						"id": "fbaa479d-7b79-4184-8d28-d97b0c27cd9b",
 						"exec": [
 							"pm.test(\"Get Metadata\", function () {",
 							"    pm.response.to.have.status(200);",
@@ -1290,7 +1468,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "063f30e7-d33b-478c-9467-952e41ccf57d",
+						"id": "710052ba-3f27-4827-bed5-82d75c05217c",
 						"exec": [
 							"pm.test(\"Get Intake\", function () {",
 							"    pm.response.to.have.status(200);",
@@ -1357,7 +1535,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "2c165b2e-edfd-4cbf-973e-fa439715e72d",
+						"id": "7ea56c6f-da5f-420b-a89c-71192107d635",
 						"exec": [
 							"pm.test(\"Get Metadata Endpont\", function () {",
 							"    pm.response.to.have.status(200);",
@@ -1390,12 +1568,22 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "0bb7de01-937f-4da4-944f-f2152f928b8f",
+						"id": "f60a3ba5-6793-495c-9648-d58f63ee78fa",
 						"exec": [
 							"pm.test(\"Base Endpont\", function () {",
 							"    pm.response.to.have.status(200);",
 							"}",
-							")"
+							")",
+							"pm.test(\"Signup Response Schema\", function () {",
+							"    var json = pm.response.json();",
+							"    pm.expect(json).to.have.property('user');",
+							"    var return_msg = json['return_msg'];",
+							"    pm.expect(return_msg).to.eql(\"Hello World\");",
+							"}",
+							")",
+							"",
+							"// For now, reports and violations are not supported. Those tests are included for reference, but are not working. We skip them here",
+							"postman.setNextRequest('Logout');"
 						],
 						"type": "text/javascript"
 					}
@@ -1415,133 +1603,12 @@
 			"response": []
 		},
 		{
-			"name": "Signup",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"id": "32324e3c-7338-4d42-bc65-0f6e22242192",
-						"exec": [
-							"pm.test(\"Signup\", function () {",
-							"    pm.response.to.have.status(200);",
-							"}",
-							")",
-							"",
-							"pm.test(\"Signup Response Schema\", function () {",
-							"    var json = pm.response.json();",
-							"    pm.expect(json).to.have.property('user');",
-							"    var return_msg = json['return_msg'];",
-							"    pm.expect(return_msg).to.eql(\"OK\");",
-							"}",
-							")"
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "urlencoded",
-					"urlencoded": [
-						{
-							"key": "email",
-							"value": "joseph@gmail.com",
-							"type": "text"
-						},
-						{
-							"key": "name",
-							"value": "joseph",
-							"type": "text"
-						},
-						{
-							"key": "password",
-							"value": "pwd",
-							"type": "text"
-						}
-					]
-				},
-				"url": {
-					"raw": "https://localhost:443/signup",
-					"protocol": "https",
-					"host": [
-						"localhost"
-					],
-					"port": "443",
-					"path": [
-						"signup"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Make admin",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"id": "bacbddc3-3255-4176-9342-e13e807102eb",
-						"exec": [
-							"pm.test(\"Make Initial Admin\", function () {",
-							"    pm.response.to.have.status(200);",
-							"}",
-							")",
-							"",
-							"pm.test(\"Make Initial Admin Schema\", function () {",
-							"    var json = pm.response.json();",
-							"    pm.expect(json).to.have.property('user');",
-							"    var return_msg = json['return_msg'];",
-							"    // pm.expect(false);",
-							"    console.log(return_msg);",
-							"    pm.expect(return_msg).to.eql(\"OK\");",
-							"}",
-							")"
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "urlencoded",
-					"urlencoded": [
-						{
-							"key": "email",
-							"value": "a@gmail.com",
-							"type": "text"
-						},
-						{
-							"key": "password",
-							"value": "xef",
-							"type": "text"
-						}
-					]
-				},
-				"url": {
-					"raw": "https://localhost:443/makeadmin",
-					"protocol": "https",
-					"host": [
-						"localhost"
-					],
-					"port": "443",
-					"path": [
-						"makeadmin"
-					]
-				}
-			},
-			"response": []
-		},
-		{
 			"name": "Single Reports Upload",
 			"event": [
 				{
 					"listen": "test",
 					"script": {
-						"id": "b03216be-324e-4547-9954-22b21494e09e",
+						"id": "7270b03f-67eb-4810-a074-554201e4a548",
 						"exec": [
 							"pm.test(\"Single Reports Upload Response\", function () {",
 							"    pm.expect(pm.response.text()).to.include(\"PUT completed\");",
@@ -1600,7 +1667,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "c7b359d8-da23-4370-bf69-9b68168d7d89",
+						"id": "b88f78da-8985-4e62-9be0-e5dbd637a1b8",
 						"exec": [
 							"pm.test(\"Reports Retrieval Response\", function () {",
 							"    pm.expect(pm.response.json()[0]).to.have.property('concern');",
@@ -1645,7 +1712,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "e5c33ae0-a0ba-4975-864d-cb6aaba3add5",
+						"id": "65f5f3d0-28d3-4f65-8aeb-b2c63349fa0a",
 						"exec": [
 							"pm.test(\"Single Violations Upload Response\", function () {",
 							"    pm.expect(pm.response.text()).to.include(\"PUT completed\");",
@@ -1704,7 +1771,7 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "74fde0f3-df8b-4dcc-9bdb-fad5e2e416cf",
+						"id": "b95785bc-71c1-4ff9-9def-6b944cb4cbc8",
 						"exec": [
 							"pm.test(\"Violations Retrieval Response\", function () {",
 							"    pm.expect(pm.response.json()[0]).to.have.property('certified_receipt_returned');",
@@ -1744,6 +1811,193 @@
 							"key": "table",
 							"value": "violations"
 						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Non-Admin User Can't Access /admin",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "30a5c2b7-d8b7-4a4a-a063-7c2120f5e81e",
+						"exec": [
+							"pm.test(\"Admin Endpoint for Non-Admin User Status\", function () {",
+							"    pm.response.to.have.status(403);",
+							"}",
+							")",
+							"",
+							"pm.test(\"Admin Endpoint for Non-Admin User Status Response Schema\", function () {",
+							"    var json = pm.response.json();",
+							"    var entry = json[\"return_msg\"];",
+							"    pm.expect(entry).to.eql(\"User must be logged in as admin to access this resource\");",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://localhost:443/admin/listusers",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "443",
+					"path": [
+						"admin",
+						"listusers"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Logout",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "928c2773-a6cb-4c0d-a011-c2635c98dce1",
+						"exec": [
+							"pm.test(\"Logout\", function () {",
+							"    pm.response.to.have.status(200);",
+							"}",
+							")",
+							"",
+							"pm.test(\"Logout Response Schema\", function () {",
+							"    var json = pm.response.json();",
+							"    pm.expect(json).to.have.property('user');",
+							"    var return_msg = json['return_msg'];",
+							"    pm.expect(return_msg).to.eql(\"OK\");",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://localhost:443/logout",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "443",
+					"path": [
+						"logout"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Login As Admin",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "aa70e144-36f8-4025-813b-6c02bf67c3f8",
+						"exec": [
+							"pm.test(\"Admin Login Status\", function () {",
+							"    pm.response.to.have.status(200);",
+							"}",
+							")",
+							"",
+							"pm.test(\"Admin Login Response Schema\", function () {",
+							"    var json = pm.response.json();",
+							"    pm.expect(json).to.have.property('user');",
+							"    var return_msg = json['return_msg'];",
+							"    pm.expect(return_msg).to.eql(\"OK\");",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "email",
+							"value": "a@gmail.com",
+							"type": "text"
+						},
+						{
+							"key": "password",
+							"value": "xef",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "https://localhost:443/login",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "443",
+					"path": [
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Admin User Can Access /admin",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "310bcce7-b3d5-46bf-81bb-8938b684fdcc",
+						"exec": [
+							"pm.test(\"Admin Endpoint for Admin User Status\", function () {",
+							"    pm.response.to.have.status(200);",
+							"}",
+							")",
+							"",
+							"pm.test(\"Admin Endpoint for Admin User Status Response Schema\", function () {",
+							"    var json = pm.response.json();",
+							"    pm.expect(json).to.have.property('1');",
+							"    var entry = json['1'];",
+							"    pm.expect(entry).to.have.property(\"email\");",
+							"    pm.expect(entry).to.have.property(\"name\");",
+							"    var is_admin = entry['is_admin'];",
+							"    pm.expect(is_admin).to.eql(true);",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://localhost:443/admin/listusers",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "443",
+					"path": [
+						"admin",
+						"listusers"
 					]
 				}
 			},

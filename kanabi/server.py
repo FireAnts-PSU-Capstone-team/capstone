@@ -353,30 +353,24 @@ def load_data():
             if table_name.lower() == 'intake':
                 from .models import IntakeRow
                 row_data = IntakeRow.IntakeRow(request.get_json(force=True)).value_array()
-            elif table_name.lower() == 'reports':
-                from .models import ReportsRow
-                row_data = ReportsRow.ReportsRow(request.get_json(force=True)).value_array()
-            elif table_name.lower() == 'violations':
-                from .models import ViolationsRow
-                row_data = ViolationsRow.ViolationsRow(request.get_json(force=True)).value_array()
+            # further tables require implementation and validation
+            # elif table_name.lower() == 'reports':
+            #     from .models import ReportsRow
+            #     row_data = ReportsRow.ReportsRow(request.get_json(force=True)).value_array()
+            # elif table_name.lower() == 'violations':
+            #     from .models import ViolationsRow
+            #     row_data = ViolationsRow.ViolationsRow(request.get_json(force=True)).value_array()
             else:
                 return make_response(jsonify(f"Table {table_name} is not supported for upload."), 400)
         except (KeyError, ValueError):
             message = {'message': 'Error encountered while parsing input'}
             return make_response(jsonify(message), 400)
 
-        row_count, fail_row = driver.insert_row(table_name, row_data, current_user)
-        if row_count == 1:
+        success, fail_row = driver.insert_row(table_name, row_data, current_user)
+        if success:
             status = 200
             result = {
-                'message': 'PUT completed',
-                'rows_affected': row_count
-            }
-        elif row_count == -1:
-            status = 400
-            result = {
-                'message': 'PUT failed',
-                'cause': 'duplicate row number'
+                'message': 'PUT completed'
             }
         else:
             status = 400
@@ -472,7 +466,7 @@ def delete_row():
     except driver.InvalidTableException:
         return make_response(jsonify('Table ' + table_name + ' does not exist.'), 404)
     except driver.InvalidRowException:
-        return make_response(jsonify('Row '.join(row_nums) + ' is invalid input.'), 404)
+        return make_response(jsonify('Row '.join(row_nums) + ' is invalid input.'), 400)
 
 
 @main_bp.route('/update', methods=['POST'])
