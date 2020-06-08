@@ -8,9 +8,9 @@ SECRET_KEY = 'CHANGE_THIS_TO_YOUR_SECRET_KEY'
 # Uncomment the following lines to customize the db URI or track-modification settings
 SQLALCHEMY_DATABASE_URI = 'sqlite:///db.sqlite'
 SQLALCHEMY_TRACK_MODIFICATIONS = True
-DB_NAME = "capstone_db_1"
-DB_USERNAME = "cc"
-DB_PASSWORD = "pp"
+DB_NAME = "kanabi_db_1"
+DB_USERNAME = "kanabiadmin"
+DB_PASSWORD = "password"
 
 # Uncomment these flags for CSRF CORS spoofing protection, debugging, testing, etc.
 # CSRF_ENABLED = True  # Protection against CORS origin spoofing

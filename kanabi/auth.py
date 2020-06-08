@@ -5,6 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from .user import User
 from .configure import db
 from .responses import make_gui_response
+from .driver import create_db_user
 
 
 auth_bp = Blueprint('auth_bp', __name__)
@@ -22,7 +23,7 @@ def login():
     # Log into account with a particular email and password
     $ curl -k -X OPTIONS -H "Origin: GUI_DOMAIN" -H "Content-Type: application/json" --request POST \
         --data '{"email":"EMAIL_ADDRESS","password":"PASSWORD","remember":"True"}' \
-        -c cookie.txt https://SERVER:PORT/login
+        -c cookie.txt https://localhost/login
 
     # Response data from a successful login attempt (200 OK):
       {
@@ -43,9 +44,10 @@ def login():
       }
     }
     '''
-    email = request.json.get('email')
-    password = request.json.get('password')
-    remember = True if request.json.get('remember') else False
+    req = parse_content(request)
+    email = req.get('email')
+    password = req.get('password')
+    remember = True if req.get('remember') else False
     user = fetch_user(email)
 
     # Check if user actually exists and compare provided and stored password hashes
@@ -62,12 +64,22 @@ def login():
     return make_gui_response(json_header, 200, 'OK')
 
 
+def parse_content(r):
+    content_type = r.content_type
+    if content_type == 'application/json':
+        req = request.json
+    elif content_type == 'application/x-www-form-urlencoded':
+        req = request.form
+    else:
+        return make_gui_response(json_header, 400, 'Content-Type not accepted')
+    return req
+
 # Adds the user to the database and rejects duplicate emails
 @auth_bp.route('/signup', methods=['POST'])
 def signup_post():
-    '''
+    """
     # Creates a user account
-    $ curl -k -X OPTIONS -H "Origin: https://capstone.sugar.coffee" -H "Content-Type: application/json" \
+    $ curl -k -X OPTIONS -H "Origin: https://localhost" -H "Content-Type: application/json" \
         --request POST --data '{"email":"lgunnell@pdx.edu","password":"pass","name":"True"}' \
         https://localhost:443/signup
 
@@ -78,10 +90,13 @@ def signup_post():
        "logged_in": false
       }
     }
-    '''
-    email = request.json.get('email')
-    name = request.json.get('name')
-    password = request.json.get('password')
+    """
+    req = parse_content(request)
+    if req is None:
+        return make_gui_response(json_header, 400, 'Content-Type not allowed')
+    email = req.get('email')
+    name = req.get('name')
+    password = req.get('password')
 
     # if a user is found, reject attempt
     if bool(fetch_user(email)):
@@ -93,6 +108,8 @@ def signup_post():
     # add the new user to the database
     db.session.add(new_user)
     db.session.commit()
+    #add new user into the postgres database
+    create_db_user(email, new_user.password, new_user.is_admin)
     return make_gui_response(json_header, 200, 'OK')
 
 
@@ -102,7 +119,7 @@ def signup_post():
 def logout():
     '''
     # Sign out to end the current user session
-    $ curl -k https://SERVER:PORT/logout -c test.cookie -b test.cookie
+    $ curl -k https://localhost/logout -c test.cookie -b test.cookie
 
     # Output from successful user signup (200 OK):
     {
