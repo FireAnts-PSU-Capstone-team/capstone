@@ -20,6 +20,7 @@ test_file = 'resources/sample.xlsx'
 primary_table = 'intake'
 metadata_table = 'metadata'
 connection_error_msg = 'The connection to the database is closed and cannot be opened. Verify DB server is up.'
+login_required_msg = 'Must be logged in to perform action'
 row_seq = {"intake": 1, "violations": 1, "reports": 1}
 
 # TODO: refactor to remove duplicated code
@@ -96,6 +97,23 @@ def check_conn():
     # TODO: specify the exceptions thrown here
     except:
         return reconnectDB()
+
+
+def user_cursor(user):
+    """
+    Creates a new Postgres connection cursor associated with the provided user.
+    Args:
+        user (User): associated user
+    Returns (cursor, conn): Postgres connection and cursor
+    """
+    try:
+        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password,
+                                host="db")
+        cur = conn.cursor()
+        conn.commit()
+    except psycopg2.DatabaseError:
+        return None, None
+    return cur, conn
 
 
 def sql_except(err):
@@ -512,16 +530,12 @@ def delete_row(table, row_nums, user):
     Returns (bool, dict): Boolean is successful or not, dict contains processed info
     """
     if not user.is_authenticated:
-        return False, 'Must be logged in to perform action', 404
+        return False, login_required_msg
+    cur, conn = user_cursor(user)
+    if cur is None:
+        return False, connection_error_msg
     success = False
     delete_info = {}
-    try:
-        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password,
-                                host="db")
-        cur = conn.cursor()
-        conn.commit()
-    except (Exception, psycopg2.DatabaseError) as error:
-        return connection_error_msg, 404
     # verify table is within the db
     if table not in db_tables:
         raise InvalidTableException
@@ -562,15 +576,9 @@ def update_table(table, row, update_columns, user):
         user (User):  the information for user making the funciton call, used to create postgres connection
     Returns (bool, str): bool is successful or not, str includes processing info
     """
-    if not user.is_authenticated:
-        return False, 'Must be logged in to perform action', 404
-    try:
-        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password,
-                                host="db")
-        cur = conn.cursor()
-        conn.commit()
-    except (Exception, psycopg2.DatabaseError) as error:
-        return connection_error_msg, 404
+    cur, conn = user_cursor(user)
+    if cur is None:
+        return False, connection_error_msg
     col_str = ''
     arg_str = ''
     exe_arg_str = ''
@@ -616,50 +624,47 @@ def restore_row(row_num, user):
     Function to restore a row that was previously deleted from a table
     Args:   row_num(int) - row number in the archive table of data to restore
             user(User) - the user information making function call used to create db connection
-    Returns (bool/str):  Bool success or not, str contains process info
+    Returns (bool, str):  Bool success or not, str contains process info
     """
     if not user.is_authenticated:
-        return False, 'Must be logged in to perform action', 404
-    try:
-        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password,
-                                host="db")
-        cur = conn.cursor()
-        conn.commit()
-    except (Exception, psycopg2.DatabaseError) as error:
-        return connection_error_msg, 404
+        return False, login_required_msg
+    cur, conn = user_cursor(user)
+    if cur is None:
+        return False, connection_error_msg
     restore_info = {}
-
     try:
         row_num = list(map(int, row_num))
     except ValueError:
         raise InvalidRowException
     # get the archive row to be restored
     try:
+        success = []
         for row in row_num:
             cmd = f'SELECT restore_row({row});'
             cur.execute(cmd)
             success = cur.fetchone()
-            if success[0] == True:
+            if success[0]:
                 restore_info[f'Row {str(row)}'] = 'Successfully restored'
                 conn.commit()
             else:
                 restore_info[f'Row {str(row)}'] = 'Failed to restore'
         return success[0], restore_info
 
-    except psycopg2.IntegrityError as err:
-        return 0, "Can't restore the row. This can be 1 of three reasons, Row already populated, MRL already exists or receipt Num is not unique to the table."
+    except psycopg2.IntegrityError:
+        return False, "Can't restore the row. Duplicate row id, MRL, or receipt num."
 
     except psycopg2.Error as err:
         sql_except(err)
-        return 0, str(err)
+        return False, str(err)
 
 
 def create_db_user(name, password, admin):
     """
     Function to create the new user in the database when they are created on webserver
-    Args:   name(str) - username for new user
-            password(str) - password for new user
-            admin(bool) - flag if new user should be added to admin group
+    Args:
+        name (str): username for new user
+        password (str): password for new user
+        admin (bool): flag if new user should be added to admin group
     """
     try:
         if admin:
@@ -667,8 +672,7 @@ def create_db_user(name, password, admin):
         else:
             cmd = f'CREATE USER "{name}" WITH PASSWORD \'{password}\' IN GROUP writeaccess;'
         pgSqlCur.execute(cmd)
-        success = pgSqlCur.statusmessage
-        if success == "CREATE ROLE":
+        if pgSqlCur.statusmessage == "CREATE ROLE":
             pgSqlConn.commit()
             return 1, f'User {name} created in the postgresDB'
         else:
@@ -677,33 +681,3 @@ def create_db_user(name, password, admin):
     except psycopg2.Error as err:
         sql_except(err)
         return 0, str(err)
-
-
-# TODO: either delete this or update it
-def test_driver():
-    # Pre-insert query
-    print('Dump tables -------------------------------------------------')
-    dump_tables()
-
-    print('\nInsert data -------------------------------------------------')
-    process_file(test_file)
-
-    # three options for collisions:
-    # 1. do nothing (discard new row; probably want to return an error to the user in this case)
-    # 2. update existing record with new metadata
-    # ON CONFLICT (filename)
-    #       DO UPDATE
-    #       SET (size, last_modified_by, modified) = (EXCLUDED.size, EXCLUDED.last_modified_by, EXCLUDED.modified)
-    # 3. add entirely new record
-    # would need to return status of insertion, then insert a new row. Would need an incrementing column, like 'version'
-
-    # unfortunately, it looks like 'creator' and 'created' are both fabricated by openpyxl, so we may need to find
-    # a different way to capture that data if we want to keep them
-
-    # Post insert query, verify data is inserted
-    print('\nDump tables -------------------------------------------------')
-    dump_tables()
-
-    # close the db connection
-    print("Closing connection to database.")
-    c.pg_disconnect(pgSqlCur, pgSqlConn)
