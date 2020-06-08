@@ -1250,7 +1250,7 @@
 							")",
 							"",
 							"pm.test(\"Test Query Fail Invalid Table Response\", function () {",
-							"    pm.expect(pm.response.text()).to.include(\"Error: Requested table not found\");",
+							"    pm.expect(pm.response.text()).to.include(\"Error: Table x does not match known list\");",
 							"})"
 						],
 						"type": "text/javascript"

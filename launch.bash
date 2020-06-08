@@ -171,8 +171,10 @@ function run() {
 
     # change permissions of SSL config files
     sudo chown -R 999:root kanabi/configs/
+    sudo chown -R 999:root kanabi/auth-db/
     sudo chmod 777 kanabi/configs/
     sudo chmod 600 kanabi/configs/*
+    sudo chmod 660 kanabi/auth-db/db.sqlite
 
     # if the image doesn't exist (or we've just deleted it), build it fresh
     sudo docker image inspect flask-server:v1 >/dev/null 2>&1
