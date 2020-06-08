@@ -7,6 +7,7 @@ from .configure import db
 from .responses import make_gui_response
 from .driver import create_db_user
 
+
 auth_bp = Blueprint('auth_bp', __name__)
 json_header = {"Content-Type": "application/json"}
 
@@ -43,7 +44,7 @@ def login():
       }
     }
     '''
-    req = parse_request(request)
+    req = parse_content(request)
     email = req.get('email')
     password = req.get('password')
     remember = True if req.get('remember') else False
@@ -63,7 +64,7 @@ def login():
     return make_gui_response(json_header, 200, 'OK')
 
 
-def parse_request(r):
+def parse_content(r):
     content_type = r.content_type
     if content_type == 'application/json':
         req = request.json
@@ -76,7 +77,7 @@ def parse_request(r):
 # Adds the user to the database and rejects duplicate emails
 @auth_bp.route('/signup', methods=['POST'])
 def signup_post():
-    '''
+    """
     # Creates a user account
     $ curl -k -X OPTIONS -H "Origin: https://capstone.sugar.coffee" -H "Content-Type: application/json" \
         --request POST --data '{"email":"lgunnell@pdx.edu","password":"pass","name":"True"}' \
@@ -89,8 +90,10 @@ def signup_post():
        "logged_in": false
       }
     }
-    '''
-    req = parse_request(request)
+    """
+    req = parse_content(request)
+    if req is None:
+        return make_gui_response(json_header, 400, 'Content-Type not allowed')
     email = req.get('email')
     name = req.get('name')
     password = req.get('password')

@@ -69,8 +69,8 @@
 					"script": {
 						"id": "28d4ad5f-47ba-454f-9d1c-b43d848dad21",
 						"exec": [
-							"pm.test(\"Tncomplete Intake Status Code\", function () {",
-							"    pm.response.to.have.status(400);",
+							"pm.test(\"Incomplete Intake Status Code\", function () {",
+							"    pm.response.to.have.status(500);",
 							"}",
 							")",
 							"pm.test(\"Incomplete Intake Response\", function () {",
@@ -501,19 +501,19 @@
 			"response": []
 		},
 		{
-			"name": "No File Provided",
+			"name": "No Table Listed in File Upload",
 			"event": [
 				{
 					"listen": "test",
 					"script": {
 						"id": "aa4fc114-3f6a-4fe9-af14-1df1793f0273",
 						"exec": [
-							"pm.test(\"No File Status Code\", function () {",
+							"pm.test(\"No Table In Upload Status Code\", function () {",
 							"    pm.response.to.have.status(400);",
 							"}",
 							")",
-							"pm.test(\"No File Output\", function () {",
-							"    pm.expect(pm.response.text()).to.include(\"No file listed\");",
+							"pm.test(\"No Table In Upload Output\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"Table name not specified\");",
 							"}",
 							")"
 						],
@@ -532,12 +532,6 @@
 					],
 					"path": [
 						"load"
-					],
-					"query": [
-						{
-							"key": "file",
-							"value": ""
-						}
 					]
 				}
 			},
@@ -866,7 +860,7 @@
 							")",
 							"",
 							"pm.test(\"Test Query Fail No Table Response\", function () {",
-							"    pm.expect(pm.response.text()).to.include(\"Error: No table named in request\");",
+							"    pm.expect(pm.response.text()).to.include(\"Table name not supplied\");",
 							"})"
 						],
 						"type": "text/javascript"
@@ -1301,6 +1295,14 @@
 							"pm.test(\"Get Intake\", function () {",
 							"    pm.response.to.have.status(200);",
 							"}",
+							")",
+							"",
+							"pm.test(\"Get Intake Schema\", function () {",
+							"    var json = pm.response.json()[0];",
+							"    pm.expect(json).to.have.property('entity');",
+							"    pm.expect(json).to.have.property('mrl');",
+							"    pm.expect(json).to.have.property('submission_date');",
+							"}",
 							")"
 						],
 						"type": "text/javascript"
@@ -1407,6 +1409,127 @@
 					"protocol": "https",
 					"host": [
 						"localhost"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Signup",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "32324e3c-7338-4d42-bc65-0f6e22242192",
+						"exec": [
+							"pm.test(\"Signup\", function () {",
+							"    pm.response.to.have.status(200);",
+							"}",
+							")",
+							"",
+							"pm.test(\"Signup Response Schema\", function () {",
+							"    var json = pm.response.json();",
+							"    pm.expect(json).to.have.property('user');",
+							"    var return_msg = json['return_msg'];",
+							"    pm.expect(return_msg).to.eql(\"OK\");",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "email",
+							"value": "joseph@gmail.com",
+							"type": "text"
+						},
+						{
+							"key": "name",
+							"value": "joseph",
+							"type": "text"
+						},
+						{
+							"key": "password",
+							"value": "pwd",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "https://localhost:443/signup",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "443",
+					"path": [
+						"signup"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Make admin",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "bacbddc3-3255-4176-9342-e13e807102eb",
+						"exec": [
+							"pm.test(\"Make Initial Admin\", function () {",
+							"    pm.response.to.have.status(200);",
+							"}",
+							")",
+							"",
+							"pm.test(\"Make Initial Admin Schema\", function () {",
+							"    var json = pm.response.json();",
+							"    pm.expect(json).to.have.property('user');",
+							"    var return_msg = json['return_msg'];",
+							"    // pm.expect(false);",
+							"    console.log(return_msg);",
+							"    pm.expect(return_msg).to.eql(\"OK\");",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "email",
+							"value": "a@gmail.com",
+							"type": "text"
+						},
+						{
+							"key": "password",
+							"value": "xef",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "https://localhost:443/makeadmin",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "443",
+					"path": [
+						"makeadmin"
 					]
 				}
 			},
