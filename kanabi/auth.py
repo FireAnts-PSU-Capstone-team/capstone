@@ -5,6 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from .user import User
 from .configure import db
 from .responses import make_gui_response
+from .driver import create_db_user
 
 
 auth_bp = Blueprint('auth_bp', __name__)
@@ -44,8 +45,6 @@ def login():
     }
     '''
     req = parse_content(request)
-    if req is None:
-        return make_gui_response(json_header, 400, 'Content-Type not allowed')
     email = req.get('email')
     password = req.get('password')
     remember = True if req.get('remember') else False
@@ -66,12 +65,14 @@ def login():
 
 
 def parse_content(r):
-    content_type = str(r.content_type)
+    content_type = r.content_type
     if content_type == 'application/json':
-        return r.json
+        req = request.json
     elif content_type == 'application/x-www-form-urlencoded':
-        return r.form
-
+        req = request.form
+    else:
+        return make_gui_response(json_header, 400, 'Content-Type not accepted')
+    return req
 
 # Adds the user to the database and rejects duplicate emails
 @auth_bp.route('/signup', methods=['POST'])
@@ -107,6 +108,8 @@ def signup_post():
     # add the new user to the database
     db.session.add(new_user)
     db.session.commit()
+    #add new user into the postgres database
+    create_db_user(email, new_user.password, new_user.is_admin)
     return make_gui_response(json_header, 200, 'OK')
 
 
