@@ -135,7 +135,7 @@ def user_cursor(user):
     Returns (cursor, conn): Postgres connection and cursor
     """
     try:
-        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password,
+        conn = psycopg2.connect(sslmode="require", dbname="kanabi", user=user.email, password=user.password,
                                 host="db")
         cur = conn.cursor()
         conn.commit()
@@ -377,13 +377,7 @@ def write_metadata(metadata, user):
     cmd = "INSERT INTO {}(filename, creator, size, created_date, last_modified_date, last_modified_by, title, rows, columns) " \
           "VALUES(" + "{} " + ", {}" * 8 + ") ON CONFLICT DO NOTHING"
 
-    try:
-        conn = psycopg2.connect(sslmode="require", dbname="capstone", user=user.email, password=user.password,
-                                host="db")
-        cur = conn.cursor()
-        conn.commit()
-    except psycopg2.DatabaseError:
-        return connection_error_msg, 404
+    cur, conn = user_cursor(user)
 
     try:
         cur.execute(cmd.format(metadata_table, metadata['filename'], metadata['creator'], metadata['size'],

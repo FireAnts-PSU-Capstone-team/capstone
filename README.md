@@ -1,4 +1,4 @@
-# Capstone Project
+# Kanabi Project
  
 ## Team members:
 - Andrew Haley

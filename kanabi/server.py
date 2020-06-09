@@ -13,7 +13,6 @@ from werkzeug.security import generate_password_hash
 import kanabi.driver as driver
 from .auth import logout
 from .configure import db
-from .models.IntakeRow import IntakeRow
 from .responses import make_gui_response
 from .user import User
 
@@ -58,21 +57,23 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-def get_post_param():
+def get_post_param(r):
     """
     Return a dict of param for POST request
+    Args:
+        r (Request): request object
     Returns (dict): param dict obj
     """
-    data_content_type = request.content_type
+    data_content_type = r.content_type
 
     if data_content_type is None:
         result = {'message': 'Update operation requires parameters.'}
         return make_response(jsonify(result), 400)
 
     if data_content_type.find('json') != -1:
-        request_param = request.get_json(force=True)
+        request_param = r.get_json(force=True)
     elif data_content_type.find('x-www-form-urlencoded') != -1:
-        request_param = request.form
+        request_param = r.form
     else:
         result = {'message': f'Unsupported data content-type: {data_content_type}'}
         return make_response(jsonify(result), 400)
@@ -96,17 +97,17 @@ def index():
     return make_gui_response(json_header, 200, 'Hello World')
 
 
-def user_admin(request: {}, mode: str) -> Response:
+def user_admin(req: {}, mode: str) -> Response:
     """
     Handles user management, such as changing permissions levels or updating user information.
     Requires the user to be logged in as an admin.
     Args:
-        request ({form}): the request object
+        req ({form}): the request object
         mode (str): the operation desired
     Returns (Response): status message
 
     """
-    email = request.form.get('email')
+    email = req.form.get('email')
     if email is None:
         return make_gui_response(json_header, 400, 'Target user email not provided')
     user = User.query.filter_by(email=email).one()
@@ -122,17 +123,17 @@ def user_admin(request: {}, mode: str) -> Response:
     elif mode == 'removeeditor':
         user.is_editor = False
     elif mode == 'changepassword':
-        password = request.form.get('new_password')
+        password = req.form.get('new_password')
         if password is None:
             return make_gui_response(json_header, 400, 'Password change request received, but password not provided')
         user.password = generate_password_hash(password, method='sha256')
     elif mode == 'changename':
-        name = request.form.get('new_name')
+        name = req.form.get('new_name')
         if name is None:
             return make_gui_response(json_header, 400, 'Name change request received, but name not provided')
         user.name = name
     elif mode == 'changeemail':
-        email = request.form.get('new_email')
+        email = req.form.get('new_email')
         if email is None:
             return make_gui_response(json_header, 400, 'Email change request received, but new email not provided')
         user.email = email
@@ -207,6 +208,8 @@ def admin_tools(mode: str) -> Response:
 def edit_self_user(mode):
     """
     Allow a user to change some of their own settings.
+    Args:
+        mode (str): the operation to perform
     Returns (Response): status message
     """
     allowed_operations = ['changepassword', 'changename', 'changeemail', 'removeuser']
@@ -243,7 +246,7 @@ def register_admin_post():
     else:
         password = request.form.get('password')
         email = request.form.get('email')
-        name = request.form.get('name', 'capstone_user_1')
+        name = request.form.get('name', 'kanabi_user_1')
         new_user = User(email=email, password=generate_password_hash(password, method='sha256'), name=name,
                         is_admin=True, is_editor=True)
 
@@ -439,7 +442,7 @@ def export_csv():
         try:
             table_output = driver.get_table(table_name, None, current_user)
             if isinstance(table_output,str):
-                return make_response(jsonify(table_output),400)
+                return make_response(jsonify(table_output), 400)
             df = json_normalize(table_output)
             table_info_obj = df.to_csv(index=False)
             return make_response(table_info_obj, 200)
@@ -478,7 +481,7 @@ def update_table():
     """
     update_columns = {}
     row = None
-    request_param = get_post_param()
+    request_param = get_post_param(request)
 
     for key in request_param:
         if key == 'row':
