@@ -93,7 +93,7 @@ def table_rows_to_dicts(rows, cur, columns=None):
 def get_table_list():
     """
     Gets the database's active tables.
-    Returns [str]: list of table names
+    Returns ([str]): list of table names
     """
     try:
         pgSqlCur.execute("""
@@ -103,7 +103,7 @@ def get_table_list():
         NOT LIKE 'pg_%'
             AND table_schema='public'; 
         """)
-        return str([x[0] for x in pgSqlCur.fetchall()])
+        return [str(x[0]) for x in pgSqlCur.fetchall()]
     except psycopg2.Error as err:
         sql_except(err)
 
