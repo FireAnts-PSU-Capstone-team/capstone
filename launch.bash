@@ -16,10 +16,12 @@ web_container="${CURRENT_FILE_FOLDER_NAME}_web_1"
 
 # defines dbname, user, password, port
 source <(grep = "kanabi/db/database.ini")
-db_name=$dbname
-db_port=$port
-db_user=$user
-db_pass=$password
+db_name=${dbname}
+db_port=${port}
+db_user=${user}
+db_pass=${password}
+
+auth_db='kanabi/auth-db/db.sqlite'
 server_port=443
 
 function usage() {
@@ -169,12 +171,16 @@ function run_test() {
 
 function run() {
 
+
     # change permissions of SSL config files
     sudo chown -R 999:root kanabi/configs/
+    mkdir -p kanabi/auth-db
+    sudo touch ${auth_db}
     sudo chown -R 999:root kanabi/auth-db/
+    sudo chown -R 999:root ${auth_db}
     sudo chmod 777 kanabi/configs/
     sudo chmod 600 kanabi/configs/*
-    sudo chmod 660 kanabi/auth-db/db.sqlite
+    sudo chmod 660 ${auth_db}
 
     # if the image doesn't exist (or we've just deleted it), build it fresh
     sudo docker image inspect flask-server:v1 >/dev/null 2>&1
@@ -185,11 +191,11 @@ function run() {
 }
 
 function clean() {
-    sudo rm -rf kanabi/pgdata
+    sudo rm -rf kanabi/pgdata >/dev/null 2>&1
+    sudo rm -rf ${auth_db} >/dev/null 2>&1
     sudo docker image rm flask-server:v1 >/dev/null 2>&1
 }
 
-# TODO: update so this works
 function backup() {
 
     out_file_path=''
@@ -198,6 +204,7 @@ function backup() {
     then
         da=$(date +%Y%m%d%H%M%S)
         out_file_path="${USER_CURRENT_PATH}/${da}.sql"
+        user_path="${USER_CURRENT_PATH}/${da}.users.sql"
     else
         if [[ ${1:0:1} == '/' ]]
         then
@@ -207,11 +214,16 @@ function backup() {
         fi
     fi
 
-    sudo docker exec -it ${db_container} pg_dump -d postgresql://${db_user}:${db_pass}@localhost:${db_port}/${db_name} > $out_file_path
+    # sqlite
+    sudo docker exec -it ${web_container} sqlite3 /server/kanabi/auth-db/db.sqlite .dump > ${user_path}
+    [[ $? == 0 ]] && echo "User data backed up to ${user_path}" || echo "Backup of user data failed"
+
+    # pgdata
+    sudo docker exec -it ${db_container} pg_dump -d postgresql://${db_user}:${db_pass}@localhost:${db_port}/${db_name} > ${out_file_path}
     if [[ $? == 0 ]]; then
-        echo "Backup successful to file: ${out_file_path}"
+        echo "Postgres backup successful to file: ${out_file_path}"
     else
-        echo "Backup failed"
+        echo "Postgres backup failed"
     fi
 }
 
@@ -230,21 +242,28 @@ function restore() {
             in_file_path="${USER_CURRENT_PATH}/${1}"
         fi
 
-        ls $in_file_path > /dev/null 2> /dev/null
+        ls "${in_file_path}.sql" > /dev/null 2> /dev/null
         if [[ $? != 0 ]]
         then
-            echo "File ${in_file_path} does not exist."
+            echo "File ${in_file_path}.sql does not exist."
             exit 1
         fi
     fi
 
-    echo "Restoring DB from file (${in_file_path})..."
+    # TODO: fix pathing; verify file exists
+
+    echo "Restoring user data from file $1.users.sql"
+    sudo docker cp "{$1}.users.sql" "${web_container}:/server/kanabi/auth-db"
+    sudo docker exec ${db_container} sqlite3 /server/kanabi/auth-db/db.sqlite < "/server/kanabi/auth-db/${1}.users.sql"
+    [[ $? == 0 ]] && echo "User data restored" || echo "Restoration of user data failed"
+
+    echo "Restoring Postgres DB from file (${in_file_path}.sql)..."
 
     # remove current DB stuffs
-    psql postgresql://${db_user}:${db_pass}@localhost:${db_port}/${db_name} < ${CURRENT_FILE_FOLDER_PATH}/db/db-remove.sql
+    psql postgresql://${db_user}:${db_pass}@localhost:${db_port}/${db_name} < ${CURRENT_FILE_FOLDER_PATH}/kanabi/db/db-remove.sql
     
     # execute backup .sql file
-    psql postgresql://${db_user}:${db_pass}@localhost:${db_port}/${db_name} < ${in_file_path}
+    psql postgresql://${db_user}:${db_pass}@localhost:${db_port}/${db_name} < ${in_file_path}.sql
     
     [[ $? == 0 ]] && echo "Restored successfully."
 }
@@ -267,7 +286,7 @@ function backup-schedule() {
         comment="Scheduled to backup every day at 00:00 AM."
     fi
 
-    echo $comment
+    echo ${comment}
     crontab -l | sed '/\/launch.bash backup/d' | { cat; echo "${cmd} # ${comment}"; } | crontab - > /dev/null
 }
 

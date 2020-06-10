@@ -11,6 +11,8 @@ RUN cd /server && rm -rf /resources
 
 # go to project dir and install dependencies
 RUN cd /server && pip install -r requirements.txt
+RUN apt-get -y update && apt-get -y upgrade
+RUN apt-get -y install libsqlite3-dev sqlite3
 
 EXPOSE 443
 
