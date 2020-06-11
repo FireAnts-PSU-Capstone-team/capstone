@@ -44,11 +44,14 @@ def login():
       }
     }
     """
-    # TODO: don't allow these values to be null
     req = parse_content(request)
+    if req is None:
+        return make_gui_response(json_header, 400, 'Content-Type not allowed')
     email = req.get('email')
     password = req.get('password')
     remember = True if req.get('remember') else False
+    if email is None or password is None:
+        return make_gui_response(json_header, 400, 'email and password must be supplied in login request')
     user = fetch_user(email)
 
     # Check if user actually exists and compare provided and stored password hashes
@@ -66,13 +69,20 @@ def login():
 
 
 def parse_content(r):
+    """
+
+    Args:
+        r:
+
+    Returns (dict): either the request body or a
+
+    """
     content_type = r.content_type
+    req = None
     if content_type == 'application/json':
         req = request.json
     elif content_type == 'application/x-www-form-urlencoded':
         req = request.form
-    else:
-        return make_gui_response(json_header, 400, 'Content-Type not accepted')
     return req
 
 

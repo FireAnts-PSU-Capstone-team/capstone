@@ -189,7 +189,6 @@ function clean() {
     sudo docker image rm flask-server:v1 >/dev/null 2>&1
 }
 
-# TODO: update so this works
 function backup() {
 
     out_file_path=''
