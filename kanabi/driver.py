@@ -704,3 +704,47 @@ def create_db_user(name, password, admin):
     except psycopg2.Error as err:
         sql_except(err)
         return 0, str(err)
+
+
+def make_db_admin(name, password):
+    cmd = f'SELECT usename FROM pg_shadow;'
+    try:
+        pgSqlCur.execute(cmd)
+        users=[str(x[0]) for x in pgSqlCur.fetchall()]
+        if name in users:
+            cmd = f'GRANT adminaccess to {name};'
+            pgSqlCur.execute(cmd)
+            pgSqlConn.commit()
+            return 1, f'User {name} granted admin access'
+        else:
+            return create_db_user(name, password, True)
+    except psycopg2.Error as err:
+        sql_except(err)
+        return 0, str(err)
+
+
+def remove_db_admin(name):
+    cmd = f'SELECT usename FROM pg_shadow;'
+    try:
+        pgSqlCur.execute(cmd)
+        users = [str(x[0]) for x in pgSqlCur.fetchall()]
+        if name in users:
+            cmd = f'REVOKE adminaccess from {name};'
+            pgSqlCur.execute(cmd)
+            pgSqlConn.commit()
+            return 1, f'User {name} revoked admin access'
+    except psycopg2.Error as err:
+        sql_except(err)
+        return 0, str(err)
+
+
+def remove_db_user(name):
+    cmd = f'DROP USER IF EXISTS {name};'
+    try:
+        pgSqlCur.execute(cmd)
+        pgSqlConn.commit()
+        return 1, f'User {name} removed from db'
+    except psycopg2.Error as err:
+        sql_except(err)
+        return 0, str(err)
+
