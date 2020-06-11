@@ -154,10 +154,12 @@ def sql_except(err):
     # roll back the last sql command
     pgSqlCur.execute("ROLLBACK")
     # get the details for exception
-    # err_type, err_obj, traceback = sys.exc_info()
+    err_type, err_obj, traceback = sys.exc_info()
 
     # print the connect() error
     sys.stderr.write(f"\npsycopg2 ERROR: {err}")
+
+    return {'err_type': err_type, 'err_obj': err_obj, 'traceback': traceback}
 
 
 def fmt(s):
@@ -343,7 +345,7 @@ def write_info_data(df, table, user):
     # check if the connection is alive
     if not user.is_authenticated:
         return False, 'Must be logged in to perform action', 404
-    failed_rows = []
+    failed_validations = []
     success_count = 0
     row_array = np.ndenumerate(df.values).iter.base
     total_count = len(row_array)
@@ -353,14 +355,14 @@ def write_info_data(df, table, user):
             if re == 1:
                 success_count += 1
             else:
-                failed_rows.append(failed_row)
+                failed_validations.append(failed_row)
         except psycopg2.Error:
-            failed_rows.append(row)
+            failed_validations.append(row)
 
     return {
         'insertions_attempted': total_count,
         'insertions_successful': success_count,
-        'insertions_failed': failed_rows
+        'insertions_failed': failed_validations
     }
 
 
@@ -448,7 +450,7 @@ def insert_row(table, row, user):
     try:
 
         # Determine whether to insert at a specific row number or use default
-        if row[0] is not None and isinstance(row[0], int):
+        if row[0] is not None and str(row[0]).isdigit():
             if row_number_exists(pgSqlCur, int(row[0]), table):
                 failed_row = {
                     'row': row[0],
@@ -463,7 +465,7 @@ def insert_row(table, row, user):
                 row_temp += 1
             cmd += f"{row_temp}"
 
-            # if first column is not row#, then almost this is the title
+            # if first column is not row#, then almost certain this is the header
             # after add a row#, add this first column as string
             if not isinstance(row[0], int) and row[0] is not None:
                 cmd += "," + fmt(row[0])
@@ -483,7 +485,8 @@ def insert_row(table, row, user):
             sql_except(err)
             if table == 'intake':
                 failed_row = {
-                    'mrl': row[ColNames.MRL.value]
+                    'mrl': row[ColNames.MRL.value],
+                    'exception': err.diag.message_detail
                 }
             else:
                 failed_row = {
