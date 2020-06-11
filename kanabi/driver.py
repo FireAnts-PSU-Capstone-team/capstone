@@ -154,10 +154,12 @@ def sql_except(err):
     # roll back the last sql command
     pgSqlCur.execute("ROLLBACK")
     # get the details for exception
-    # err_type, err_obj, traceback = sys.exc_info()
+    err_type, err_obj, traceback = sys.exc_info()
 
     # print the connect() error
     sys.stderr.write(f"\npsycopg2 ERROR: {err}")
+
+    return {'err_type': err_type, 'err_obj': err_obj, 'traceback': traceback}
 
 
 def fmt(s):
@@ -483,7 +485,8 @@ def insert_row(table, row, user):
             sql_except(err)
             if table == 'intake':
                 failed_row = {
-                    'mrl': row[ColNames.MRL.value]
+                    'mrl': row[ColNames.MRL.value],
+                    'exception': err.diag.message_detail
                 }
             else:
                 failed_row = {
