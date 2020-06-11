@@ -16,8 +16,7 @@ def pg_connect():
         cur = conn.cursor()
         conn.commit()
         return cur, conn
-    # TODO: validate the exceptions thrown here, no reason to catch Exception and something else
-    except (Exception, psycopg2.DatabaseError) as error:
+    except psycopg2.DatabaseError as error:
         print(error)
 
 
@@ -31,7 +30,7 @@ def pg_disconnect(cur, conn):
     """
     try:
         cur.close()
-    except (Exception, psycopg2.DatabaseError) as error:
+    except psycopg2.DatabaseError as error:
         print(error)
     finally:
         if conn is not None:

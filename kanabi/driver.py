@@ -448,7 +448,7 @@ def insert_row(table, row, user):
     try:
 
         # Determine whether to insert at a specific row number or use default
-        if row[0] is not None and isinstance(row[0], int):
+        if row[0] is not None and str(row[0]).isdigit():
             if row_number_exists(pgSqlCur, int(row[0]), table):
                 failed_row = {
                     'row': row[0],
@@ -463,7 +463,7 @@ def insert_row(table, row, user):
                 row_temp += 1
             cmd += f"{row_temp}"
 
-            # if first column is not row#, then almost this is the title
+            # if first column is not row#, then almost certain this is the header
             # after add a row#, add this first column as string
             if not isinstance(row[0], int) and row[0] is not None:
                 cmd += "," + fmt(row[0])
