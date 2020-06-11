@@ -70,11 +70,10 @@ def login():
 
 def parse_content(r):
     """
-
+    Extracts request body in either JSON or form-urlencoded format.
     Args:
-        r:
-
-    Returns (dict): either the request body or a
+        r (Request): request object
+    Returns (dict): the request body as a dict
 
     """
     content_type = r.content_type
