@@ -116,8 +116,10 @@ def user_admin(req: {}, mode: str) -> Response:
 
     if mode == 'makeadmin':
         user.is_admin = True
+        driver.make_db_admin(user.email,user.password)
     elif mode == 'removeadmin':
         user.is_admin = False
+        driver.remove_db_admin(user.email)
     elif mode == 'makeeditor':
         user.is_editor = True
     elif mode == 'removeeditor':
@@ -139,6 +141,7 @@ def user_admin(req: {}, mode: str) -> Response:
         user.email = email
     elif mode == 'removeuser':
         db.session.delete(user)
+        driver.remove_db_user(user.email)
         if user == current_user:
             db.session.commit()
             return logout()
