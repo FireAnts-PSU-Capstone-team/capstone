@@ -1,3 +1,5 @@
+import json
+import sys
 from functools import wraps
 from sqlite3 import DatabaseError
 
@@ -22,8 +24,6 @@ json_header = {"Content-Type": "application/json"}
 admin_only_tables = ['archive', 'txn_history']
 
 main_bp = Blueprint('main_bp', __name__)
-
-# TODO: review permissions expectations given that most users will be 'editor'
 
 # Administrator permissions. The '@admin_permission.require()' decorator can be used on endpoints.
 # Additionally, 'with admin_permission.require():' can be used inside function definitions for conditionality.
@@ -247,9 +247,10 @@ def register_admin_post():
         msg = 'An admin account has already been created.'
         return make_gui_response(json_header, 400, msg)
     else:
-        password = request.form.get('password')
-        email = request.form.get('email')
-        name = request.form.get('name', 'kanabi_user_1')
+        r = get_post_param(request)
+        password = r.get('password')
+        email = r.get('email')
+        name = r.get('name', 'kanabi_user_1')
         new_user = User(email=email, password=generate_password_hash(password, method='sha256'), name=name,
                         is_admin=True, is_editor=True)
 
@@ -351,25 +352,34 @@ def load_data():
         except driver.InvalidTableException:
             return make_response(jsonify(f"Table {table_name} does not exist."), 404)
 
-        valid, error_msg = driver.validate_row(request.get_json(force=True), table_name)
+        request_json = request.get_json(force=True)
+
+        valid, error_msg = driver.validate_row(request_json, table_name)
         if not valid:
             result = {'failed_row': error_msg}
             return make_response(jsonify(result), 400)
         try:
             if table_name.lower() == 'intake':
                 from .models import IntakeRow
-                row_data = IntakeRow.IntakeRow(request.get_json(force=True)).value_array()
+                row_data = IntakeRow.IntakeRow(request_json).value_array()
             # further tables require implementation and validation
             # elif table_name.lower() == 'reports':
             #     from .models import ReportsRow
-            #     row_data = ReportsRow.ReportsRow(request.get_json(force=True)).value_array()
+            #     row_data = ReportsRow.ReportsRow(request_json).value_array()
             # elif table_name.lower() == 'violations':
             #     from .models import ViolationsRow
-            #     row_data = ViolationsRow.ViolationsRow(request.get_json(force=True)).value_array()
+            #     row_data = ViolationsRow.ViolationsRow(request_json).value_array()
             else:
                 return make_response(jsonify(f"Table {table_name} is not supported for upload."), 400)
-        except (KeyError, ValueError):
-            message = {'message': 'Error encountered while parsing input'}
+        except KeyError as e:
+            message = {'KeyError': f'message: {e.args[0]}'}
+            return make_response(jsonify(message), 400)
+        except ValueError:
+            # err_type, err_obj, traceback = sys.exc_info()
+            message = {
+                'message': 'ValueError encountered while parsing input.',
+                'input': request_json
+            }
             return make_response(jsonify(message), 400)
 
         success, fail_row = driver.insert_row(table_name, row_data, current_user)
@@ -444,7 +454,7 @@ def export_csv():
             return make_response(jsonify('Table name not supplied.'), 400)
         try:
             table_output = driver.get_table(table_name, None, current_user)
-            if isinstance(table_output,str):
+            if isinstance(table_output, str):
                 return make_response(jsonify(table_output), 400)
             df = json_normalize(table_output)
             table_info_obj = df.to_csv(index=False)
