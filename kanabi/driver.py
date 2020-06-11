@@ -343,7 +343,7 @@ def write_info_data(df, table, user):
     # check if the connection is alive
     if not user.is_authenticated:
         return False, 'Must be logged in to perform action', 404
-    failed_rows = []
+    failed_validations = []
     success_count = 0
     row_array = np.ndenumerate(df.values).iter.base
     total_count = len(row_array)
@@ -353,14 +353,14 @@ def write_info_data(df, table, user):
             if re == 1:
                 success_count += 1
             else:
-                failed_rows.append(failed_row)
+                failed_validations.append(failed_row)
         except psycopg2.Error:
-            failed_rows.append(row)
+            failed_validations.append(row)
 
     return {
         'insertions_attempted': total_count,
         'insertions_successful': success_count,
-        'insertions_failed': failed_rows
+        'insertions_failed': failed_validations
     }
 
 

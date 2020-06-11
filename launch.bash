@@ -16,11 +16,12 @@ web_container="${CURRENT_FILE_FOLDER_NAME}_web_1"
 
 # defines dbname, user, password, port
 source <(grep = "kanabi/db/database.ini")
-db_name=$dbname
-db_port=$port
-db_user=$user
-db_pass=$password
+db_name=${dbname}
+db_port=${port}
+db_user=${user}
+db_pass=${password}
 server_port=443
+auth_db="kanabi/auth-db/db.sqlite"
 
 function usage() {
     echo "Usage: "
@@ -186,10 +187,10 @@ function run() {
 
 function clean() {
     sudo rm -rf kanabi/pgdata
+#    sqlite3 ${auth_db} "DELETE FROM User;"
     sudo docker image rm flask-server:v1 >/dev/null 2>&1
 }
 
-# TODO: update so this works
 function backup() {
 
     out_file_path=''
@@ -207,7 +208,7 @@ function backup() {
         fi
     fi
 
-    sudo docker exec -it ${db_container} pg_dump -d postgresql://${db_user}:${db_pass}@localhost:${db_port}/${db_name} > $out_file_path
+    sudo docker exec -it ${db_container} pg_dump -d postgresql://${db_user}:${db_pass}@localhost:${db_port}/${db_name} > ${out_file_path}
     if [[ $? == 0 ]]; then
         echo "Backup successful to file: ${out_file_path}"
     else
@@ -230,7 +231,7 @@ function restore() {
             in_file_path="${USER_CURRENT_PATH}/${1}"
         fi
 
-        ls $in_file_path > /dev/null 2> /dev/null
+        ls ${in_file_path} > /dev/null 2> /dev/null
         if [[ $? != 0 ]]
         then
             echo "File ${in_file_path} does not exist."
@@ -267,7 +268,7 @@ function backup-schedule() {
         comment="Scheduled to backup every day at 00:00 AM."
     fi
 
-    echo $comment
+    echo ${comment}
     crontab -l | sed '/\/launch.bash backup/d' | { cat; echo "${cmd} # ${comment}"; } | crontab - > /dev/null
 }
 

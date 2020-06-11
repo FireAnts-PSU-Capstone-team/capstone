@@ -106,7 +106,7 @@ COMMENT ON TABLE metadata IS 'Table to track the file metadata that is uploaded 
 -- Name: Intake; Type: TABLE; Schema: public; Owner: kanabiadmin
 --
 CREATE TABLE intake (
-    "row" text NOT NULL,
+    "row" integer NOT NULL,
     submission_date text,
     entity text,
     dba text,

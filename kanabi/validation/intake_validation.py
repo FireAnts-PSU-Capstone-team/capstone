@@ -261,8 +261,7 @@ def validate_intake(df, is_db=0):
         if len(errorString) != 0:
             error_cols = ','.join(str(x) for x in errorString)
             df.at[i, ColNames.VALIDATION_ERRORS.name] = error_cols
-            msg[i] = {
-                'failed_row_id': row[ColNames.ROW.value],
+            msg[f'row {row[ColNames.ROW.value]}'] = {
                 'failed_columns': error_cols
             }
         i += 1
