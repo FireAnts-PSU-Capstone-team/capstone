@@ -362,10 +362,10 @@ def load_data():
             # further tables require implementation and validation
             # elif table_name.lower() == 'reports':
             #     from .models import ReportsRow
-            #     row_data = ReportsRow.ReportsRow(json).value_array()
+            #     row_data = ReportsRow.ReportsRow(request_json).value_array()
             # elif table_name.lower() == 'violations':
             #     from .models import ViolationsRow
-            #     row_data = ViolationsRow.ViolationsRow(json).value_array()
+            #     row_data = ViolationsRow.ViolationsRow(request_json).value_array()
             else:
                 return make_response(jsonify(f"Table {table_name} is not supported for upload."), 400)
         except KeyError as e:
