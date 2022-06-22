@@ -16,7 +16,7 @@ kiwisolver==1.2.0
 markdown==3.2.2
 MarkupSafe==1.1.1
 matplotlib==3.2.1
-numpy==1.18.4
+numpy==1.22.0
 openpyxl==3.0.3
 pandas==1.0.3
 psycopg2==2.8.5
